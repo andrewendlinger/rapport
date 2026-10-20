@@ -1,0 +1,6 @@
+name = "hr"
+kind = "element"
+summary = "Thematic break (---)."
+
+[feedback]
+unit = "none"

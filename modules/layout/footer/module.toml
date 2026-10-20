@@ -1,0 +1,11 @@
+name = "footer"
+kind = "layout"
+summary = "Quiet closing line: title, version, build date."
+
+[feedback]
+unit = "none"
+
+[config.text]
+type = "string"
+default = ""
+doc = "Extra footer text (e.g. a confidentiality note)."

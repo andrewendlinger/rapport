@@ -1,0 +1,6 @@
+@media print{
+  [data-rp-ui]:is(button,.rp-fb-layer){display:none!important}
+  .rp-content a{color:inherit}
+  .rp-pre,.rp-callout,.rp-compare,.rp-figure{break-inside:avoid}
+  h2,h3{break-after:avoid}
+}

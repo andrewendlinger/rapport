@@ -1,0 +1,15 @@
+<header class="rp-header">
+{% if meta.kicker %}<p class="rp-kicker">{{ meta.kicker }}</p>{% endif %}
+<h1 class="rp-title">{{ meta.title }}</h1>
+{% if meta.subtitle %}<p class="rp-subtitle">{{ meta.subtitle }}</p>{% endif %}
+{% set parts = [] %}
+{% if meta.author %}{% set _ = parts.append(meta.author) %}{% endif %}
+{% if cfg.show_date and meta.date %}{% set _ = parts.append(meta.date|string) %}{% endif %}
+{% if parts or meta.status or cfg.show_version %}
+<p class="rp-byline" data-rp-ui>
+{% for p in parts %}<span>{{ p }}</span>{% endfor %}
+{% if meta.status %}<span class="rp-status">{{ meta.status }}</span>{% endif %}
+{% if cfg.show_version %}<span class="rp-version">v{{ meta.version }}</span>{% endif %}
+</p>
+{% endif %}
+</header>

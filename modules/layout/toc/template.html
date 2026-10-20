@@ -1,0 +1,11 @@
+{% set items = headings | selectattr("level", "ge", cfg.min_level) | selectattr("level", "le", cfg.max_level) | list %}
+{% if items | length >= cfg.min_headings %}
+<nav class="rp-toc" aria-label="{{ cfg.title }}">
+<p class="rp-toc-title">{{ cfg.title }}</p>
+<ol>
+{% for h in items %}
+<li class="rp-toc-l{{ h.level - cfg.min_level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>
+{% endfor %}
+</ol>
+</nav>
+{% endif %}

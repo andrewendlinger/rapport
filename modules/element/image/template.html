@@ -1,0 +1,5 @@
+{% set cap = node.attrs.title or (node.attrs.alt if cfg.caption_from_alt else "") %}
+<figure class="rp-figure">
+<img src="{{ ctx.asset(node.attrs.src, node.lines[0]) }}" alt="{{ node.attrs.alt }}"{% if node.params.zoom %} data-rp-zoom{% endif %}>
+{% if cap %}<figcaption>{{ cap }}</figcaption>{% endif %}
+</figure>

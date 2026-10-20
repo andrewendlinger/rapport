@@ -1,0 +1,9 @@
+name = "badge"
+kind = "inline"
+summary = "A small inline label: :badge[shipped]{tone = \"ok\"}."
+
+[params.tone]
+type = "enum"
+choices = ["neutral", "accent", "ok", "warn", "danger", "violet"]
+default = "neutral"
+doc = "Colour."

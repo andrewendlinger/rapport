@@ -1,0 +1,163 @@
+# rapport core config schema.
+#
+# Every table that has a `type` key describes one config key; every other table
+# is a section. Module settings are NOT listed here: each module declares its
+# own under [params.*] / [config.*] in its module.toml, and they are set at
+# [modules.<name>]. `rapport config defaults` prints a commented reference.
+#
+# Spec fields: type (string|int|number|bool|enum|list|table|tables|any),
+# default, doc, choices (enum), items (list element type), merge
+# (replace|append|merge|by-id), path (resolve relative to the declaring file).
+
+[preset]
+type = "string"
+default = "default"
+doc = "Named settings bundle from a presets/ folder (built-in, ~/.config/rapport/presets, or rapport-presets/ next to a rapport.toml)."
+
+[meta]
+type = "table"
+default = {}
+doc = "Report metadata (title, subtitle, author, date, status, kicker…). Top-level keys in the report's +++ front matter land here."
+
+# ── report: what gets built ───────────────────────────────────────────────
+[report.source]
+type = "string"
+default = "report.md"
+doc = "Source file inside the report folder."
+
+[report.output]
+type = "string"
+default = "report.html"
+doc = "Built, self-contained HTML file inside the report folder."
+
+[report.lang]
+type = "string"
+default = "en"
+doc = "<html lang> of the output."
+
+[report.max_inline_mb]
+type = "number"
+default = 8
+doc = "Total budget for inlined images/gifs. Exceeding it is a build error (output stays self-contained)."
+
+[report.raw_html]
+type = "bool"
+default = false
+doc = "Allow raw HTML in report.md. Off: it is escaped. On: raw blocks render through the `html` element module."
+
+# ── layout: which layout modules fill which page region ──────────────────
+[layout.page]
+type = "string"
+default = "page"
+doc = "Layout module that renders the page shell."
+
+[layout.top]
+type = "list"
+items = "string"
+default = ["header"]
+doc = "Layout modules above the content, in order."
+
+[layout.side]
+type = "list"
+items = "string"
+default = ["toc"]
+doc = "Layout modules in the side column (empty list: single column)."
+
+[layout.bottom]
+type = "list"
+items = "string"
+default = ["footer"]
+doc = "Layout modules below the content, in order."
+
+[layout.width]
+type = "string"
+default = "70ch"
+doc = "Max width of the reading column (any CSS length)."
+
+# ── theme ────────────────────────────────────────────────────────────────
+[theme.name]
+type = "string"
+default = "default"
+doc = "Theme module to use (built-in: default, paper)."
+
+[theme.mode]
+type = "enum"
+choices = ["auto", "light", "dark"]
+default = "auto"
+doc = "auto follows the OS; light/dark pins it (the theme toggle can still override per reader)."
+
+[theme.tokens]
+type = "table"
+merge = "merge"
+default = {}
+doc = "Override theme tokens, e.g. accent = \"#c0392b\". Dark-mode values go in [theme.tokens.dark]. Valid names: `rapport modules info <theme>`."
+
+# ── writing: guidance for the agent (rapport brief) and checks (rapport lint) ─
+[writing.audience]
+type = "string"
+default = "a technical reader who wants the substance fast"
+doc = "Who the report is for; calibrates depth and jargon."
+
+[writing.tone]
+type = "string"
+default = "plain, direct, specific; no filler, hedging, or hype"
+doc = "Voice of the report."
+
+[writing.length]
+type = "string"
+default = "as short as completeness allows"
+doc = "Length guidance."
+
+[writing.structure]
+type = "list"
+items = "string"
+default = ["Lead with a short summary of the conclusions", "Put supporting detail and long material in collapsed sections"]
+doc = "Structural conventions the agent follows."
+
+[writing.rules]
+type = "list"
+items = "string"
+merge = "append"
+default = []
+doc = "Extra writing rules. Appended across layers; learned rules (rapport writing add) land here too."
+
+[writing.avoid]
+type = "list"
+items = "string"
+merge = "append"
+default = ["delve", "it's worth noting", "in today's fast-paced", "game-changer", "seamless", "leverage", "robust solution"]
+doc = "Phrases the agent must not use; `rapport lint` flags them. Appended across layers."
+
+[writing.max_paragraph_words]
+type = "int"
+default = 120
+doc = "`rapport lint` flags longer paragraphs (0 disables)."
+
+# ── modules ──────────────────────────────────────────────────────────────
+[modules.paths]
+type = "list"
+items = "string"
+path = true
+default = []
+doc = "Extra module roots (module packs), relative to the file that declares them. Ranked with that file's layer."
+
+# ── serve ────────────────────────────────────────────────────────────────
+[serve.host]
+type = "string"
+default = "127.0.0.1"
+doc = "Interface the review server binds."
+
+[serve.port]
+type = "int"
+default = 4848
+doc = "Preferred port; falls back to the next 9, then an OS-assigned one."
+
+[serve.open_browser]
+type = "bool"
+default = true
+doc = "Open the report in the browser when the server starts."
+
+[serve.watch_ms]
+type = "int"
+default = 400
+doc = "How often sources are checked for changes (rebuild on save)."

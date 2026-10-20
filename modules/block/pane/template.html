@@ -1,0 +1,7 @@
+<div class="rp-pane"{% if node.params.title %} data-rp-label="{{ node.params.title }}"{% endif %}>
+{% if node.params.title %}<div class="rp-pane-label">{{ node.params.title }}</div>
+{% endif %}
+<div class="rp-pane-body">
+{{ node.body }}
+</div>
+</div>

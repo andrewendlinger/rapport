@@ -1,0 +1,4 @@
+name = "runtime"
+kind = "feature"
+summary = "The client kernel: module registry, mounting, events, reveal. Always on."
+required = true

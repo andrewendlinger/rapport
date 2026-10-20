@@ -1,0 +1,5 @@
+<aside class="rp-callout rp-tone-{{ node.params.tone }}">
+{# a title derived from the tone isn't in report.md, so it's chrome (never quoted) #}
+<p class="rp-callout-title"{% if not node.params.title %} data-rp-ui{% endif %}>{{ node.params.title or node.params.tone | capitalize }}</p>
+{{ node.body }}
+</aside>

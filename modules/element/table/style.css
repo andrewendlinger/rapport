@@ -1,0 +1,6 @@
+.rp-table{overflow-x:auto;margin:1.2em 0}
+.rp-table table{border-collapse:collapse;width:100%;font:14px/1.5 var(--rp-sans);font-variant-numeric:tabular-nums}
+.rp-table th{font:600 11px var(--rp-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--rp-ink-soft);
+  text-align:left;border-bottom:1.5px solid var(--rp-ink);padding:7px 14px 7px 0;white-space:nowrap}
+.rp-table td{border-bottom:1px solid var(--rp-line);padding:8px 14px 8px 0;vertical-align:top}
+.rp-table th[style*="right"],.rp-table td[style*="right"]{text-align:right}

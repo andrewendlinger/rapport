@@ -1,0 +1,22 @@
+#!/bin/sh
+# rapport CLI wrapper. Resolves its real location through symlinks, then runs
+# the entry point with the first available interpreter: the repo's .venv
+# (install.sh --venv), `uv run --script` (inline PEP 723 deps), or python3.
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case $link in
+    /*) self=$link ;;
+    *) self=$(dirname "$self")/$link ;;
+  esac
+done
+ROOT=$(cd "$(dirname "$self")/.." && pwd -P)
+ENTRY="$ROOT/scripts/rapport.py"
+
+if [ -x "$ROOT/.venv/bin/python" ]; then
+  exec "$ROOT/.venv/bin/python" "$ENTRY" "$@"
+fi
+if command -v uv >/dev/null 2>&1; then
+  exec uv run --quiet --script "$ENTRY" "$@"
+fi
+exec python3 "$ENTRY" "$@"

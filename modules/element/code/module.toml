@@ -1,0 +1,34 @@
+name = "code"
+kind = "element"
+summary = "Fenced code with syntax highlighting (Pygments, any language). Params go after the language."
+
+[params.title]
+type = "string"
+default = ""
+doc = "Caption shown above the code, e.g. a file name."
+
+[params.hl]
+type = "list"
+items = "int"
+default = []
+doc = "Line numbers to highlight, e.g. [2, 3]."
+
+[params.line_numbers]
+type = "bool"
+default = false
+doc = "Number the lines."
+
+[params.wrap]
+type = "bool"
+default = false
+doc = "Wrap long lines instead of scrolling."
+
+[config.light_style]
+type = "string"
+default = "friendly"
+doc = "Pygments style for light mode (see `pygmentize -L styles`)."
+
+[config.dark_style]
+type = "string"
+default = "github-dark"
+doc = "Pygments style for dark mode."

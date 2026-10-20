@@ -1,0 +1,17 @@
+name = "compare"
+kind = "block"
+summary = "Side-by-side panes (code, prose, images), e.g. before/after. Stacks on narrow screens."
+body = "markdown"
+positional = "title"
+children = ["pane"]
+
+[params.title]
+type = "string"
+default = ""
+doc = "Optional heading above the panes."
+
+[params.labels]
+type = "list"
+items = "string"
+default = []
+doc = "Pane labels for the shorthand form (each top-level block is one pane). With ::: pane children, use their titles instead."

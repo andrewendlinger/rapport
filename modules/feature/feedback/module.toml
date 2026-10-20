@@ -1,0 +1,127 @@
+name = "feedback"
+kind = "feature"
+summary = "Reader feedback on the served report: select text (or hover a block) to comment or flag it with a quick action. Everything autosaves; the agent picks it up with `rapport feedback`."
+when = "serve"
+
+[config.on_select]
+type = "enum"
+choices = ["window", "bar"]
+default = "window"
+doc = "window: releasing a selection opens a comment window (type to comment, click an action to save). bar: a slim icon bar first; 💬 or C expands it."
+
+[config.autofocus]
+type = "bool"
+default = true
+doc = "Put the cursor in the comment box as soon as you select text with the mouse, so you can type right away. Cmd/Ctrl+C still copies the passage. false: focus moves there on your first keystroke."
+
+[config.enter_saves]
+type = "bool"
+default = true
+doc = "Enter saves the comment; Shift+Enter or Cmd/Ctrl+Enter starts a new line. false: Enter is a new line and Cmd/Ctrl+Enter saves."
+
+[config.block_handles]
+type = "bool"
+default = true
+doc = "Show a margin handle on hover to comment on a whole block (images, gifs, code)."
+
+[config.panel_hint]
+type = "string"
+default = "Tell your agent: “apply the rapport feedback”."
+doc = "Line shown at the bottom of the feedback panel."
+
+# Quick actions are pure data: add, redefine, or switch off (enabled = false)
+# any of them from any config layer; entries merge by id. `instruction` (or a
+# longer `instruction_file`) is what the agent is told to do.
+[config.actions]
+type = "tables"
+merge = "by-id"
+doc = "Quick actions offered on a selection. Fields: id, label, icon, key, tone, comment, learn, instruction, instruction_file, strike, enabled."
+
+[config.actions.fields.id]
+type = "string"
+doc = "Stable identifier (used for merging and in feedback items)."
+
+[config.actions.fields.label]
+type = "string"
+doc = "Button text."
+
+[config.actions.fields.icon]
+type = "string"
+doc = "Short glyph shown on the button (emoji or a character)."
+
+[config.actions.fields.key]
+type = "string"
+doc = "Shortcut letter: Alt+key in window mode, plain key in bar mode."
+
+[config.actions.fields.tone]
+type = "enum"
+choices = ["neutral", "accent", "ok", "warn", "danger", "violet"]
+doc = "Colour of the button and of the highlight it leaves."
+
+[config.actions.fields.comment]
+type = "enum"
+choices = ["none", "optional", "required"]
+doc = "Whether the action needs a written comment. With an empty comment box, optional/none actions save in one click."
+
+[config.actions.fields.learn]
+type = "enum"
+choices = ["none", "ask", "global", "project"]
+doc = "After resolving: none, ask the user whether to save a writing rule, or save it user-wide / per project."
+
+[config.actions.fields.instruction]
+type = "string"
+doc = "What the agent should do with the passage."
+
+[config.actions.fields.instruction_file]
+type = "string"
+path = true
+doc = "Longer instruction in a file, relative to the config file that declares it."
+
+[config.actions.fields.strike]
+type = "bool"
+doc = "Show the passage struck through while the item is open (default: true for id = \"delete\")."
+
+[config.actions.fields.enabled]
+type = "bool"
+doc = "Set false to remove this action."
+
+[[config.actions.default]]
+id = "delete"
+label = "Delete"
+icon = "🗑"
+key = "d"
+tone = "danger"
+comment = "optional"
+learn = "none"
+strike = true
+instruction = "Remove this passage. Repair the surrounding text so it still reads naturally; if that leaves a section empty, remove the section."
+
+[[config.actions.default]]
+id = "slop"
+label = "AI slop"
+icon = "🤖"
+key = "s"
+tone = "warn"
+comment = "optional"
+learn = "ask"
+instruction = "Rewrite this in plain, concise, simply worded language that is easy to follow and understand. Not unnecessarily descriptive or verbose: to the point and human-friendly. Keep the facts."
+
+[[config.actions.default]]
+id = "verbose"
+label = "Too verbose"
+icon = "✂"
+key = "v"
+tone = "accent"
+comment = "optional"
+learn = "none"
+instruction = "Cut this to about half its length without losing information: drop restatement, filler, and throat-clearing."
+
+[[config.actions.default]]
+id = "unclear"
+label = "Unclear"
+icon = "?"
+key = "u"
+tone = "violet"
+comment = "optional"
+learn = "none"
+instruction = "Make this easier to understand: say it more simply, define terms on first use, and add a short concrete example if that helps."

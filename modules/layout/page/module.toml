@@ -1,0 +1,6 @@
+name = "page"
+kind = "layout"
+summary = "The HTML shell: head, regions (top / side / bottom), content column."
+
+[feedback]
+unit = "none"

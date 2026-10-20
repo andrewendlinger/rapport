@@ -1,0 +1,13 @@
+name = "header"
+kind = "layout"
+summary = "Title block: kicker, title, subtitle, and a byline (author, date, status, version)."
+
+[config.show_version]
+type = "bool"
+default = true
+doc = "Show the report version (bumped each time feedback is resolved)."
+
+[config.show_date]
+type = "bool"
+default = true
+doc = "Show meta.date when set."

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+/rapport-gallery/
+# a report's review state (feedback, server token, block index)
+.rapport/

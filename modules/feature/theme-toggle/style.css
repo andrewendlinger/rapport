@@ -1,0 +1,5 @@
+.rp-theme-toggle{position:fixed;top:14px;right:16px;z-index:40;width:32px;height:32px;border-radius:999px;
+  border:1px solid var(--rp-line);background:var(--rp-surface);color:var(--rp-ink-soft);font:15px/1 var(--rp-sans);
+  cursor:pointer;box-shadow:var(--rp-shadow);opacity:.75;transition:opacity .15s}
+.rp-theme-toggle:hover{opacity:1}
+@media print{.rp-theme-toggle{display:none}}

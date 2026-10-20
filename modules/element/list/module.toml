@@ -1,0 +1,3 @@
+name = "list"
+kind = "element"
+summary = "Bulleted, numbered, and task lists (- [ ] / - [x])."

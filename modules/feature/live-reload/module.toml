@@ -1,0 +1,9 @@
+name = "live-reload"
+kind = "feature"
+summary = "Served pages follow the source: reload on rebuild (never while you are writing a comment), show build errors."
+when = "serve"
+
+[config.interval_ms]
+type = "int"
+default = 1000
+doc = "How often the page asks the server for changes."

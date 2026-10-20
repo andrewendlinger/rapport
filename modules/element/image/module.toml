@@ -1,0 +1,13 @@
+name = "image"
+kind = "element"
+summary = "A paragraph that is just an image (png, jpg, svg, gif) becomes a figure; always inlined. Caption from the title, else the alt text."
+
+[params.zoom]
+type = "bool"
+default = true
+doc = "Click to view full size."
+
+[config.caption_from_alt]
+type = "bool"
+default = true
+doc = "Use the alt text as caption when no title is given."

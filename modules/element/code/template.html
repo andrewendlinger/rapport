@@ -1,0 +1,5 @@
+<figure class="rp-code">
+{% if node.params.title %}<figcaption class="rp-code-title">{{ node.params.title }}</figcaption>
+{% endif %}
+<pre class="rp-pre{% if node.params.line_numbers %} rp-ln{% endif %}{% if node.params.wrap %} rp-wrap{% endif %}"><code{% if node.attrs.lang %} class="language-{{ node.attrs.lang }}"{% endif %}>{{ ctx.highlight(node.text, node.attrs.lang, node.params.hl) }}</code></pre>
+</figure>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="{{ lang }}"{% if theme_mode %} data-theme="{{ theme_mode }}"{% endif %}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="{{ generator }}">
+<title>{{ meta.title }}</title>
+<style>
+{{ css }}
+</style>
+</head>
+<body class="rp-page{% if regions.side %} rp-has-side{% endif %}">
+<div class="rp-shell">
+{% if regions.top %}
+<div class="rp-top">
+{{ regions.top }}
+</div>
+{% endif %}
+<div class="rp-body">
+{% if regions.side %}
+<aside class="rp-side" data-rp-ui>
+{{ regions.side }}
+</aside>
+{% endif %}
+<main class="rp-content" id="rp-content">
+{{ content }}
+</main>
+</div>
+{% if regions.bottom %}
+<div class="rp-bottom">
+{{ regions.bottom }}
+</div>
+{% endif %}
+</div>
+{{ features }}
+<script type="application/json" id="rp-data">{{ data_json }}</script>
+{{ scripts }}
+<script>window.Rapport && Rapport.start();</script>
+</body>
+</html>

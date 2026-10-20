@@ -1,0 +1,3 @@
+name = "footnotes"
+kind = "element"
+summary = "The footnote list collected from [^1] references."

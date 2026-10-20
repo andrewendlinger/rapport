@@ -1,0 +1,5 @@
+.rp-copy{position:absolute;top:8px;right:8px;z-index:2;border:1px solid var(--rp-line);background:var(--rp-surface);
+  color:var(--rp-ink-soft);font:600 11px var(--rp-sans);border-radius:5px;padding:4px 9px;cursor:pointer;opacity:0;transition:opacity .12s}
+.rp-code:hover .rp-copy,.rp-copy:focus{opacity:1}
+.rp-code-title~.rp-copy{top:40px}
+@media print{.rp-copy{display:none}}

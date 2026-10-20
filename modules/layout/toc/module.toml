@@ -1,0 +1,26 @@
+name = "toc"
+kind = "layout"
+summary = "Table of contents from the report's headings, with scroll-spy."
+
+[feedback]
+unit = "none"
+
+[config.title]
+type = "string"
+default = "Contents"
+doc = "Label above the list."
+
+[config.min_level]
+type = "int"
+default = 2
+doc = "Shallowest heading level listed."
+
+[config.max_level]
+type = "int"
+default = 3
+doc = "Deepest heading level listed."
+
+[config.min_headings]
+type = "int"
+default = 3
+doc = "Hide the TOC when the report has fewer headings than this."

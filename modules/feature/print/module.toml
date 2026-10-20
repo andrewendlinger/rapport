@@ -1,0 +1,3 @@
+name = "print"
+kind = "feature"
+summary = "Print-friendly output: collapsed sections expand, UI chrome hides."

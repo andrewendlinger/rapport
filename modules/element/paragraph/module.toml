@@ -1,0 +1,3 @@
+name = "paragraph"
+kind = "element"
+summary = "Plain Markdown paragraphs."

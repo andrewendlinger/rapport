@@ -1,0 +1,16 @@
+<div class="rp-compare">
+{% if node.params.title %}<p class="rp-compare-title">{{ node.params.title }}</p>
+{% endif %}
+<div class="rp-compare-grid rp-panes-{{ node.children | length }}">
+{% for c in node.children %}
+{% if c.module == "pane" %}
+{{ c.html }}
+{% else %}
+{% set label = node.params.labels[loop.index0] if loop.index0 < node.params.labels | length else "" %}
+<div class="rp-pane"{% if label %} data-rp-label="{{ label }}"{% endif %}>{% if label %}<div class="rp-pane-label" data-rp-ui>{{ label }}</div>{% endif %}
+{{ c.html }}
+</div>
+{% endif %}
+{% endfor %}
+</div>
+</div>

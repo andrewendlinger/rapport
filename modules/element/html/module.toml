@@ -1,0 +1,3 @@
+name = "html"
+kind = "element"
+summary = "Raw HTML blocks; only when report.raw_html = true (otherwise raw HTML is escaped)."

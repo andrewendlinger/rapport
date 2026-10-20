@@ -1,0 +1,15 @@
+name = "collapse"
+kind = "block"
+summary = "A collapsible section: the title shows, the body opens on click. Holds any Markdown and other modules."
+body = "markdown"
+positional = "title"
+
+[params.title]
+type = "string"
+default = "Details"
+doc = "Always-visible summary line."
+
+[params.open]
+type = "bool"
+default = false
+doc = "Start expanded."

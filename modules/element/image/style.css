@@ -1,0 +1,7 @@
+.rp-figure{margin:1.8em 0;text-align:center}
+.rp-figure img{max-width:100%;height:auto;border-radius:var(--rp-radius);border:1px solid var(--rp-line);background:var(--rp-surface)}
+.rp-figure img[data-rp-zoom]{cursor:zoom-in}
+.rp-figure figcaption{font:13px/1.45 var(--rp-sans);color:var(--rp-ink-soft);margin-top:10px;text-wrap:balance}
+.rp-zoom-overlay{position:fixed;inset:0;z-index:90;background:rgba(10,12,16,.82);display:flex;align-items:center;
+  justify-content:center;padding:24px;cursor:zoom-out}
+.rp-zoom-overlay img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:var(--rp-shadow)}

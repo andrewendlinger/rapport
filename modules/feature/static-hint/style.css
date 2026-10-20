@@ -1,0 +1,6 @@
+.rp-hint{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:8px;
+  max-width:min(600px,calc(100vw - 32px));padding:8px 12px;border:1px solid var(--rp-line);border-radius:8px;
+  background:var(--rp-surface);color:var(--rp-ink-soft);box-shadow:var(--rp-shadow);font:12px/1.5 var(--rp-sans)}
+.rp-hint code{font:11px var(--rp-mono);color:var(--rp-ink);user-select:all;word-break:break-all}
+.rp-hint button{border:0;background:none;color:var(--rp-ink-faint);font:inherit;cursor:pointer;padding:2px}
+@media print{.rp-hint{display:none!important}}

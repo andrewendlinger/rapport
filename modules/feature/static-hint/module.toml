@@ -1,0 +1,9 @@
+name = "static-hint"
+kind = "feature"
+summary = "On a double-clicked report.html (no server): a dismissible chip with the command that enables commenting."
+when = "static"
+
+[config.command]
+type = "string"
+default = "rapport"
+doc = "The command shown in the hint. Set it to the full path of bin/rapport if `rapport` isn't on the reader's PATH (install.sh --bin puts it there)."

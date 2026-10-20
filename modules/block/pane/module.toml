@@ -1,0 +1,10 @@
+name = "pane"
+kind = "block"
+summary = "One pane inside a compare: a titled column holding any Markdown."
+body = "markdown"
+positional = "title"
+
+[params.title]
+type = "string"
+default = ""
+doc = "Label shown above the pane."

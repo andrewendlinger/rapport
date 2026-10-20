@@ -1,0 +1,16 @@
+name = "callout"
+kind = "block"
+summary = "A highlighted note, tip, warning, or danger box."
+body = "markdown"
+positional = "title"
+
+[params.tone]
+type = "enum"
+choices = ["note", "tip", "warning", "danger", "success"]
+default = "note"
+doc = "Colour and label."
+
+[params.title]
+type = "string"
+default = ""
+doc = "Label; defaults to the tone's name."

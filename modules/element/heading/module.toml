@@ -1,0 +1,8 @@
+name = "heading"
+kind = "element"
+summary = "Markdown headings (#, ##, …). Gets an id for links and the TOC."
+
+[config.anchors]
+type = "bool"
+default = true
+doc = "Show a # link next to headings on hover."

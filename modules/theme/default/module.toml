@@ -1,0 +1,54 @@
+name = "default"
+kind = "theme"
+summary = "Cool stone ground, sans headings, serif reading text; light and dark."
+
+# Every token becomes a CSS custom property --rp-<name>. Modules style
+# themselves with these only, so a theme swap restyles everything.
+# Override any of them from config: [theme.tokens] / [theme.tokens.dark].
+[tokens]
+bg = "#EBEEF2"
+surface = "#F6F8FB"
+surface-2 = "#F1F4F8"
+ink = "#1A2129"
+ink-soft = "#57616C"
+ink-faint = "#8A93A0"
+line = "#D7DCE4"
+accent = "#2050C8"
+accent-soft = "#E3EAF9"
+ok = "#1A7A4A"
+ok-soft = "#E4F0E9"
+warn = "#91580A"
+warn-soft = "#F8F1E2"
+danger = "#A33B2E"
+danger-soft = "#F8E9E6"
+violet = "#6D28D9"
+violet-soft = "#EFE7FB"
+shadow = "0 4px 10px rgba(26,33,41,.06), 0 18px 44px -16px rgba(26,33,41,.22)"
+sans = '"Avenir Next", Avenir, "Segoe UI", ui-sans-serif, system-ui, sans-serif'
+serif = 'Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Georgia, serif'
+mono = 'ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace'
+body-font = "var(--rp-serif)"
+heading-font = "var(--rp-sans)"
+body-size = "17px"
+radius = "6px"
+width = "70ch"
+
+[tokens.dark]
+bg = "#13171E"
+surface = "#1B212A"
+surface-2 = "#1F2530"
+ink = "#E2E6ED"
+ink-soft = "#97A1AE"
+ink-faint = "#6A7482"
+line = "#2A313C"
+accent = "#8FAEF2"
+accent-soft = "#1D2A45"
+ok = "#63C08F"
+ok-soft = "#17291F"
+warn = "#D9A03F"
+warn-soft = "#32291A"
+danger = "#DB8273"
+danger-soft = "#33201D"
+violet = "#B79CEC"
+violet-soft = "#2A2142"
+shadow = "0 4px 10px rgba(0,0,0,.35), 0 18px 44px -16px rgba(0,0,0,.55)"
