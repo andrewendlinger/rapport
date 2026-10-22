@@ -57,6 +57,7 @@ def lint(report_dir: Path, sets=None) -> tuple[list[str], object]:
     problems = [f"{name}: error: {d.message}" if not d.line else f"{name}:{d.line}: error: {d.message}"
                 for d in res.errors]
     problems += [f"config: {w}" for w in cfg.warnings]
+    problems += [f"warning: {w}" for w in res.warnings if w not in cfg.warnings]
     source = cfg.source_path.read_text(encoding="utf-8")
 
     for phrase in cfg.get("writing.avoid", []) or []:

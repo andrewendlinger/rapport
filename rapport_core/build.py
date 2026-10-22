@@ -1,22 +1,31 @@
-"""config → parse → render → report.html (+ .rapport/blocks.json for anchoring)."""
+"""config → parse → render → report.html (+ blocks.json in the state folder, for anchoring).
+
+The state folder (.rapport/ beside report.md, see util.state_dir) ignores itself
+in git through a .gitignore the build keeps in line with report.commit_feedback.
+"""
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
+import shlex
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import config as config_mod
 from .parse import Diag, Document, parse
 from .render import Renderer
-from .util import atomic_write
+from .util import RapportError, atomic_write, ensure_state_dir, state_dir
 
 STATE_FILE = "state.json"
 BLOCKS_FILE = "blocks.json"
 
 
 def read_state(report_dir: Path) -> dict:
-    p = Path(report_dir) / ".rapport" / STATE_FILE
+    p = state_dir(report_dir) / STATE_FILE
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -24,7 +33,7 @@ def read_state(report_dir: Path) -> dict:
 
 
 def write_state(report_dir: Path, state: dict) -> None:
-    atomic_write(Path(report_dir) / ".rapport" / STATE_FILE, json.dumps(state, indent=2) + "\n")
+    atomic_write(ensure_state_dir(report_dir) / STATE_FILE, json.dumps(state, indent=2) + "\n")
 
 
 def bump_version(report_dir: Path, note: str = "") -> int:
@@ -73,7 +82,13 @@ def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bo
     """Build the static report. With serve_data, also render the served page
     (serve-only modules included, serve_data merged into the page data)."""
     report_dir = Path(report_dir).resolve()
-    cfg, body = config_mod.load_for_report(report_dir, sets)
+    try:
+        cfg, body = config_mod.load_for_report(report_dir, sets)
+    except RapportError:
+        if write and (report_dir / "report.md").is_file():
+            with contextlib.suppress(OSError):  # a failed build still leaves an ignored state folder
+                ensure_state_dir(report_dir)
+        raise
     state = read_state(report_dir)
     doc = parse(body, cfg.registry, cfg)
 
@@ -87,15 +102,56 @@ def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bo
         live = Renderer(cfg, serve=True, extra_data=serve_data, state=state)
         served_html = live.render_document(doc)
 
+    commit = bool(cfg.get("report.commit_feedback", False))
     if write:
         atomic_write(cfg.output_path, html)
-        atomic_write(cfg.state_dir / BLOCKS_FILE, json.dumps(
+        atomic_write(ensure_state_dir(report_dir, commit) / BLOCKS_FILE, json.dumps(
             {"version": state.get("version", 1), "blocks": static.blocks}, ensure_ascii=False) + "\n")
-        gi = cfg.state_dir / ".gitignore"
-        if not gi.exists():
-            atomic_write(gi, "server.json\nserver.log\n")
+    warnings += git_warnings(cfg.state_dir, commit)
     return BuildResult(html=html, served_html=served_html, config=cfg, doc=doc, errors=errors,
                        warnings=_unique(warnings), blocks=static.blocks, assets=sorted(static.asset_paths))
+
+
+def _git(cwd: Path, *args) -> subprocess.CompletedProcess | None:
+    env = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
+    try:
+        return subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, encoding="utf-8",
+                              errors="replace", timeout=3, env=env)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def git_warnings(sd: Path, commit_feedback: bool) -> list[str]:
+    """What git gets wrong about the state folder: files in it that are ignored
+    but still tracked, and commit_feedback undone by an outer ignore. Runs git
+    only if it's installed and a .git sits anywhere above (config.git_root
+    stops at $HOME)."""
+    root = next((d for d in sd.parents if (d / ".git").exists()), None) if sd.is_dir() else None
+    if root is None or not shutil.which("git"):
+        return []
+    out, name = [], sd.name + "/"
+    try:
+        here = Path.cwd().resolve()
+    except OSError:                                     # cwd deleted under a running server
+        here = None
+
+    def cmd(verb: str, files: list[str]) -> str:       # runnable from the cwd
+        if here and here.is_relative_to(root):
+            return f"git {verb} " + " ".join(shlex.quote(os.path.relpath(sd / f, here)) for f in files)
+        return f"git -C {shlex.quote(str(root))} {verb} " + " ".join(
+            shlex.quote(str((sd / f).relative_to(root))) for f in files)
+
+    res = _git(sd, "ls-files", "-ci", "--exclude-standard", "-z", ".")
+    tracked = [f for f in res.stdout.split("\0") if f] if res and res.returncode == 0 else []
+    if tracked:
+        out.append(f"{name} is git-ignored now, but these files in it are still tracked: {', '.join(tracked)}; "
+                   f"untrack them with: {cmd('rm --cached', tracked)}")
+    if commit_feedback:
+        res = _git(sd, "check-ignore", "-q", "feedback.json")
+        if res and res.returncode == 0:
+            out.append(f"commit_feedback = true, but an outer .gitignore still ignores {name} "
+                       f"({cmd('check-ignore -v', ['feedback.json'])} shows which)")
+    return out
 
 
 def _unique(items: list[str]) -> list[str]:

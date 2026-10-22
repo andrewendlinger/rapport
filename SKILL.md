@@ -33,7 +33,7 @@ The point is the loop. The reader opens the served report, selects text, and com
    - **`learn:` lines.** `learn: ask` means distil the pattern into one short, general writing rule, propose it to the user, and save it only if they agree: `$RAPPORT writing add "<rule>" --scope user|project`. Add `--avoid` for a banned phrase. `global` / `project` mean save it directly with that scope.
    - Tell the user what changed, briefly, and the new version.
    - Feedback given in chat works the same way. Optionally record it with `$RAPPORT feedback add "<comment>" --quote "<exact text>" [--action verbose] -C <dir>`.
-7. **Never hand-edit** `report.html` (it's generated) or `.rapport/*.json` (use the CLI).
+7. **Never hand-edit** `report.html` (it's generated) or anything in `.rapport/` (the review state; use the CLI). The folder ignores itself in git; `[report] commit_feedback = true` keeps feedback in the repo. If `build` or `lint` warns about it (files still tracked, or an outer `.gitignore` blocking `commit_feedback`), pass the warning and its command on to the user instead of changing git state yourself.
 
 ## Changing behaviour or style
 

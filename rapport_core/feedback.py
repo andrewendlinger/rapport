@@ -1,4 +1,5 @@
-"""Reader feedback: the store (.rapport/feedback.json) and the agent-facing CLI.
+"""Reader feedback: the store (feedback.json in the state folder, .rapport/) and
+the agent-facing CLI.
 
 Items are written by the review server (browser) and by `rapport feedback add`;
 the agent reads them with `rapport feedback`, which re-locates every item in
@@ -16,7 +17,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .util import RapportError, atomic_write, collapse_ws
+from .util import RapportError, atomic_write, collapse_ws, ensure_state_dir, state_dir
 
 try:
     import fcntl
@@ -41,7 +42,8 @@ def now() -> str:
 # ── store ─────────────────────────────────────────────────────────────────── #
 class Store:
     def __init__(self, report_dir: Path):
-        self.dir = Path(report_dir).resolve() / ".rapport"
+        self.report_dir = Path(report_dir).resolve()
+        self.dir = state_dir(self.report_dir)
         self.path = self.dir / FEEDBACK_FILE
 
     @contextlib.contextmanager
@@ -49,8 +51,7 @@ class Store:
         """Thread lock + an flock on a side file, so the server and the CLI
         (agent resolving while the reader comments) never interleave writes."""
         with _THREAD_LOCK:
-            self.dir.mkdir(parents=True, exist_ok=True)
-            with open(self.dir / LOCK_FILE, "a+") as fh:
+            with open(ensure_state_dir(self.report_dir) / LOCK_FILE, "a+") as fh:
                 if fcntl:
                     fcntl.flock(fh, fcntl.LOCK_EX)
                 try:
@@ -507,11 +508,10 @@ def cli(args, report_dir: Path) -> int:
 
 
 def _cli_add(args, cfg, store: Store, report_dir: Path) -> int:
-    from .build import read_state
-    blocks_file = report_dir / ".rapport" / "blocks.json"
+    from .build import BLOCKS_FILE, build, read_state
+    blocks_file = state_dir(report_dir) / BLOCKS_FILE
     if not blocks_file.exists():
-        from .build import build
-        build(report_dir)
+        build(report_dir, getattr(args, "set", None))
     blocks = json.loads(blocks_file.read_text(encoding="utf-8")).get("blocks", {})
     target: dict = {"kind": "report"}
     if args.block:

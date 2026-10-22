@@ -45,6 +45,11 @@ type = "bool"
 default = false
 doc = "Allow raw HTML in report.md. Off: it is escaped. On: raw blocks render through the `html` element module."
 
+[report.commit_feedback]
+type = "bool"
+default = false
+doc = "Commit the review state. The .rapport/ folder beside report.md ignores itself in git; on, its .gitignore lets feedback.json and state.json (feedback and version history) through."
+
 # ── layout: which layout modules fill which page region ──────────────────
 [layout.page]
 type = "string"

@@ -130,3 +130,28 @@ Sharing report.html: the built file contains no local paths. Opened by double-cl
 [modules.static-hint]
 command = "~/code/rapport/bin/rapport"
 ```
+
+## Review state
+
+A report's review state lives in `.rapport/` next to report.md:
+
+| file | holds |
+|---|---|
+| `feedback.json` | reader feedback, open and resolved |
+| `state.json` | report version and resolve notes |
+| `blocks.json` | block index, rewritten on every build |
+| `server.json`, `server.log`, `feedback.lock` | review server (URL, pid, local token) and locking |
+
+The folder ignores itself: rapport keeps a `.gitignore` in it containing `*`, so `git add -A` skips it and a rebuild never dirties the tree. It's working data for one checkout: the block index churns, server.json holds a local token, and feedback is a conversation about a draft. The `.gitignore` starts with `# managed by rapport` and the build rewrites it to match the config. Replace that first line and rapport treats the file as yours and leaves it alone.
+
+To commit feedback and version history with the report:
+
+```toml
+[report]
+commit_feedback = true
+```
+
+The `.gitignore` then lets `feedback.json`, `state.json` and itself through (so clones keep the rule); everything else stays ignored. An outer `.gitignore` that ignores `.rapport/` still wins; the build warns and prints the `git check-ignore -v` command that shows which file does it.
+
+- `git clean -fd` keeps `.rapport/` (it skips ignored files); `git clean -fdx` and `-fdX` delete it, unresolved feedback included.
+- Files committed before the folder ignored itself stay tracked. `build` and `lint` warn and print the exact command, e.g. `git rm --cached reports/q3/.rapport/blocks.json reports/q3/.rapport/feedback.json`.

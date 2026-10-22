@@ -204,3 +204,18 @@ def test_lint_flags_raw_html(capsys, report):
     d = report("Intro.\n\n<!-- a note to self -->\n\n<https://example.com> is an autolink.\n")
     code, out = run(capsys, "lint", "-C", str(d))
     assert code == 1 and "report.md:3: raw HTML shows up as literal text" in out and "report.md:5" not in out
+
+
+def test_lint_prints_build_warnings(capsys, report):
+    d = report("::: collapse More\nNever closed.\n")
+    code, out = run(capsys, "lint", "-C", str(d))
+    assert code == 1 and "warning: report.md:1: ':::collapse' is never closed" in out
+
+
+def test_feedback_add_honours_set(capsys, report):
+    d = report("unused\n")
+    (d / "report.md").unlink()
+    write(d / "notes.md", "## A\n\nSome claim here.\n")
+    code, out = run(capsys, "feedback", "--set", "report.source=notes.md", "add", "source?", "--quote", "Some claim",
+                    "-C", str(d))
+    assert code == 0 and "added FB-1" in out, out

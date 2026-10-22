@@ -3,8 +3,9 @@ live reload), rebuilds when sources change, and stores reader feedback.
 
 Security: binds 127.0.0.1 by default, checks the Host header on every request
 (DNS rebinding), and requires a per-report token on every write (CSRF). The
-token persists in .rapport/server.json, so a page left open across a restart
-keeps working; a page holding a stale token gets 403 and reloads itself.
+token persists in server.json in the state folder (.rapport/, git-ignored), so
+a page left open across a restart keeps working; a page holding a stale token
+gets 403 and reloads itself.
 """
 
 from __future__ import annotations
@@ -26,9 +27,9 @@ from pathlib import Path
 
 from . import ROOT
 from . import config as config_mod
-from .build import BLOCKS_FILE, build, read_state
+from .build import BLOCKS_FILE, STATE_FILE, build, read_state
 from .feedback import NotFound, Store, check_content, make_item, update_fields
-from .util import RapportError, atomic_write
+from .util import RapportError, atomic_write, ensure_state_dir, state_dir
 
 SERVER_FILE = "server.json"
 LOG_FILE = "server.log"
@@ -44,8 +45,8 @@ def watched_files(report_dir: Path, cfg, assets=()) -> list[Path]:
     show up as changed once created), and so are the module folders, whose
     mtime moves when a module or file is added."""
     report_dir = report_dir.resolve()
-    state = report_dir / ".rapport"
-    files = [cfg.source_path, state / "state.json"]
+    state = state_dir(report_dir)
+    files = [cfg.source_path, state / STATE_FILE]
     user = config_mod.config_home()
     files += [user / "config.toml", user / config_mod.LEARNED_USER]
     for d in config_mod.project_dirs_for(report_dir):
@@ -71,7 +72,7 @@ def watched_files(report_dir: Path, cfg, assets=()) -> list[Path]:
     seen, out = set(), []
     for f in files:
         f = Path(f)
-        if f in seen or f == output or (f.is_relative_to(state) and f.name != "state.json"):
+        if f in seen or f == output or (f.is_relative_to(state) and f.name != STATE_FILE):
             continue
         seen.add(f)
         out.append(f)
@@ -123,7 +124,7 @@ class App:
                 self.build_id += 1
                 self.html = res.served_html.encode("utf-8")
                 self.errors = [f"{d.format(res.config.get('report.source'))}" for d in res.errors]
-                self.warnings = res.warnings
+                old, self.warnings = self.warnings, res.warnings
                 self.cfg = res.config
                 self.blocks = res.blocks
                 self.files = watched_files(self.report_dir, res.config, res.assets)
@@ -132,6 +133,11 @@ class App:
             print(msg + (f" with {len(self.errors)} error(s)" if self.errors else ""), flush=True)
             for e in self.errors:
                 print(f"  error: {e}", flush=True)
+            if set(res.warnings) != set(old):       # warnings show when they change, not on every rebuild
+                for w in res.warnings:
+                    print(f"  warning: {w}", flush=True)
+                if not res.warnings:
+                    print("  warnings cleared", flush=True)
         except RapportError as e:
             self._fail(str(e))
         except Exception:  # noqa: BLE001 - keep serving the last good page
@@ -295,7 +301,11 @@ class Handler(BaseHTTPRequestHandler):
 
 # ── server lifecycle ─────────────────────────────────────────────────────────── #
 def server_file(report_dir: Path) -> Path:
-    return report_dir / ".rapport" / SERVER_FILE
+    return state_dir(report_dir) / SERVER_FILE
+
+
+def write_server(report_dir: Path, info: dict) -> None:
+    atomic_write(ensure_state_dir(report_dir) / SERVER_FILE, json.dumps(info, indent=2) + "\n")
 
 
 def read_server(report_dir: Path) -> dict:
@@ -367,9 +377,8 @@ def make_server(report_dir: Path, sets=None, port: int | None = None, pinned: bo
     app.allowed_hosts = {f"{h}:{port}" for h in ("127.0.0.1", "localhost", "[::1]", shown)}
     app.rebuild()
     app.sig = signature(app.files)
-    atomic_write(server_file(report_dir), json.dumps(
-        {"pid": os.getpid(), "url": url, "port": port, "token": token, "dir": str(report_dir),
-         "started": time.strftime("%Y-%m-%dT%H:%M:%S")}, indent=2) + "\n")
+    write_server(report_dir, {"pid": os.getpid(), "url": url, "port": port, "token": token, "dir": str(report_dir),
+                              "started": time.strftime("%Y-%m-%dT%H:%M:%S")})
     return httpd, app, url, cfg
 
 
@@ -402,7 +411,7 @@ def run(report_dir: Path, args) -> int:
         info = read_server(report_dir)
         if info.get("pid") == os.getpid():
             info["pid"] = None  # keep url/token: open pages keep their token across restarts
-            atomic_write(server_file(report_dir), json.dumps(info, indent=2) + "\n")
+            write_server(report_dir, info)
         print("stopped", flush=True)
     return 0
 
@@ -414,8 +423,7 @@ def detach(report_dir: Path, args) -> int:
         print(f"already serving {report_dir}\n→ {existing['url']}")
         return 0
     cfg, _ = config_mod.load_for_report(report_dir, getattr(args, "set", None))
-    log = report_dir / ".rapport" / LOG_FILE
-    log.parent.mkdir(parents=True, exist_ok=True)
+    log = ensure_state_dir(report_dir) / LOG_FILE
     cmd = [sys.executable, str(ROOT / "scripts" / "rapport.py"), "serve", str(report_dir), "--no-open"]
     if args.port:
         cmd += ["--port", str(args.port)]
@@ -459,7 +467,7 @@ def stop(report_dir: Path) -> int:
         # number may belong to an unrelated process
         if pid:
             info["pid"] = None
-            atomic_write(server_file(report_dir), json.dumps(info, indent=2) + "\n")
+            write_server(report_dir, info)
             print(f"no server running for {report_dir} (cleared stale pid {pid})")
         else:
             print(f"no server running for {report_dir}")

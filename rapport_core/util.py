@@ -58,6 +58,43 @@ def atomic_write(path: Path, text: str) -> None:
         raise
 
 
+STATE_DIR = ".rapport"
+GITIGNORE_MARK = "# managed by rapport"
+OLD_GITIGNORE = "server.json\nserver.log\n"      # what rapport 0.1.0 wrote
+
+
+def state_dir(report_dir: Path) -> Path:
+    """A report's review state (feedback, version, block index, server info).
+    The only place that knows the folder's name."""
+    return Path(report_dir) / STATE_DIR
+
+
+def state_gitignore(commit_feedback: bool = False) -> str:
+    keep = "!.gitignore\n!feedback.json\n!state.json\n" if commit_feedback else ""
+    return (f"{GITIGNORE_MARK}: set [report] commit_feedback = true to commit feedback; "
+            f"edits are overwritten\n*\n{keep}")
+
+
+def ensure_state_dir(report_dir: Path, commit_feedback: bool | None = None) -> Path:
+    """Create the state folder with the .gitignore that ignores it. With
+    commit_feedback=None (no config at hand) a missing .gitignore is created
+    but an existing one is never rewritten; with a flag, a managed one (or the
+    old default) is rewritten to match it. Anyone else's file is left alone."""
+    d = state_dir(report_dir)
+    d.mkdir(parents=True, exist_ok=True)
+    gi, want = d / ".gitignore", state_gitignore(bool(commit_feedback))
+    if not gi.exists():
+        atomic_write(gi, want)
+    elif commit_feedback is not None:
+        try:
+            have = gi.read_text(encoding="utf-8")
+        except (OSError, ValueError):
+            return d
+        if have != want and (have.startswith(GITIGNORE_MARK) or have == OLD_GITIGNORE):
+            atomic_write(gi, want)
+    return d
+
+
 def collapse_ws(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 

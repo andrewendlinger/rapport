@@ -25,7 +25,7 @@ from pathlib import Path
 from . import BUILTIN_MODULES, BUILTIN_PRESETS
 from .registry import Registry
 from .schema import Schema, defaults_of, finalize, load_core_tree, merge_layer, validate
-from .util import RapportError, deep_get
+from .util import RapportError, deep_get, state_dir
 
 FRONT_FENCE = "+++"
 LEARNED_USER = "learned.toml"
@@ -83,7 +83,7 @@ class Config:
 
     @property
     def state_dir(self) -> Path:
-        return self.report_dir / ".rapport"
+        return state_dir(self.report_dir)
 
 
 # ── reading files ──────────────────────────────────────────────────────────── #

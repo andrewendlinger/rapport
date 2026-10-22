@@ -10,7 +10,7 @@ reports/q3-latency/
   assets/          ← images, gifs, svgs (inlined at build: the HTML stays one file)
   rapport.toml     ← optional per-report config (or use front matter)
   report.html      ← generated; never edit
-  .rapport/        ← generated state: feedback, block index, server info
+  .rapport/        ← review state: feedback, version, block index, server info (ignores itself in git)
 ```
 
 ## Front matter

@@ -190,3 +190,15 @@ def test_build_output_is_never_watched(report, isolated_home):
     files = watched_files(d, cfg)
     assert cfg.output_path not in files and d / ".rapport" / "blocks.json" not in files
     assert d / ".rapport" / "state.json" in files and d / "report.md" in files
+
+
+def test_warnings_print_when_they_change(report, capsys):
+    d = report("::: collapse More\nNever closed.\n")
+    httpd, app, url, cfg = make_server(d, port=0, pinned=True)
+    httpd.server_close()
+    assert "warning: report.md:1: ':::collapse' is never closed" in capsys.readouterr().out
+    app.rebuild()
+    assert "warning" not in capsys.readouterr().out
+    (d / "report.md").write_text("::: collapse More\nClosed.\n:::\n", encoding="utf-8")
+    app.rebuild()
+    assert "warnings cleared" in capsys.readouterr().out
