@@ -47,7 +47,9 @@ export RAPPORT_CONFIG=~/dotfiles/rapport.toml       # or: the config file itself
 
 Three levels, lightest first: tokens, your own CSS, a forked module.
 
-**Tokens** hold the palette, fonts, corner radius, column width and body size. The theme module defines them (built-in: `default`, `paper`); `[theme.tokens]` overrides them and `[theme.tokens.dark]` sets dark-mode values:
+**Themes.** `default` is minimal: white ground, the system sans for all text, one blue accent, 16px. `classic` (the default before 0.4) has a cool stone ground, sans headings and serif text at 17px. `paper` is warm and serif throughout. Pick one with `[theme] name`.
+
+**Tokens** hold the palette, fonts, corner radius, column width and body size. The theme module defines them; `[theme.tokens]` overrides them and `[theme.tokens.dark]` sets dark-mode values:
 
 ```toml
 [theme]

@@ -319,7 +319,7 @@ def test_theme_css_wins_over_theme_and_module_rules(report, page):
     assert get(".rp-content h2", "fontSize") != "21px"
     # a token re-scoped to one module, with a dark value: follows the OS and the toggle
     assert get(".rp-callout", "borderLeftColor") == "rgb(10, 20, 30)"
-    assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--rp-accent')") == "#2050C8"
+    assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--rp-accent')") == "#2563EB"
     page.emulate_media(color_scheme="dark")
     assert get(".rp-callout", "borderLeftColor") == "rgb(200, 210, 220)"
     page.evaluate("document.documentElement.dataset.theme = 'light'")
@@ -336,7 +336,8 @@ def test_sizes_scale_with_body_size(report, page):
         assert build(d, list(sets)).ok
         page.goto((d / "report.html").as_uri())
         return {s: float(page.eval_on_selector(s, "e => getComputedStyle(e).fontSize")[:-2]) for s in SIZED}
-    base = sizes()
+    assert sizes()[".rp-content>p"] == 16                           # the default theme's body size
+    base = sizes("theme.tokens.body-size=17px")
     assert base["h2"] == 22 and base[".rp-title"] == 36 and base[".rp-pre"] == 13.5 and base[".rp-content>p"] == 17
     big = sizes("theme.tokens.body-size=20px")
     for s in SIZED:

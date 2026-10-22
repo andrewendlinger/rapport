@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="560" height="200" viewBox="0 0 560 200">
-  <rect width="560" height="200" rx="10" fill="#E3EAF9"/>
-  <rect x="40" y="48" width="140" height="104" rx="8" fill="#F6F8FB" stroke="#2050C8" stroke-width="2"/>
-  <rect x="380" y="48" width="140" height="104" rx="8" fill="#F6F8FB" stroke="#2050C8" stroke-width="2"/>
-  <path d="M190 100 H368" stroke="#2050C8" stroke-width="2.5" fill="none"/>
-  <path d="M368 92 L380 100 L368 108 Z" fill="#2050C8"/>
-  <text x="110" y="106" font-family="sans-serif" font-size="16" text-anchor="middle" fill="#1A2129">report.md</text>
-  <text x="450" y="106" font-family="sans-serif" font-size="16" text-anchor="middle" fill="#1A2129">report.html</text>
-  <text x="279" y="88" font-family="sans-serif" font-size="13" text-anchor="middle" fill="#57616C">rapport build</text>
+  <rect width="560" height="200" rx="10" fill="#EFF6FF"/>
+  <rect x="40" y="48" width="140" height="104" rx="8" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <rect x="380" y="48" width="140" height="104" rx="8" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <path d="M190 100 H368" stroke="#2563EB" stroke-width="2.5" fill="none"/>
+  <path d="M368 92 L380 100 L368 108 Z" fill="#2563EB"/>
+  <text x="110" y="106" font-family="sans-serif" font-size="16" text-anchor="middle" fill="#18181B">report.md</text>
+  <text x="450" y="106" font-family="sans-serif" font-size="16" text-anchor="middle" fill="#18181B">report.html</text>
+  <text x="279" y="88" font-family="sans-serif" font-size="13" text-anchor="middle" fill="#52525B">rapport build</text>
 </svg>

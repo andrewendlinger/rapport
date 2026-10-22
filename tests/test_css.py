@@ -269,7 +269,7 @@ def test_theme_without_width_or_body_size_gets_rapports_own(capsys, report, isol
     root = style(build(d).html).split("\n")[2]
     assert root == ":root{color-scheme:light dark;--rp-ink:#111111;--rp-width:70ch;--rp-body-size:17px;}"
     assert "--rp-width:80ch;" in style(build(d, ["layout.width=80ch"]).html)
-    for name, size in (("default", "17px"), ("paper", "18px")):       # a theme's own, once
+    for name, size in (("default", "16px"), ("classic", "17px"), ("paper", "18px")):       # a theme's own, once
         css = style(build(d, [f"theme.name={name}"]).html)
         assert css.count("--rp-width:") == css.count("--rp-body-size:") == 1 and f"--rp-body-size:{size};" in css
     assert main(["modules", "check", "bare", "-C", str(d)]) == 0
@@ -316,7 +316,7 @@ def test_body_size_is_the_rem_of_every_theme(report, isolated_home):
     theme = style(build(d, ["theme.name=bare"]).html).split("@layer rp-modules{")[0]
     assert "html{font-size:var(--rp-body-size)}" in theme and "--rp-body-size:19px;" in theme
     # the body is 1rem, so a rem/em body-size applies once instead of compounding
-    for name, body in (("default", "font:1rem/1.65 "), ("paper", "font:1rem/1.7 ")):
+    for name, body in (("default", "font:1rem/1.65 "), ("classic", "font:1rem/1.65 "), ("paper", "font:1rem/1.7 ")):
         css = style(build(d, [f"theme.name={name}", 'theme.tokens.body-size="1.1rem"']).html)
         assert "--rp-body-size:1.1rem;" in css and body in css and "font:var(--rp-body-size)" not in css
 

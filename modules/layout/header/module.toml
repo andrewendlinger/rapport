@@ -32,7 +32,7 @@ doc = "Alt text for the logo, e.g. the organisation's name. Empty: the logo is d
 [config.logo_height]
 type = "number"
 default = 32
-doc = "Logo height in px at the default 17px text size; it scales with body-size."
+doc = "Logo height in px at a 17px body size; it scales with body-size (the default 16px gives 94%)."
 
 [config.logo_align]
 type = "enum"

@@ -84,7 +84,7 @@ doc = "Max width of the reading column (any CSS length). Empty: the theme's `wid
 [theme.name]
 type = "string"
 default = "default"
-doc = "Theme module to use (built-in: default, paper)."
+doc = "Theme module to use (built-in: default, classic, paper)."
 
 [theme.mode]
 type = "enum"
