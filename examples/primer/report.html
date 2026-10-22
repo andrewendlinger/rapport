@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="rapport 0.3.0">
+<title>rapport in five minutes</title>
+<style>
+@layer rp-theme,rp-modules;
+@layer rp-theme{
+:root{color-scheme:light dark;--rp-bg:#FFFFFF;--rp-surface:#FAFAFA;--rp-surface-2:#F4F4F5;--rp-ink:#18181B;--rp-ink-soft:#52525B;--rp-ink-faint:#8A8A93;--rp-line:#E4E4E7;--rp-accent:#2563EB;--rp-accent-soft:#EFF6FF;--rp-ok:#1A7A4A;--rp-ok-soft:#F0FDF4;--rp-warn:#91580A;--rp-warn-soft:#FFFBEB;--rp-danger:#A33B2E;--rp-danger-soft:#FEF2F2;--rp-violet:#6D28D9;--rp-violet-soft:#F5F3FF;--rp-shadow:0 4px 10px rgba(26,33,41,.06), 0 18px 44px -16px rgba(26,33,41,.22);--rp-sans:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;--rp-serif:Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Georgia, serif;--rp-mono:ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;--rp-body-font:var(--rp-sans);--rp-heading-font:var(--rp-sans);--rp-body-size:16px;--rp-radius:8px;--rp-width:70ch;}
+html{font-size:var(--rp-body-size)}
+:root[data-theme="light"]{color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--rp-bg:#0A0A0B;--rp-surface:#131315;--rp-surface-2:#1A1A1D;--rp-ink:#EDEDEF;--rp-ink-soft:#A1A1AA;--rp-ink-faint:#71717A;--rp-line:#26262A;--rp-accent:#60A5FA;--rp-accent-soft:#172036;--rp-ok:#63C08F;--rp-ok-soft:#17291F;--rp-warn:#D9A03F;--rp-warn-soft:#32291A;--rp-danger:#DB8273;--rp-danger-soft:#33201D;--rp-violet:#B79CEC;--rp-violet-soft:#2A2142;--rp-shadow:0 4px 10px rgba(0,0,0,.35), 0 18px 44px -16px rgba(0,0,0,.55);}}
+:root[data-theme="dark"]{color-scheme:dark;--rp-bg:#0A0A0B;--rp-surface:#131315;--rp-surface-2:#1A1A1D;--rp-ink:#EDEDEF;--rp-ink-soft:#A1A1AA;--rp-ink-faint:#71717A;--rp-line:#26262A;--rp-accent:#60A5FA;--rp-accent-soft:#172036;--rp-ok:#63C08F;--rp-ok-soft:#17291F;--rp-warn:#D9A03F;--rp-warn-soft:#32291A;--rp-danger:#DB8273;--rp-danger-soft:#33201D;--rp-violet:#B79CEC;--rp-violet-soft:#2A2142;--rp-shadow:0 4px 10px rgba(0,0,0,.35), 0 18px 44px -16px rgba(0,0,0,.55);}
+
+/* default theme: base typography. Layout lives in the page module; element
+   and block modules style their own parts — all through --rp-* tokens. */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--rp-bg);color:var(--rp-ink);font:1rem/1.65 var(--rp-body-font);
+  text-rendering:optimizeLegibility}
+a{color:var(--rp-accent);text-underline-offset:.18em;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--rp-accent);outline-offset:2px}
+::selection{background:var(--rp-accent-soft)}
+
+.rp-content h1,.rp-content h2,.rp-content h3,.rp-content h4{font-family:var(--rp-heading-font);
+  color:var(--rp-ink);text-wrap:balance;scroll-margin-top:24px}
+.rp-content h1{font-size:calc(30rem/17);line-height:1.15;letter-spacing:-.015em;font-weight:600;margin:1.6em 0 .5em}
+.rp-content h2{font-size:calc(22rem/17);line-height:1.25;letter-spacing:-.012em;font-weight:600;margin:2.2em 0 .6em}
+.rp-content>.rp-m-heading:first-child h2,.rp-content>h2:first-child{margin-top:.6em}
+.rp-content h3{font-size:calc(17.5rem/17);line-height:1.3;letter-spacing:-.005em;font-weight:600;margin:1.8em 0 .45em}
+.rp-content h4{font-size:calc(13.5rem/17);letter-spacing:.06em;text-transform:uppercase;color:var(--rp-ink-soft);
+  font-weight:600;margin:1.5em 0 .4em}
+.rp-content p{margin:0 0 1em;text-wrap:pretty}
+.rp-content ul,.rp-content ol{margin:0 0 1em;padding-left:1.4em}
+.rp-content li{margin:.25em 0}
+.rp-content li>p{margin:0 0 .4em}
+.rp-content strong{font-weight:650}
+.rp-content code{font:.86em var(--rp-mono);background:var(--rp-surface-2);border-radius:4px;padding:.12em .36em}
+.rp-content hr{border:0;border-top:1px solid var(--rp-line);margin:2.2em 0}
+.rp-content blockquote{margin:1.2em 0;padding:.1em 1.2em;border-left:3px solid var(--rp-line);color:var(--rp-ink-soft)}
+.rp-content img{max-width:100%;height:auto}
+.rp-content del{color:var(--rp-ink-faint)}
+.rp-content input[type=checkbox]{accent-color:var(--rp-accent);margin-right:.4em}
+.rp-error{font:calc(13rem/17)/1.5 var(--rp-mono);color:var(--rp-danger);background:var(--rp-danger-soft);
+  border:1px solid var(--rp-danger);border-radius:var(--rp-radius);padding:8px 12px;margin:1em 0}
+
+}
+@layer rp-modules{
+/* footer */
+.rp-footer{display:flex;flex-wrap:wrap;gap:6px 16px;border-top:1px solid var(--rp-line);padding:18px 0 48px;align-items:center;
+  font:calc(12rem/17) var(--rp-mono);color:var(--rp-ink-faint)}
+.rp-footer .rp-logo{display:flex;gap:10px}
+.rp-footer .rp-logo-right{order:1;margin-left:auto}
+
+/* header */
+.rp-header{padding:64px 0 28px;border-bottom:1px solid var(--rp-line);margin-bottom:8px;
+  font-family:var(--rp-sans);max-width:var(--rp-width)}
+.rp-kicker{font:600 calc(11rem/17) var(--rp-sans);letter-spacing:.12em;text-transform:uppercase;color:var(--rp-ink-faint);margin:0 0 12px}
+.rp-title{font:650 calc(36rem/17)/1.12 var(--rp-heading-font);letter-spacing:-.025em;margin:0 0 12px;text-wrap:balance}
+.rp-subtitle{font:calc(19rem/17)/1.5 var(--rp-body-font);color:var(--rp-ink-soft);margin:0 0 16px;text-wrap:pretty}
+.rp-byline{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0;font:calc(12.5rem/17) var(--rp-mono);color:var(--rp-ink-faint)}
+.rp-status{font:600 calc(10.5rem/17)/1 var(--rp-sans);letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;
+  border-radius:999px;border:1px solid var(--rp-line);color:var(--rp-ink-soft);background:var(--rp-surface)}
+.rp-header .rp-logo{display:flex;gap:12px;margin:0 0 22px}
+.rp-header .rp-logo-right{justify-content:flex-end}
+.rp-header .rp-logo img{display:block;width:auto;max-width:100%}
+.rp-title .rp-icon{margin-right:.32em}
+@media (max-width:640px){.rp-header{padding-top:36px}.rp-title{font-size:calc(29rem/17)}}
+
+/* page */
+.rp-shell{--rp-side-w:calc(220rem/17);--rp-gap:56px;width:100%;max-width:calc(var(--rp-width) + 48px);
+  margin:0 auto;padding:0 24px}
+.rp-has-side .rp-shell{max-width:calc(var(--rp-width) + var(--rp-side-w) + var(--rp-gap) + 48px)}
+.rp-body{display:block}
+.rp-has-side .rp-body{display:grid;grid-template-columns:var(--rp-side-w) minmax(0,1fr);gap:var(--rp-gap)}
+.rp-has-side .rp-top,.rp-has-side .rp-bottom{margin-left:calc(var(--rp-side-w) + var(--rp-gap))}
+.rp-side{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:28px 0 40px}
+.rp-content{min-width:0;max-width:var(--rp-width);padding:12px 0 72px}
+@media (max-width:1000px){
+  .rp-has-side .rp-body{display:block}
+  .rp-has-side .rp-top,.rp-has-side .rp-bottom{margin-left:0}
+  .rp-side{position:static;max-height:none;padding:8px 0 0}
+}
+@media (max-width:640px){.rp-shell{padding:0 16px}}
+/* icons and entries (ctx.icon) for any module: a symbol is text; a tinted image is a mask in currentColor */
+.rp-entry{display:inline-flex;align-items:center;gap:.4em}
+img.rp-icon{height:1.15em;width:auto;vertical-align:-.2em}
+.rp-icon-tint{--rp-icon:none;display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;background:currentColor;
+  -webkit-mask:var(--rp-icon) center/contain no-repeat;mask:var(--rp-icon) center/contain no-repeat}
+/* one of two variants, e.g. logos: follows the theme toggle and the system setting, like the tokens */
+:root[data-theme="light"] .rp-dark-only,:root[data-theme="dark"] .rp-light-only{display:none}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .rp-dark-only{display:none}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rp-light-only{display:none}}
+@media print{
+  body{background:none}
+  .rp-shell,.rp-has-side .rp-shell{max-width:none;padding:0}
+  .rp-has-side .rp-body{display:block}
+  .rp-has-side .rp-top,.rp-has-side .rp-bottom{margin-left:0}
+  .rp-side{display:none}
+}
+
+/* toc */
+.rp-toc{font-family:var(--rp-sans);font-size:calc(13rem/17);padding-top:64px}
+.rp-toc-title{font:600 calc(10rem/17) var(--rp-sans);letter-spacing:.14em;text-transform:uppercase;color:var(--rp-ink-faint);margin:0 0 10px 12px}
+.rp-toc ol{list-style:none;margin:0;padding:0}
+.rp-toc a{display:block;color:var(--rp-ink-soft);text-decoration:none;padding:4px 12px;line-height:1.35;
+  border-left:2px solid transparent;border-radius:0 4px 4px 0}
+.rp-toc .rp-toc-l1 a{padding-left:24px;font-size:calc(12.5rem/17);color:var(--rp-ink-faint)}
+.rp-toc .rp-toc-l2 a{padding-left:36px;font-size:calc(12rem/17);color:var(--rp-ink-faint)}
+.rp-toc a:hover{color:var(--rp-ink);background:var(--rp-surface)}
+.rp-toc a.rp-active{color:var(--rp-accent);border-left-color:var(--rp-accent)}
+@media (max-width:1000px){
+  .rp-toc{padding:16px 0 4px;border-bottom:1px solid var(--rp-line)}
+}
+
+/* code */
+.rp-code{margin:1.2em 0;position:relative}
+.rp-code-title{font:calc(12rem/17) var(--rp-mono);color:var(--rp-ink-soft);background:var(--rp-surface-2);border:1px solid var(--rp-line);
+  border-bottom:0;border-radius:var(--rp-radius) var(--rp-radius) 0 0;padding:7px 14px}
+.rp-code-title+.rp-pre{border-top-left-radius:0;border-top-right-radius:0}
+.rp-pre{margin:0;background:var(--rp-surface);border:1px solid var(--rp-line);border-radius:var(--rp-radius);
+  padding:14px 0;overflow-x:auto;font:calc(13.5rem/17)/1.6 var(--rp-mono);tab-size:4;color:var(--rp-ink)}
+.rp-pre code{display:block;background:none;border:0;padding:0;font:inherit;min-width:max-content}
+.rp-pre.rp-wrap code{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rp-line{display:inline-block;min-width:100%;padding:0 16px}
+.rp-line.rp-hl{background:var(--rp-accent-soft);box-shadow:inset 3px 0 0 var(--rp-accent)}
+.rp-ln code{counter-reset:rp-line}
+.rp-ln .rp-line{padding-left:0}
+.rp-ln .rp-line::before{counter-increment:rp-line;content:counter(rp-line);display:inline-block;width:3.2em;
+  padding-right:1.2em;text-align:right;color:var(--rp-ink-faint);user-select:none}
+.rp-content .rp-pre code{background:none;border:0;padding:0}
+@media print{.rp-pre{white-space:pre-wrap}.rp-pre code{min-width:0}}
+
+/* heading */
+.rp-anchor{margin-left:.35em;color:var(--rp-ink-faint);text-decoration:none;font-weight:400;opacity:0;transition:opacity .12s}
+.rp-m-heading:hover .rp-anchor,.rp-anchor:focus{opacity:1}
+@media print{.rp-anchor{display:none}}
+
+/* image */
+.rp-figure{margin:1.8em 0;text-align:center}
+.rp-figure img{max-width:100%;height:auto;border-radius:var(--rp-radius);border:1px solid var(--rp-line);background:var(--rp-surface)}
+.rp-figure img[data-rp-zoom]{cursor:zoom-in}
+.rp-figure figcaption{font:calc(13rem/17)/1.45 var(--rp-sans);color:var(--rp-ink-soft);margin-top:10px;text-wrap:balance}
+.rp-zoom-overlay{position:fixed;inset:0;z-index:90;background:rgba(10,12,16,.82);display:flex;align-items:center;
+  justify-content:center;padding:24px;cursor:zoom-out}
+.rp-zoom-overlay img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:var(--rp-shadow)}
+
+/* list */
+.rp-content .task-list-item{list-style:none}
+.rp-content .task-list-item>input[type=checkbox]{margin:0 .5em 0 -1.35em;vertical-align:-.1em}
+
+/* table */
+.rp-table{overflow-x:auto;margin:1.2em 0}
+.rp-table table{border-collapse:collapse;width:100%;font:calc(14rem/17)/1.5 var(--rp-sans);font-variant-numeric:tabular-nums}
+.rp-table th{font:600 calc(11rem/17) var(--rp-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--rp-ink-soft);
+  text-align:left;border-bottom:1.5px solid var(--rp-ink);padding:7px 14px 7px 0;white-space:nowrap}
+.rp-table td{border-bottom:1px solid var(--rp-line);padding:8px 14px 8px 0;vertical-align:top}
+.rp-table th[style*="right"],.rp-table td[style*="right"]{text-align:right}
+
+/* callout */
+.rp-callout{--c:var(--rp-accent);--c-soft:var(--rp-surface-2);border:1px solid var(--rp-line);border-left:3px solid var(--c);
+  border-radius:var(--rp-radius);background:var(--c-soft);padding:12px 16px;margin:1.3em 0;font-size:.95em}
+.rp-callout>:last-child{margin-bottom:0}
+.rp-callout-title{font:600 calc(10.5rem/17) var(--rp-sans);letter-spacing:.13em;text-transform:uppercase;color:var(--c);margin:0 0 4px}
+.rp-callout.rp-tone-tip,.rp-callout.rp-tone-success{--c:var(--rp-ok);--c-soft:var(--rp-ok-soft)}
+.rp-callout.rp-tone-warning{--c:var(--rp-warn);--c-soft:var(--rp-warn-soft)}
+.rp-callout.rp-tone-danger{--c:var(--rp-danger);--c-soft:var(--rp-danger-soft)}
+
+/* collapse */
+.rp-collapse{margin:1.1em 0;border:1px solid var(--rp-line);border-radius:var(--rp-radius);background:var(--rp-surface)}
+.rp-collapse>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:10px;padding:10px 14px;
+  font:600 calc(14.5rem/17) var(--rp-sans);color:var(--rp-ink-soft)}
+.rp-collapse>summary::-webkit-details-marker{display:none}
+.rp-collapse>summary::before{content:"▸";color:var(--rp-ink-faint);transition:transform .15s;display:inline-block}
+.rp-collapse[open]>summary::before{transform:rotate(90deg)}
+.rp-collapse>summary:hover{color:var(--rp-ink)}
+.rp-collapse-body{padding:2px 18px 6px 38px;font-size:.96em}
+.rp-collapse-body>:last-child{margin-bottom:12px}
+@media print{.rp-collapse>summary::before{display:none}}
+
+/* compare */
+.rp-compare{margin:1.4em 0}
+.rp-compare-title{font:600 calc(14rem/17) var(--rp-sans);margin:0 0 8px}
+.rp-compare-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.rp-compare-grid>.rp-pane{min-width:0;display:flex;flex-direction:column}
+.rp-pane-label{font:600 calc(10.5rem/17) var(--rp-sans);letter-spacing:.13em;text-transform:uppercase;color:var(--rp-ink-faint);margin:0 0 7px}
+.rp-pane>.rp-m-code,.rp-pane .rp-pane-body>.rp-m-code{margin:0;flex:1;display:flex;flex-direction:column}
+.rp-pane .rp-m-code .rp-pre{flex:1;font-size:calc(12.5rem/17)}
+.rp-pane>.rp-m-image{margin:0}
+.rp-pane .rp-pane-body>:last-child{margin-bottom:0}
+
+/* pane */
+.rp-pane-body{flex:1;background:var(--rp-surface);border:1px solid var(--rp-line);border-radius:var(--rp-radius);padding:12px 16px;font-size:.95em}
+.rp-pane-body>:last-child{margin-bottom:0}
+
+/* badge */
+.rp-badge{display:inline-block;font:600 calc(10rem/17)/1.5 var(--rp-sans);letter-spacing:.09em;text-transform:uppercase;
+  border-radius:4px;padding:1px 7px;vertical-align:.12em;white-space:nowrap;background:var(--rp-surface-2);color:var(--rp-ink-soft)}
+.rp-badge.rp-tone-accent{background:var(--rp-accent-soft);color:var(--rp-accent)}
+.rp-badge.rp-tone-ok{background:var(--rp-ok-soft);color:var(--rp-ok)}
+.rp-badge.rp-tone-warn{background:var(--rp-warn-soft);color:var(--rp-warn)}
+.rp-badge.rp-tone-danger{background:var(--rp-danger-soft);color:var(--rp-danger)}
+.rp-badge.rp-tone-violet{background:var(--rp-violet-soft);color:var(--rp-violet)}
+
+/* copy-code */
+.rp-copy{position:absolute;top:8px;right:8px;z-index:2;border:1px solid var(--rp-line);background:var(--rp-surface);
+  color:var(--rp-ink-soft);font:600 11px var(--rp-sans);border-radius:5px;padding:4px 9px;cursor:pointer;opacity:0;transition:opacity .12s}
+.rp-code:hover .rp-copy,.rp-copy:focus{opacity:1}
+.rp-code-title~.rp-copy{top:40px}
+@media print{.rp-copy{display:none}}
+
+/* print */
+@media print{
+  [data-rp-ui]:is(button,.rp-fb-layer){display:none!important}
+  .rp-content a{color:inherit}
+  .rp-pre,.rp-callout,.rp-compare,.rp-figure{break-inside:avoid}
+  h2,h3{break-after:avoid}
+}
+
+/* static-hint */
+.rp-hint{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:8px;
+  max-width:min(600px,calc(100vw - 32px));padding:8px 12px;border:1px solid var(--rp-line);border-radius:8px;
+  background:var(--rp-surface);color:var(--rp-ink-soft);box-shadow:var(--rp-shadow);font:12px/1.5 var(--rp-sans)}
+.rp-hint code{font:11px var(--rp-mono);color:var(--rp-ink);user-select:all;word-break:break-all}
+.rp-hint button{border:0;background:none;color:var(--rp-ink-faint);font:inherit;cursor:pointer;padding:2px}
+@media print{.rp-hint{display:none!important}}
+
+/* theme-toggle */
+.rp-theme-toggle{position:fixed;top:14px;right:16px;z-index:40;width:32px;height:32px;border-radius:999px;
+  border:1px solid var(--rp-line);background:var(--rp-surface);color:var(--rp-ink-soft);font:15px/1 var(--rp-sans);
+  cursor:pointer;box-shadow:var(--rp-shadow);opacity:.75;transition:opacity .15s}
+.rp-theme-toggle:hover{opacity:1}
+@media print{.rp-theme-toggle{display:none}}
+
+.rp-code .c { color: #60A0B0; font-style: italic } /* Comment */
+.rp-code .err { border: 1px solid #F00 } /* Error */
+.rp-code .k { color: #007020; font-weight: bold } /* Keyword */
+.rp-code .o { color: #666 } /* Operator */
+.rp-code .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.rp-code .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.rp-code .cp { color: #007020 } /* Comment.Preproc */
+.rp-code .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.rp-code .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.rp-code .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.rp-code .gd { color: #A00000 } /* Generic.Deleted */
+.rp-code .ge { font-style: italic } /* Generic.Emph */
+.rp-code .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.rp-code .gr { color: #F00 } /* Generic.Error */
+.rp-code .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.rp-code .gi { color: #00A000 } /* Generic.Inserted */
+.rp-code .go { color: #888 } /* Generic.Output */
+.rp-code .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.rp-code .gs { font-weight: bold } /* Generic.Strong */
+.rp-code .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.rp-code .gt { color: #04D } /* Generic.Traceback */
+.rp-code .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.rp-code .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.rp-code .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.rp-code .kp { color: #007020 } /* Keyword.Pseudo */
+.rp-code .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.rp-code .kt { color: #902000 } /* Keyword.Type */
+.rp-code .m { color: #40A070 } /* Literal.Number */
+.rp-code .s { color: #4070A0 } /* Literal.String */
+.rp-code .na { color: #4070A0 } /* Name.Attribute */
+.rp-code .nb { color: #007020 } /* Name.Builtin */
+.rp-code .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.rp-code .no { color: #60ADD5 } /* Name.Constant */
+.rp-code .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.rp-code .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.rp-code .ne { color: #007020 } /* Name.Exception */
+.rp-code .nf { color: #06287E } /* Name.Function */
+.rp-code .nl { color: #002070; font-weight: bold } /* Name.Label */
+.rp-code .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.rp-code .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.rp-code .nv { color: #BB60D5 } /* Name.Variable */
+.rp-code .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.rp-code .w { color: #BBB } /* Text.Whitespace */
+.rp-code .mb { color: #40A070 } /* Literal.Number.Bin */
+.rp-code .mf { color: #40A070 } /* Literal.Number.Float */
+.rp-code .mh { color: #40A070 } /* Literal.Number.Hex */
+.rp-code .mi { color: #40A070 } /* Literal.Number.Integer */
+.rp-code .mo { color: #40A070 } /* Literal.Number.Oct */
+.rp-code .sa { color: #4070A0 } /* Literal.String.Affix */
+.rp-code .sb { color: #4070A0 } /* Literal.String.Backtick */
+.rp-code .sc { color: #4070A0 } /* Literal.String.Char */
+.rp-code .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.rp-code .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.rp-code .s2 { color: #4070A0 } /* Literal.String.Double */
+.rp-code .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.rp-code .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.rp-code .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.rp-code .sx { color: #C65D09 } /* Literal.String.Other */
+.rp-code .sr { color: #235388 } /* Literal.String.Regex */
+.rp-code .s1 { color: #4070A0 } /* Literal.String.Single */
+.rp-code .ss { color: #517918 } /* Literal.String.Symbol */
+.rp-code .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.rp-code .fm { color: #06287E } /* Name.Function.Magic */
+.rp-code .vc { color: #BB60D5 } /* Name.Variable.Class */
+.rp-code .vg { color: #BB60D5 } /* Name.Variable.Global */
+.rp-code .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.rp-code .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.rp-code .il { color: #40A070 } /* Literal.Number.Integer.Long */
+:root[data-theme="dark"] .rp-code .c { color: #8B949E; font-style: italic } /* Comment */
+:root[data-theme="dark"] .rp-code .err { color: #F85149 } /* Error */
+:root[data-theme="dark"] .rp-code .esc { color: #E6EDF3 } /* Escape */
+:root[data-theme="dark"] .rp-code .g { color: #E6EDF3 } /* Generic */
+:root[data-theme="dark"] .rp-code .k { color: #FF7B72 } /* Keyword */
+:root[data-theme="dark"] .rp-code .l { color: #A5D6FF } /* Literal */
+:root[data-theme="dark"] .rp-code .n { color: #E6EDF3 } /* Name */
+:root[data-theme="dark"] .rp-code .o { color: #FF7B72; font-weight: bold } /* Operator */
+:root[data-theme="dark"] .rp-code .x { color: #E6EDF3 } /* Other */
+:root[data-theme="dark"] .rp-code .p { color: #E6EDF3 } /* Punctuation */
+:root[data-theme="dark"] .rp-code .ch { color: #8B949E; font-style: italic } /* Comment.Hashbang */
+:root[data-theme="dark"] .rp-code .cm { color: #8B949E; font-style: italic } /* Comment.Multiline */
+:root[data-theme="dark"] .rp-code .cp { color: #8B949E; font-weight: bold; font-style: italic } /* Comment.Preproc */
+:root[data-theme="dark"] .rp-code .cpf { color: #8B949E; font-style: italic } /* Comment.PreprocFile */
+:root[data-theme="dark"] .rp-code .c1 { color: #8B949E; font-style: italic } /* Comment.Single */
+:root[data-theme="dark"] .rp-code .cs { color: #8B949E; font-weight: bold; font-style: italic } /* Comment.Special */
+:root[data-theme="dark"] .rp-code .gd { color: #FFA198; background-color: #490202 } /* Generic.Deleted */
+:root[data-theme="dark"] .rp-code .ge { color: #E6EDF3; font-style: italic } /* Generic.Emph */
+:root[data-theme="dark"] .rp-code .ges { color: #E6EDF3; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+:root[data-theme="dark"] .rp-code .gr { color: #FFA198 } /* Generic.Error */
+:root[data-theme="dark"] .rp-code .gh { color: #79C0FF; font-weight: bold } /* Generic.Heading */
+:root[data-theme="dark"] .rp-code .gi { color: #56D364; background-color: #0F5323 } /* Generic.Inserted */
+:root[data-theme="dark"] .rp-code .go { color: #8B949E } /* Generic.Output */
+:root[data-theme="dark"] .rp-code .gp { color: #8B949E } /* Generic.Prompt */
+:root[data-theme="dark"] .rp-code .gs { color: #E6EDF3; font-weight: bold } /* Generic.Strong */
+:root[data-theme="dark"] .rp-code .gu { color: #79C0FF } /* Generic.Subheading */
+:root[data-theme="dark"] .rp-code .gt { color: #FF7B72 } /* Generic.Traceback */
+:root[data-theme="dark"] .rp-code .g-Underline { color: #E6EDF3; text-decoration: underline } /* Generic.Underline */
+:root[data-theme="dark"] .rp-code .kc { color: #79C0FF } /* Keyword.Constant */
+:root[data-theme="dark"] .rp-code .kd { color: #FF7B72 } /* Keyword.Declaration */
+:root[data-theme="dark"] .rp-code .kn { color: #FF7B72 } /* Keyword.Namespace */
+:root[data-theme="dark"] .rp-code .kp { color: #79C0FF } /* Keyword.Pseudo */
+:root[data-theme="dark"] .rp-code .kr { color: #FF7B72 } /* Keyword.Reserved */
+:root[data-theme="dark"] .rp-code .kt { color: #FF7B72 } /* Keyword.Type */
+:root[data-theme="dark"] .rp-code .ld { color: #79C0FF } /* Literal.Date */
+:root[data-theme="dark"] .rp-code .m { color: #A5D6FF } /* Literal.Number */
+:root[data-theme="dark"] .rp-code .s { color: #A5D6FF } /* Literal.String */
+:root[data-theme="dark"] .rp-code .na { color: #E6EDF3 } /* Name.Attribute */
+:root[data-theme="dark"] .rp-code .nb { color: #E6EDF3 } /* Name.Builtin */
+:root[data-theme="dark"] .rp-code .nc { color: #F0883E; font-weight: bold } /* Name.Class */
+:root[data-theme="dark"] .rp-code .no { color: #79C0FF; font-weight: bold } /* Name.Constant */
+:root[data-theme="dark"] .rp-code .nd { color: #D2A8FF; font-weight: bold } /* Name.Decorator */
+:root[data-theme="dark"] .rp-code .ni { color: #FFA657 } /* Name.Entity */
+:root[data-theme="dark"] .rp-code .ne { color: #F0883E; font-weight: bold } /* Name.Exception */
+:root[data-theme="dark"] .rp-code .nf { color: #D2A8FF; font-weight: bold } /* Name.Function */
+:root[data-theme="dark"] .rp-code .nl { color: #79C0FF; font-weight: bold } /* Name.Label */
+:root[data-theme="dark"] .rp-code .nn { color: #FF7B72 } /* Name.Namespace */
+:root[data-theme="dark"] .rp-code .nx { color: #E6EDF3 } /* Name.Other */
+:root[data-theme="dark"] .rp-code .py { color: #79C0FF } /* Name.Property */
+:root[data-theme="dark"] .rp-code .nt { color: #7EE787 } /* Name.Tag */
+:root[data-theme="dark"] .rp-code .nv { color: #79C0FF } /* Name.Variable */
+:root[data-theme="dark"] .rp-code .ow { color: #FF7B72; font-weight: bold } /* Operator.Word */
+:root[data-theme="dark"] .rp-code .pm { color: #E6EDF3 } /* Punctuation.Marker */
+:root[data-theme="dark"] .rp-code .w { color: #6E7681 } /* Text.Whitespace */
+:root[data-theme="dark"] .rp-code .mb { color: #A5D6FF } /* Literal.Number.Bin */
+:root[data-theme="dark"] .rp-code .mf { color: #A5D6FF } /* Literal.Number.Float */
+:root[data-theme="dark"] .rp-code .mh { color: #A5D6FF } /* Literal.Number.Hex */
+:root[data-theme="dark"] .rp-code .mi { color: #A5D6FF } /* Literal.Number.Integer */
+:root[data-theme="dark"] .rp-code .mo { color: #A5D6FF } /* Literal.Number.Oct */
+:root[data-theme="dark"] .rp-code .sa { color: #79C0FF } /* Literal.String.Affix */
+:root[data-theme="dark"] .rp-code .sb { color: #A5D6FF } /* Literal.String.Backtick */
+:root[data-theme="dark"] .rp-code .sc { color: #A5D6FF } /* Literal.String.Char */
+:root[data-theme="dark"] .rp-code .dl { color: #79C0FF } /* Literal.String.Delimiter */
+:root[data-theme="dark"] .rp-code .sd { color: #A5D6FF } /* Literal.String.Doc */
+:root[data-theme="dark"] .rp-code .s2 { color: #A5D6FF } /* Literal.String.Double */
+:root[data-theme="dark"] .rp-code .se { color: #79C0FF } /* Literal.String.Escape */
+:root[data-theme="dark"] .rp-code .sh { color: #79C0FF } /* Literal.String.Heredoc */
+:root[data-theme="dark"] .rp-code .si { color: #A5D6FF } /* Literal.String.Interpol */
+:root[data-theme="dark"] .rp-code .sx { color: #A5D6FF } /* Literal.String.Other */
+:root[data-theme="dark"] .rp-code .sr { color: #79C0FF } /* Literal.String.Regex */
+:root[data-theme="dark"] .rp-code .s1 { color: #A5D6FF } /* Literal.String.Single */
+:root[data-theme="dark"] .rp-code .ss { color: #A5D6FF } /* Literal.String.Symbol */
+:root[data-theme="dark"] .rp-code .bp { color: #E6EDF3 } /* Name.Builtin.Pseudo */
+:root[data-theme="dark"] .rp-code .fm { color: #D2A8FF; font-weight: bold } /* Name.Function.Magic */
+:root[data-theme="dark"] .rp-code .vc { color: #79C0FF } /* Name.Variable.Class */
+:root[data-theme="dark"] .rp-code .vg { color: #79C0FF } /* Name.Variable.Global */
+:root[data-theme="dark"] .rp-code .vi { color: #79C0FF } /* Name.Variable.Instance */
+:root[data-theme="dark"] .rp-code .vm { color: #79C0FF } /* Name.Variable.Magic */
+:root[data-theme="dark"] .rp-code .il { color: #A5D6FF } /* Literal.Number.Integer.Long */
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) .rp-code .c { color: #8B949E; font-style: italic } /* Comment */
+:root:not([data-theme="light"]) .rp-code .err { color: #F85149 } /* Error */
+:root:not([data-theme="light"]) .rp-code .esc { color: #E6EDF3 } /* Escape */
+:root:not([data-theme="light"]) .rp-code .g { color: #E6EDF3 } /* Generic */
+:root:not([data-theme="light"]) .rp-code .k { color: #FF7B72 } /* Keyword */
+:root:not([data-theme="light"]) .rp-code .l { color: #A5D6FF } /* Literal */
+:root:not([data-theme="light"]) .rp-code .n { color: #E6EDF3 } /* Name */
+:root:not([data-theme="light"]) .rp-code .o { color: #FF7B72; font-weight: bold } /* Operator */
+:root:not([data-theme="light"]) .rp-code .x { color: #E6EDF3 } /* Other */
+:root:not([data-theme="light"]) .rp-code .p { color: #E6EDF3 } /* Punctuation */
+:root:not([data-theme="light"]) .rp-code .ch { color: #8B949E; font-style: italic } /* Comment.Hashbang */
+:root:not([data-theme="light"]) .rp-code .cm { color: #8B949E; font-style: italic } /* Comment.Multiline */
+:root:not([data-theme="light"]) .rp-code .cp { color: #8B949E; font-weight: bold; font-style: italic } /* Comment.Preproc */
+:root:not([data-theme="light"]) .rp-code .cpf { color: #8B949E; font-style: italic } /* Comment.PreprocFile */
+:root:not([data-theme="light"]) .rp-code .c1 { color: #8B949E; font-style: italic } /* Comment.Single */
+:root:not([data-theme="light"]) .rp-code .cs { color: #8B949E; font-weight: bold; font-style: italic } /* Comment.Special */
+:root:not([data-theme="light"]) .rp-code .gd { color: #FFA198; background-color: #490202 } /* Generic.Deleted */
+:root:not([data-theme="light"]) .rp-code .ge { color: #E6EDF3; font-style: italic } /* Generic.Emph */
+:root:not([data-theme="light"]) .rp-code .ges { color: #E6EDF3; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+:root:not([data-theme="light"]) .rp-code .gr { color: #FFA198 } /* Generic.Error */
+:root:not([data-theme="light"]) .rp-code .gh { color: #79C0FF; font-weight: bold } /* Generic.Heading */
+:root:not([data-theme="light"]) .rp-code .gi { color: #56D364; background-color: #0F5323 } /* Generic.Inserted */
+:root:not([data-theme="light"]) .rp-code .go { color: #8B949E } /* Generic.Output */
+:root:not([data-theme="light"]) .rp-code .gp { color: #8B949E } /* Generic.Prompt */
+:root:not([data-theme="light"]) .rp-code .gs { color: #E6EDF3; font-weight: bold } /* Generic.Strong */
+:root:not([data-theme="light"]) .rp-code .gu { color: #79C0FF } /* Generic.Subheading */
+:root:not([data-theme="light"]) .rp-code .gt { color: #FF7B72 } /* Generic.Traceback */
+:root:not([data-theme="light"]) .rp-code .g-Underline { color: #E6EDF3; text-decoration: underline } /* Generic.Underline */
+:root:not([data-theme="light"]) .rp-code .kc { color: #79C0FF } /* Keyword.Constant */
+:root:not([data-theme="light"]) .rp-code .kd { color: #FF7B72 } /* Keyword.Declaration */
+:root:not([data-theme="light"]) .rp-code .kn { color: #FF7B72 } /* Keyword.Namespace */
+:root:not([data-theme="light"]) .rp-code .kp { color: #79C0FF } /* Keyword.Pseudo */
+:root:not([data-theme="light"]) .rp-code .kr { color: #FF7B72 } /* Keyword.Reserved */
+:root:not([data-theme="light"]) .rp-code .kt { color: #FF7B72 } /* Keyword.Type */
+:root:not([data-theme="light"]) .rp-code .ld { color: #79C0FF } /* Literal.Date */
+:root:not([data-theme="light"]) .rp-code .m { color: #A5D6FF } /* Literal.Number */
+:root:not([data-theme="light"]) .rp-code .s { color: #A5D6FF } /* Literal.String */
+:root:not([data-theme="light"]) .rp-code .na { color: #E6EDF3 } /* Name.Attribute */
+:root:not([data-theme="light"]) .rp-code .nb { color: #E6EDF3 } /* Name.Builtin */
+:root:not([data-theme="light"]) .rp-code .nc { color: #F0883E; font-weight: bold } /* Name.Class */
+:root:not([data-theme="light"]) .rp-code .no { color: #79C0FF; font-weight: bold } /* Name.Constant */
+:root:not([data-theme="light"]) .rp-code .nd { color: #D2A8FF; font-weight: bold } /* Name.Decorator */
+:root:not([data-theme="light"]) .rp-code .ni { color: #FFA657 } /* Name.Entity */
+:root:not([data-theme="light"]) .rp-code .ne { color: #F0883E; font-weight: bold } /* Name.Exception */
+:root:not([data-theme="light"]) .rp-code .nf { color: #D2A8FF; font-weight: bold } /* Name.Function */
+:root:not([data-theme="light"]) .rp-code .nl { color: #79C0FF; font-weight: bold } /* Name.Label */
+:root:not([data-theme="light"]) .rp-code .nn { color: #FF7B72 } /* Name.Namespace */
+:root:not([data-theme="light"]) .rp-code .nx { color: #E6EDF3 } /* Name.Other */
+:root:not([data-theme="light"]) .rp-code .py { color: #79C0FF } /* Name.Property */
+:root:not([data-theme="light"]) .rp-code .nt { color: #7EE787 } /* Name.Tag */
+:root:not([data-theme="light"]) .rp-code .nv { color: #79C0FF } /* Name.Variable */
+:root:not([data-theme="light"]) .rp-code .ow { color: #FF7B72; font-weight: bold } /* Operator.Word */
+:root:not([data-theme="light"]) .rp-code .pm { color: #E6EDF3 } /* Punctuation.Marker */
+:root:not([data-theme="light"]) .rp-code .w { color: #6E7681 } /* Text.Whitespace */
+:root:not([data-theme="light"]) .rp-code .mb { color: #A5D6FF } /* Literal.Number.Bin */
+:root:not([data-theme="light"]) .rp-code .mf { color: #A5D6FF } /* Literal.Number.Float */
+:root:not([data-theme="light"]) .rp-code .mh { color: #A5D6FF } /* Literal.Number.Hex */
+:root:not([data-theme="light"]) .rp-code .mi { color: #A5D6FF } /* Literal.Number.Integer */
+:root:not([data-theme="light"]) .rp-code .mo { color: #A5D6FF } /* Literal.Number.Oct */
+:root:not([data-theme="light"]) .rp-code .sa { color: #79C0FF } /* Literal.String.Affix */
+:root:not([data-theme="light"]) .rp-code .sb { color: #A5D6FF } /* Literal.String.Backtick */
+:root:not([data-theme="light"]) .rp-code .sc { color: #A5D6FF } /* Literal.String.Char */
+:root:not([data-theme="light"]) .rp-code .dl { color: #79C0FF } /* Literal.String.Delimiter */
+:root:not([data-theme="light"]) .rp-code .sd { color: #A5D6FF } /* Literal.String.Doc */
+:root:not([data-theme="light"]) .rp-code .s2 { color: #A5D6FF } /* Literal.String.Double */
+:root:not([data-theme="light"]) .rp-code .se { color: #79C0FF } /* Literal.String.Escape */
+:root:not([data-theme="light"]) .rp-code .sh { color: #79C0FF } /* Literal.String.Heredoc */
+:root:not([data-theme="light"]) .rp-code .si { color: #A5D6FF } /* Literal.String.Interpol */
+:root:not([data-theme="light"]) .rp-code .sx { color: #A5D6FF } /* Literal.String.Other */
+:root:not([data-theme="light"]) .rp-code .sr { color: #79C0FF } /* Literal.String.Regex */
+:root:not([data-theme="light"]) .rp-code .s1 { color: #A5D6FF } /* Literal.String.Single */
+:root:not([data-theme="light"]) .rp-code .ss { color: #A5D6FF } /* Literal.String.Symbol */
+:root:not([data-theme="light"]) .rp-code .bp { color: #E6EDF3 } /* Name.Builtin.Pseudo */
+:root:not([data-theme="light"]) .rp-code .fm { color: #D2A8FF; font-weight: bold } /* Name.Function.Magic */
+:root:not([data-theme="light"]) .rp-code .vc { color: #79C0FF } /* Name.Variable.Class */
+:root:not([data-theme="light"]) .rp-code .vg { color: #79C0FF } /* Name.Variable.Global */
+:root:not([data-theme="light"]) .rp-code .vi { color: #79C0FF } /* Name.Variable.Instance */
+:root:not([data-theme="light"]) .rp-code .vm { color: #79C0FF } /* Name.Variable.Magic */
+:root:not([data-theme="light"]) .rp-code .il { color: #A5D6FF } /* Literal.Number.Integer.Long */
+}
+}
+
+</style>
+</head>
+<body class="rp-page rp-has-side">
+<div class="rp-shell">
+<div class="rp-top">
+<header class="rp-m-header rp-header" data-rp-module="header" data-rp-id="header" data-rp-lines="1-6">
+<p class="rp-kicker">Primer</p><h1 class="rp-title">rapport in five minutes</h1>
+<p class="rp-subtitle">Your agent writes a report, you mark it up in the browser, and the agent revises it.</p><p class="rp-byline" data-rp-ui>
+<a class="rp-entry" href="https://github.com/andrewendlinger/rapport"><span class="rp-icon rp-icon-tint" style="--rp-icon:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNOCAwQzMuNTggMCAwIDMuNTggMCA4YzAgMy41NCAyLjI5IDYuNTMgNS40NyA3LjU5LjQuMDcuNTUtLjE3LjU1LS4zOCAwLS4xOS0uMDEtLjgyLS4wMS0xLjQ5LTIuMDEuMzctMi41My0uNDktMi42OS0uOTQtLjA5LS4yMy0uNDgtLjk0LS44Mi0xLjEzLS4yOC0uMTUtLjY4LS41Mi0uMDEtLjUzLjYzLS4wMSAxLjA4LjU4IDEuMjMuODIuNzIgMS4yMSAxLjg3Ljg3IDIuMzMuNjYuMDctLjUyLjI4LS44Ny41MS0xLjA3LTEuNzgtLjItMy42NC0uODktMy42NC0zLjk1IDAtLjg3LjMxLTEuNTkuODItMi4xNS0uMDgtLjItLjM2LTEuMDIuMDgtMi4xMiAwIDAgLjY3LS4yMSAyLjIuODIuNjQtLjE4IDEuMzItLjI3IDItLjI3LjY4IDAgMS4zNi4wOSAyIC4yNyAxLjUzLTEuMDQgMi4yLS44MiAyLjItLjgyLjQ0IDEuMS4xNiAxLjkyLjA4IDIuMTIuNTEuNTYuODIgMS4yNy44MiAyLjE1IDAgMy4wNy0xLjg3IDMuNzUtMy42NSAzLjk1LjI5LjI1LjU0LjczLjU0IDEuNDggMCAxLjA3LS4wMSAxLjkzLS4wMSAyLjIgMCAuMjEuMTUuNDYuNTUuMzhBOC4wMTMgOC4wMTMgMCAwMDE2IDhjMC00LjQyLTMuNTgtOC04LTh6Ii8+PC9zdmc+Cg==)" aria-hidden="true" data-rp-ui></span><span>andrewendlinger/rapport</span></a><span class="rp-status">example</span><span class="rp-version">v3</span></p>
+</header>
+</div>
+<div class="rp-body">
+<aside class="rp-side" data-rp-ui>
+<nav class="rp-m-toc rp-toc" aria-label="Contents" data-rp-module="toc" data-rp-ui="">
+<p class="rp-toc-title">Contents</p>
+<ol>
+<li class="rp-toc-l0"><a href="#quick-start">Quick start</a></li>
+<li class="rp-toc-l1"><a href="#1-install">1 · Install</a></li>
+<li class="rp-toc-l1"><a href="#2-ask-for-a-report">2 · Ask for a report</a></li>
+<li class="rp-toc-l1"><a href="#3-review-it">3 · Review it</a></li>
+<li class="rp-toc-l1"><a href="#4-apply-the-feedback">4 · Apply the feedback</a></li>
+<li class="rp-toc-l0"><a href="#writing-a-report">Writing a report</a></li>
+<li class="rp-toc-l0"><a href="#making-it-yours">Making it yours</a></li>
+<li class="rp-toc-l0"><a href="#adding-a-module">Adding a module</a></li>
+<li class="rp-toc-l0"><a href="#cheat-sheet">Cheat sheet</a></li>
+</ol>
+</nav>
+
+</aside>
+<main class="rp-content" id="rp-content">
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-b46417" data-rp-module="paragraph" data-rp-lines="8-8">rapport is an Agent Skill with a small command-line tool, <code>rapport</code>. Your agent writes a report in Markdown, rapport turns it into one HTML page, and you review that page in the browser: select a passage, then comment on it or flag it in one click. Say &quot;apply the feedback&quot; and the agent edits the report while the page reloads.</p>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-bc9823" data-rp-module="paragraph" data-rp-lines="10-10">This page is a rapport report, built from <code>report.md</code> in this folder with the default theme.</p>
+<aside class="rp-m-callout rp-block rp-callout rp-tone-tip" data-rp-id="callout-084b06" data-rp-module="callout" data-rp-lines="12-14">
+<p class="rp-callout-title">Try it on this page</p>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-4162c0" data-rp-module="paragraph" data-rp-lines="13-13">Run <code>rapport serve examples/primer</code>, select any sentence, type a comment and press Enter. Then run <code>rapport feedback examples/primer</code>: that's what your agent reads.</p>
+</aside>
+<figure class="rp-m-image rp-block rp-figure" data-rp-id="image-7546a2" data-rp-module="image" data-rp-lines="16-16" data-rp-params="{&quot;zoom&quot;: true}">
+<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MjAgMzAwIiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjMwMCIgZm9udC1mYW1pbHk9InVpLXNhbnMtc2VyaWYsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgJ1NlZ29lIFVJJywgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiI+CiAgPHRpdGxlPlRoZSByYXBwb3J0IGxvb3A6IHRoZSBhZ2VudCB3cml0ZXMsIHlvdSByZXZpZXcsIHRoZSBhZ2VudCByZXZpc2VzPC90aXRsZT4KICA8IS0tIG1pZC10b25lIGNvbG91cnMgb24gYSB0cmFuc3BhcmVudCBncm91bmQ6IHJlYWRhYmxlIG9uIGxpZ2h0IGFuZCBkYXJrIHBhZ2VzIGFsaWtlIC0tPgogIDxzdHlsZT4KICAgIC5ib3ggIHsgZmlsbDogcmdiYSgxMjgsMTI4LDE0MCwuMDcpOyBzdHJva2U6IHJnYmEoMTI4LDEyOCwxNDAsLjQ1KTsgc3Ryb2tlLXdpZHRoOiAxOyB9CiAgICAueW91ICB7IGZpbGw6IHJnYmEoNTksMTMwLDI0NiwuMTApOyBzdHJva2U6ICMzQjgyRjY7IHN0cm9rZS13aWR0aDogMS4yNTsgfQogICAgLmggICAgeyBmaWxsOiAjOEE4QTkzOyBmb250LXNpemU6IDE1cHg7IGZvbnQtd2VpZ2h0OiA2MDA7IH0KICAgIC5oeSAgIHsgZmlsbDogIzNCODJGNjsgZm9udC1zaXplOiAxNXB4OyBmb250LXdlaWdodDogNjAwOyB9CiAgICAucyAgICB7IGZpbGw6ICM4QThBOTM7IGZvbnQtc2l6ZTogMTIuNXB4OyB9CiAgICAubW9ubyB7IGZvbnQtZmFtaWx5OiB1aS1tb25vc3BhY2UsICdTRiBNb25vJywgTWVubG8sIG1vbm9zcGFjZTsgZm9udC1zaXplOiAxMnB4OyB9CiAgICAuZWRnZSB7IHN0cm9rZTogcmdiYSgxMjgsMTI4LDE0MCwuNik7IHN0cm9rZS13aWR0aDogMS4yNTsgZmlsbDogbm9uZTsgfQogICAgLmxhYiAgeyBmaWxsOiAjM0I4MkY2OyB9CiAgICAudGlwICB7IGZpbGw6IHJnYmEoMTI4LDEyOCwxNDAsLjgpOyB9CiAgPC9zdHlsZT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggY2xhc3M9InRpcCIgZD0iTTAsMCBMMTAsNSBMMCwxMCB6Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDxyZWN0IGNsYXNzPSJib3giIHg9IjIwIiB5PSIyNCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3NiIgcng9IjEwIi8+CiAgPHRleHQgY2xhc3M9ImgiIHg9IjQwIiB5PSI1NiI+MSAgQWdlbnQgd3JpdGVzPC90ZXh0PgogIDx0ZXh0IGNsYXNzPSJzIG1vbm8iIHg9IjQwIiB5PSI4MCI+cmVwb3J0Lm1kPC90ZXh0PgoKICA8cmVjdCBjbGFzcz0iYm94IiB4PSI0ODAiIHk9IjI0IiB3aWR0aD0iMjIwIiBoZWlnaHQ9Ijc2IiByeD0iMTAiLz4KICA8dGV4dCBjbGFzcz0iaCIgeD0iNTAwIiB5PSI1NiI+MiAgcmFwcG9ydCBidWlsZHM8L3RleHQ+CiAgPHRleHQgY2xhc3M9InMgbW9ubyIgeD0iNTAwIiB5PSI4MCI+cmVwb3J0Lmh0bWwgwrcgb25lIGZpbGU8L3RleHQ+CgogIDxyZWN0IGNsYXNzPSJ5b3UiIHg9IjQ4MCIgeT0iMjAwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9Ijc2IiByeD0iMTAiLz4KICA8dGV4dCBjbGFzcz0iaHkiIHg9IjUwMCIgeT0iMjMyIj4zICBZb3UgcmV2aWV3PC90ZXh0PgogIDx0ZXh0IGNsYXNzPSJzIiB4PSI1MDAiIHk9IjI1NiI+c2VsZWN0IMK3IGNvbW1lbnQgwrcgZmxhZzwvdGV4dD4KCiAgPHJlY3QgY2xhc3M9ImJveCIgeD0iMjAiIHk9IjIwMCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3NiIgcng9IjEwIi8+CiAgPHRleHQgY2xhc3M9ImgiIHg9IjQwIiB5PSIyMzIiPjQgIEFnZW50IHJldmlzZXM8L3RleHQ+CiAgPHRleHQgY2xhc3M9InMiIHg9IjQwIiB5PSIyNTYiPm9uZSBlZGl0IHBlciBjb21tZW50PC90ZXh0PgoKICA8cGF0aCBjbGFzcz0iZWRnZSIgZD0iTTI0NCw2MiBMNDc0LDYyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDx0ZXh0IGNsYXNzPSJsYWIgbW9ubyIgeD0iMzYwIiB5PSI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmFwcG9ydCBsaW50PC90ZXh0PgoKICA8cGF0aCBjbGFzcz0iZWRnZSIgZD0iTTU5MCwxMDQgTDU5MCwxOTQiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHRleHQgY2xhc3M9ImxhYiBtb25vIiB4PSI2MDIiIHk9IjE1NCI+cmFwcG9ydCBzZXJ2ZTwvdGV4dD4KCiAgPHBhdGggY2xhc3M9ImVkZ2UiIGQ9Ik00NzYsMjM4IEwyNDYsMjM4IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDx0ZXh0IGNsYXNzPSJsYWIgbW9ubyIgeD0iMzYwIiB5PSIyMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJhcHBvcnQgZmVlZGJhY2s8L3RleHQ+CgogIDxwYXRoIGNsYXNzPSJlZGdlIiBkPSJNMTMwLDE5NiBMMTMwLDEwNiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8dGV4dCBjbGFzcz0ibGFiIG1vbm8iIHg9IjExOCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0iZW5kIj5yZXNvbHZlPC90ZXh0PgogIDx0ZXh0IGNsYXNzPSJzIiB4PSIxMTgiIHk9IjE2NCIgdGV4dC1hbmNob3I9ImVuZCI+cGFnZSByZWxvYWRzPC90ZXh0Pgo8L3N2Zz4K" alt="The loop: each arrow is one command." data-rp-zoom>
+<figcaption>The loop: each arrow is one command.</figcaption></figure>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-561843" data-rp-module="paragraph" data-rp-lines="18-18">Two ideas run through it:</p>
+<ul class="rp-m-list rp-block" data-rp-id="list-c56cd8" data-rp-module="list" data-rp-lines="20-24">
+<li><strong>Everything is a module.</strong><br />
+The header, the table of contents, each Markdown element, every <code>:::</code> block and the feedback window are folders under <code>modules/</code>. Add a folder to add a module, or to replace a built-in one.</li>
+<li><strong>Everything is configured in TOML.</strong><br />
+Theme, layout, writing rules and feedback actions live in config files that stack: your user config, your project, one report.</li>
+</ul>
+
+<h2 class="rp-m-heading rp-block" id="quick-start" data-rp-id="heading-829bb0" data-rp-module="heading" data-rp-lines="25-25">Quick start<a class="rp-anchor" href="#quick-start" data-rp-ui aria-label="Link to this section">#</a></h2>
+<h3 class="rp-m-heading rp-block" id="1-install" data-rp-id="heading-d29c8c" data-rp-module="heading" data-rp-lines="27-27">1 · Install<a class="rp-anchor" href="#1-install" data-rp-ui aria-label="Link to this section">#</a></h3>
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-3b8336" data-rp-module="code" data-rp-lines="29-32">
+<pre class="rp-pre"><code class="language-sh"><span class="rp-line">git<span class="w"> </span>clone<span class="w"> </span>https://github.com/andrewendlinger/rapport<span class="w"> </span>~/code/rapport</span>
+<span class="rp-line">~/code/rapport/install.sh<span class="w"> </span>--bin</span></code></pre>
+</figure>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-40bef0" data-rp-module="paragraph" data-rp-lines="34-34">This links the skill into Claude Code (<code>~/.claude/skills</code>) and other Agent Skills harnesses such as pi and Codex (<code>~/.agents/skills</code>), and puts <code>rapport</code> on your PATH. You need Python 3.11 or later and <a href="https://docs.astral.sh/uv/">uv</a>.</p>
+<h3 class="rp-m-heading rp-block" id="2-ask-for-a-report" data-rp-id="heading-e4440a" data-rp-module="heading" data-rp-lines="36-36">2 · Ask for a report<a class="rp-anchor" href="#2-ask-for-a-report" data-rp-ui aria-label="Link to this section">#</a></h3>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-d64ada" data-rp-module="paragraph" data-rp-lines="38-38">In your agent: <em>&quot;Write up the cache regression as a rapport report.&quot;</em> It creates <code>reports/&lt;name&gt;/report.md</code>, writes it, starts the review server and gives you the link.</p>
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-d40f31" data-rp-module="collapse" data-rp-lines="40-45" data-rp-params="{&quot;title&quot;: &quot;What the agent runs&quot;, &quot;open&quot;: false}">
+<summary>What the agent runs</summary>
+<div class="rp-collapse-body">
+<ol class="rp-m-list rp-block" data-rp-id="list-f6cd6c" data-rp-module="list" data-rp-lines="41-44">
+<li><code>rapport init reports/cache-regression</code> creates the folder.</li>
+<li><code>rapport brief</code> prints your writing rules and every module it can use.</li>
+<li>It writes <code>report.md</code>, and <code>rapport lint</code> checks it: errors point at <code>report.md:LINE</code>.</li>
+<li><code>rapport serve --detach</code> starts the review server and prints the link.</li>
+</ol>
+
+</div>
+</details>
+<h3 class="rp-m-heading rp-block" id="3-review-it" data-rp-id="heading-2ff729" data-rp-module="heading" data-rp-lines="47-47">3 · Review it<a class="rp-anchor" href="#3-review-it" data-rp-ui aria-label="Link to this section">#</a></h3>
+<ul class="rp-m-list rp-block" data-rp-id="list-6e0617" data-rp-module="list" data-rp-lines="49-52">
+<li><strong>Select text.</strong> A comment window opens. Type and press Enter, or click an action: <strong>Delete</strong>, <strong>AI slop</strong>, <strong>Too verbose</strong> or <strong>Unclear</strong>.</li>
+<li><strong>Hover a block.</strong> A <strong>+</strong> in the margin comments on a whole image, table or code block.</li>
+<li><strong>Open the panel</strong> (bottom right) to see everything you've left, or to comment on the report as a whole.</li>
+</ul>
+
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-4f23d6" data-rp-module="paragraph" data-rp-lines="53-53">Everything saves as you go. The page reloads when the report changes, but never while you're typing.</p>
+<h3 class="rp-m-heading rp-block" id="4-apply-the-feedback" data-rp-id="heading-3f81a8" data-rp-module="heading" data-rp-lines="55-55">4 · Apply the feedback<a class="rp-anchor" href="#4-apply-the-feedback" data-rp-ui aria-label="Link to this section">#</a></h3>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-26ffd1" data-rp-module="paragraph" data-rp-lines="57-57">Tell the agent: <em>&quot;Apply the rapport feedback.&quot;</em> It reads your comments with <code>rapport feedback</code>, makes one edit per comment, and marks each one done with a note. The page reloads, and the panel lists the agent's notes under <strong>Resolved</strong>.</p>
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-5dfdac" data-rp-module="collapse" data-rp-lines="59-82" data-rp-params="{&quot;title&quot;: &quot;What the agent sees&quot;, &quot;open&quot;: false}">
+<summary>What the agent sees</summary>
+<div class="rp-collapse-body">
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-a4468d" data-rp-module="code" data-rp-lines="60-79">
+<pre class="rp-pre rp-wrap"><code class="language-text"><span class="rp-line">rapport feedback — 2 open · report.md · v1</span>
+<span class="rp-line">Apply each item to report.md, then: rapport feedback resolve &lt;ids&gt; --note "&lt;what changed&gt;"</span>
+<span class="rp-line"></span>
+<span class="rp-line">FB-1 · Unclear · report.md:20-24</span>
+<span class="rp-line rp-hl">  do: Make this easier to understand: say it more simply, define terms on first use, and add a short concrete example if that helps.</span>
+<span class="rp-line">  comment: Say what a module is before using the word.</span>
+<span class="rp-line">  quote: "Everything is a module."</span>
+<span class="rp-line">  │   20  - **Everything is a module.**\</span>
+<span class="rp-line">  │   21    The header, the table of contents, each Markdown element, every `:::` block and the feedback window are folders under `modules/`. Add a folder to add a module, or to replace a built-in one.</span>
+<span class="rp-line">  │   22  - **Everything is configured in TOML.**\</span>
+<span class="rp-line">  │   23    Theme, layout, writing rules and feedback actions live in config files that stack: your user config, your project, one report.</span>
+<span class="rp-line">  │   24  </span>
+<span class="rp-line"></span>
+<span class="rp-line">FB-2 · AI slop · report.md:18</span>
+<span class="rp-line rp-hl">  do: Rewrite this in plain, concise, simply worded language that is easy to follow and understand. Not unnecessarily descriptive or verbose: to the point and human-friendly. Keep the facts.</span>
+<span class="rp-line">  quote: "Two ideas run through it:"</span>
+<span class="rp-line">  │   18  Two ideas run through it:</span>
+<span class="rp-line rp-hl">  learn: after fixing: distil the pattern into one short writing rule, propose it to the user, and ask whether to save it (rapport writing add "&lt;rule&gt;" --scope user|project).</span></code></pre>
+</figure>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-a0891b" data-rp-module="paragraph" data-rp-lines="81-81">Each <code>do:</code> line is the action's instruction from config: change it and you change what the agent does. <code>learn</code> asks the agent to turn a fix into a writing rule, so the same complaint doesn't come back.</p>
+</div>
+</details>
+<h2 class="rp-m-heading rp-block" id="writing-a-report" data-rp-id="heading-7fedfa" data-rp-module="heading" data-rp-lines="84-84">Writing a report<a class="rp-anchor" href="#writing-a-report" data-rp-ui aria-label="Link to this section">#</a></h2>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-887de6" data-rp-module="paragraph" data-rp-lines="86-86"><code>report.md</code> is Markdown with a few additions. A block starts with <code>:::</code>, a name, an optional title and options in braces; inline modules look like <code>:badge[text]</code>.</p>
+<div class="rp-m-compare rp-block rp-compare" data-rp-id="compare-14a796" data-rp-module="compare" data-rp-lines="88-105">
+<div class="rp-compare-grid rp-panes-2">
+<div class="rp-m-pane rp-block rp-pane" data-rp-label="report.md" data-rp-id="pane-a431ff" data-rp-module="pane" data-rp-lines="89-97">
+<div class="rp-pane-label">report.md</div>
+<div class="rp-pane-body">
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-dbb08b" data-rp-module="code" data-rp-lines="90-96">
+<pre class="rp-pre"><code class="language-markdown"><span class="rp-line">::: callout Heads up {tone = "warning"}</span>
+<span class="rp-line">Old entries miss once after deploy.</span>
+<span class="rp-line">:::</span>
+<span class="rp-line"></span>
+<span class="rp-line">Status: :badge[shipped]{tone = "ok"}</span></code></pre>
+</figure>
+</div>
+</div>
+<div class="rp-m-pane rp-block rp-pane" data-rp-label="Result" data-rp-id="pane-6763bc" data-rp-module="pane" data-rp-lines="98-104">
+<div class="rp-pane-label">Result</div>
+<div class="rp-pane-body">
+<aside class="rp-m-callout rp-block rp-callout rp-tone-warning" data-rp-id="callout-7aa9b1" data-rp-module="callout" data-rp-lines="99-101">
+<p class="rp-callout-title">Heads up</p>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-9964aa" data-rp-module="paragraph" data-rp-lines="100-100">Old entries miss once after deploy.</p>
+</aside>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-9dafc7" data-rp-module="paragraph" data-rp-lines="103-103">Status: <span class="rp-m-badge rp-badge rp-tone-ok" data-rp-module="badge">shipped</span></p>
+</div>
+</div>
+</div>
+</div>
+<div class="rp-m-table rp-block rp-table" data-rp-id="table-a0d70c" data-rp-module="table" data-rp-lines="107-114"><table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Write</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>callout</td>
+<td><code>::: callout Title {tone = &quot;tip&quot;}</code></td>
+<td>a note, tip, warning or danger</td>
+</tr>
+<tr>
+<td>collapse</td>
+<td><code>::: collapse Title</code></td>
+<td>detail most readers skip</td>
+</tr>
+<tr>
+<td>compare</td>
+<td><code>::: compare</code> with a <code>::: pane</code> per column</td>
+<td>before and after, side by side</td>
+</tr>
+<tr>
+<td>badge</td>
+<td><code>:badge[text]{tone = &quot;ok&quot;}</code></td>
+<td>a status label in a sentence</td>
+</tr>
+<tr>
+<td>code</td>
+<td><code>```py {title = &quot;app.py&quot;, hl = [2]}</code></td>
+<td>a caption and highlighted lines</td>
+</tr>
+<tr>
+<td>image</td>
+<td><code>![Caption](assets/demo.gif)</code></td>
+<td>images and gifs, stored inside the page</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-5784ce" data-rp-module="paragraph" data-rp-lines="116-116">Everything else is plain Markdown: tables, footnotes, task lists. To see every module rendered, run <code>rapport gallery --out /tmp/gallery</code>.</p>
+<h2 class="rp-m-heading rp-block" id="making-it-yours" data-rp-id="heading-68bd26" data-rp-module="heading" data-rp-lines="118-118">Making it yours<a class="rp-anchor" href="#making-it-yours" data-rp-ui aria-label="Link to this section">#</a></h2>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-6c5cae" data-rp-module="paragraph" data-rp-lines="120-120">Settings are TOML and stack up, nearest first: the report's front matter, then every <code>rapport.toml</code> from the report folder up to your home folder, then your user config. The GitHub link under this page's title and its footer line come from the <code>rapport.toml</code> beside it:</p>
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-1e9a92" data-rp-module="code" data-rp-lines="122-131">
+<figcaption class="rp-code-title">examples/primer/rapport.toml</figcaption>
+<pre class="rp-pre"><code class="language-toml"><span class="rp-line"><span class="k">[[</span><span class="k">modules</span><span class="k">.</span><span class="k">header</span><span class="k">.</span><span class="k">entries</span><span class="k">]]</span><span class="w">         </span><span class="c1"># an icon and a link under the title</span></span>
+<span class="rp-line"><span class="n">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">assets/github.svg</span><span class="s2">"</span></span>
+<span class="rp-line"><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">andrewendlinger/rapport</span><span class="s2">"</span></span>
+<span class="rp-line"><span class="n">href</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">https://github.com/andrewendlinger/rapport</span><span class="s2">"</span></span>
+<span class="rp-line"></span>
+<span class="rp-line"><span class="k">[</span><span class="k">modules</span><span class="k">.</span><span class="k">footer</span><span class="k">]</span></span>
+<span class="rp-line"><span class="n">show_date</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span></span>
+<span class="rp-line"><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">Built from report.md with rapport</span><span class="s2">"</span></span></code></pre>
+</figure>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-ed1282" data-rp-module="paragraph" data-rp-lines="133-133">For a different look, pick a theme (<code>default</code>, <code>classic</code> or <code>paper</code>) and adjust its tokens: palette, fonts and sizes for every module, light and dark. Your own CSS comes last and wins over rapport's.</p>
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-b4f93a" data-rp-module="code" data-rp-lines="135-146">
+<pre class="rp-pre"><code class="language-toml"><span class="rp-line"><span class="k">[</span><span class="k">theme</span><span class="k">]</span></span>
+<span class="rp-line"><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">paper</span><span class="s2">"</span></span>
+<span class="rp-line"><span class="n">css</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"</span><span class="s2">brand.css</span><span class="s2">"</span><span class="p">]</span></span>
+<span class="rp-line"></span>
+<span class="rp-line"><span class="k">[</span><span class="k">theme</span><span class="k">.</span><span class="k">tokens</span><span class="k">]</span></span>
+<span class="rp-line"><span class="n">accent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">#0B6E4F</span><span class="s2">"</span></span>
+<span class="rp-line"><span class="n">body-size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">17px</span><span class="s2">"</span></span>
+<span class="rp-line"></span>
+<span class="rp-line"><span class="k">[</span><span class="k">theme</span><span class="k">.</span><span class="k">tokens</span><span class="k">.</span><span class="k">dark</span><span class="k">]</span></span>
+<span class="rp-line"><span class="n">accent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">#6FD3A8</span><span class="s2">"</span></span></code></pre>
+</figure>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-b26114" data-rp-module="paragraph" data-rp-lines="148-148">Feedback actions are settings too. This adds a <strong>Needs source</strong> button for the reader, and tells the agent what to do when it's used:</p>
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-38728f" data-rp-module="code" data-rp-lines="150-156">
+<pre class="rp-pre"><code class="language-toml"><span class="rp-line"><span class="k">[[</span><span class="k">modules</span><span class="k">.</span><span class="k">feedback</span><span class="k">.</span><span class="k">actions</span><span class="k">]]</span></span>
+<span class="rp-line"><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">cite</span><span class="s2">"</span></span>
+<span class="rp-line"><span class="n">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">Needs source</span><span class="s2">"</span></span>
+<span class="rp-line"><span class="n">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">📎</span><span class="s2">"</span></span>
+<span class="rp-line"><span class="n">instruction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="s2">Add a source or a link that supports this claim.</span><span class="s2">"</span></span></code></pre>
+</figure>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-84337f" data-rp-module="paragraph" data-rp-lines="158-158">House style goes in <code>[writing]</code>: who the reader is, the tone, words to avoid. The agent reads it in <code>rapport brief</code>, and <code>rapport lint</code> checks it.</p>
+<aside class="rp-m-callout rp-block rp-callout rp-tone-note" data-rp-id="callout-00cbec" data-rp-module="callout" data-rp-lines="160-162">
+<p class="rp-callout-title">Where did a setting come from?</p>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-d6dd3c" data-rp-module="paragraph" data-rp-lines="161-161"><code>rapport config show --origin</code> prints every value with the file that set it. <code>rapport config paths</code> lists the files it reads.</p>
+</aside>
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-ff9d00" data-rp-module="collapse" data-rp-lines="164-176" data-rp-params="{&quot;title&quot;: &quot;All config layers, nearest wins&quot;, &quot;open&quot;: false}">
+<summary>All config layers, nearest wins</summary>
+<div class="rp-collapse-body">
+<div class="rp-m-table rp-block rp-table" data-rp-id="table-a6a158" data-rp-module="table" data-rp-lines="165-173"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>command line</td>
+<td><code>--set key=value</code></td>
+</tr>
+<tr>
+<td>front matter</td>
+<td>the <code>+++</code> block at the top of <code>report.md</code></td>
+</tr>
+<tr>
+<td>project</td>
+<td>every <code>rapport.toml</code> from the report folder up to your home folder</td>
+</tr>
+<tr>
+<td>learned rules</td>
+<td>added by the agent when you agree to save a rule</td>
+</tr>
+<tr>
+<td>user</td>
+<td><code>~/.config/rapport/config.toml</code>, or wherever <code>RAPPORT_CONFIG</code> points</td>
+</tr>
+<tr>
+<td>preset</td>
+<td>a named bundle of settings</td>
+</tr>
+<tr>
+<td>defaults</td>
+<td>built into rapport and each module</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-f9f341" data-rp-module="paragraph" data-rp-lines="175-175">Most settings replace what's below them. Writing rules add up, and feedback actions merge by <code>id</code>, so you can change one field of one action.</p>
+</div>
+</details>
+<h2 class="rp-m-heading rp-block" id="adding-a-module" data-rp-id="heading-7aacab" data-rp-module="heading" data-rp-lines="178-178">Adding a module<a class="rp-anchor" href="#adding-a-module" data-rp-ui aria-label="Link to this section">#</a></h2>
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-ef9152" data-rp-module="code" data-rp-lines="180-183">
+<pre class="rp-pre"><code class="language-sh"><span class="rp-line">rapport<span class="w"> </span>modules<span class="w"> </span>new<span class="w"> </span>tabs<span class="w"> </span>--kind<span class="w"> </span>block<span class="w"> </span>--scope<span class="w"> </span>project</span>
+<span class="rp-line">rapport<span class="w"> </span>modules<span class="w"> </span>check<span class="w"> </span>tabs</span></code></pre>
+</figure>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-dea363" data-rp-module="paragraph" data-rp-lines="185-185">A module is a folder: <code>module.toml</code> for its options, <code>template.html</code> for its markup, and optionally <code>style.css</code>, <code>script.js</code> and an <code>example.md</code>. There's no registration. Once <code>modules check</code> passes, <code>::: tabs</code> works and your agent finds it in <code>rapport brief</code>. A folder with a built-in module's name replaces the built-in.</p>
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-ddcded" data-rp-module="collapse" data-rp-lines="187-196" data-rp-params="{&quot;title&quot;: &quot;Module kinds&quot;, &quot;open&quot;: false}">
+<summary>Module kinds</summary>
+<div class="rp-collapse-body">
+<div class="rp-m-table rp-block rp-table" data-rp-id="table-a37123" data-rp-module="table" data-rp-lines="188-195"><table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>What it is</th>
+<th>How it's used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>block</td>
+<td>a <code>:::</code> block</td>
+<td><code>::: name Title {options}</code> … <code>:::</code></td>
+</tr>
+<tr>
+<td>inline</td>
+<td>an inline label or widget</td>
+<td><code>:name[text]{options}</code></td>
+</tr>
+<tr>
+<td>element</td>
+<td>how a Markdown element renders</td>
+<td>automatic; replace one by name</td>
+</tr>
+<tr>
+<td>layout</td>
+<td>the page shell, header, contents, footer</td>
+<td><code>[layout] top</code>, <code>side</code>, <code>bottom</code></td>
+</tr>
+<tr>
+<td>theme</td>
+<td>colours, fonts and base typography</td>
+<td><code>[theme] name = &quot;…&quot;</code></td>
+</tr>
+<tr>
+<td>feature</td>
+<td>page behaviour: feedback, live reload, dark mode</td>
+<td>on unless <code>enabled = false</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</details>
+<h2 class="rp-m-heading rp-block" id="cheat-sheet" data-rp-id="heading-b369b6" data-rp-module="heading" data-rp-lines="198-198">Cheat sheet<a class="rp-anchor" href="#cheat-sheet" data-rp-ui aria-label="Link to this section">#</a></h2>
+<div class="rp-m-table rp-block rp-table" data-rp-id="table-305007" data-rp-module="table" data-rp-lines="200-209"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rapport init &lt;dir&gt;</code></td>
+<td>start a report</td>
+</tr>
+<tr>
+<td><code>rapport brief</code></td>
+<td>writing rules and modules, for the agent</td>
+</tr>
+<tr>
+<td><code>rapport lint</code></td>
+<td>build, and check errors and writing rules</td>
+</tr>
+<tr>
+<td><code>rapport serve</code></td>
+<td>serve with feedback and live reload; <code>--detach</code>, <code>--stop</code></td>
+</tr>
+<tr>
+<td><code>rapport feedback</code></td>
+<td>open feedback; <code>resolve</code>, <code>add</code>, <code>reopen</code></td>
+</tr>
+<tr>
+<td><code>rapport config show --origin</code></td>
+<td>every setting and where it came from</td>
+</tr>
+<tr>
+<td><code>rapport modules new &lt;name&gt;</code></td>
+<td>start your own module; <code>check</code>, <code>list</code>, <code>info</code></td>
+</tr>
+<tr>
+<td><code>rapport gallery</code></td>
+<td>every module, rendered</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-7ff5c5" data-rp-module="paragraph" data-rp-lines="211-211">Next steps:</p>
+<ul class="rp-m-list rp-block contains-task-list" data-rp-id="list-41dc79" data-rp-module="list" data-rp-lines="213-215">
+<li class="task-list-item"><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> Read the primer</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Install rapport</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Ask your agent for a first report</li>
+</ul>
+
+</main>
+</div>
+<div class="rp-bottom">
+<footer class="rp-m-footer rp-footer" data-rp-module="footer" data-rp-ui="">
+<span>rapport in five minutes</span><span>v3</span><span>Built from report.md with rapport</span></footer>
+
+</div>
+</div>
+<button class="rp-theme-toggle" type="button" data-rp-ui aria-label="Theme: system" title="Theme: system">◐</button>
+<script type="application/json" id="rp-data">{"report": {"title": "rapport in five minutes", "version": 3, "served": false, "source": "report.md"}, "modules": {"runtime": {"enabled": true}, "toc": {"enabled": true, "title": "Contents", "min_level": 2, "max_level": 3, "min_headings": 3}, "image": {"enabled": true, "zoom": true, "caption_from_alt": true}, "collapse": {"enabled": true, "title": "Details", "open": false}, "copy-code": {"enabled": true}, "print": {"enabled": true}, "static-hint": {"enabled": true, "command": "rapport"}, "theme-toggle": {"enabled": true}}, "present": ["badge", "callout", "code", "collapse", "compare", "copy-code", "footer", "header", "heading", "image", "list", "page", "pane", "paragraph", "print", "runtime", "static-hint", "table", "theme-toggle", "toc"]}</script>
+<script>/* runtime */
+/* rapport client kernel. Modules register with Rapport.module(name, def):
+     init(ctx)        once, if the module is on the page
+     mount(el, ctx)   for every element rendered by the module
+     reveal(el, target)  make `target` (inside el) visible: open, switch tab…
+   Page data (report info + each scripted module's config) comes from #rp-data. */
+(function () {
+  "use strict";
+  var defs = {}, order = [], listeners = {}, busyChecks = [];
+  var data = {};
+  try { data = JSON.parse(document.getElementById("rp-data").textContent); } catch (e) { /* none */ }
+
+  function params(el) {
+    try { return JSON.parse(el.getAttribute("data-rp-params") || "{}"); } catch (e) { return {}; }
+  }
+
+  var R = {
+    data: data,
+    module: function (name, def) { if (!defs[name]) order.push(name); defs[name] = def || {}; },
+    config: function (name) { return (data.modules || {})[name] || {}; },
+    params: params,
+    on: function (evt, fn) { (listeners[evt] = listeners[evt] || []).push(fn); },
+    emit: function (evt, payload) {
+      (listeners[evt] || []).slice().forEach(function (fn) {
+        try { fn(payload); } catch (e) { console.error("rapport:", evt, e); }
+      });
+    },
+    /* busy(fn) registers a predicate; busy() asks whether any reader work
+       (a comment being typed, an active selection) must not be interrupted. */
+    busy: function (fn) {
+      if (fn) { busyChecks.push(fn); return; }
+      return busyChecks.some(function (f) { try { return !!f(); } catch (e) { return false; } });
+    },
+    reveal: function (target) {
+      for (var el = target; el && el !== document.body; el = el.parentElement) {
+        if (el.tagName === "DETAILS" && !el.open) el.open = true;
+        var name = el.getAttribute && el.getAttribute("data-rp-module");
+        if (name && defs[name] && defs[name].reveal) defs[name].reveal(el, target);
+      }
+      return target;
+    },
+    start: function () {
+      order.forEach(function (name) {
+        var def = defs[name], ctx = { config: R.config(name), data: data };
+        try { if (def.init) def.init(ctx); } catch (e) { console.error("rapport:", name, e); }
+        if (def.mount) {
+          document.querySelectorAll('[data-rp-module="' + name + '"]').forEach(function (el) {
+            try { def.mount(el, { config: ctx.config, params: params(el), data: data }); }
+            catch (e) { console.error("rapport:", name, e); }
+          });
+        }
+      });
+      R.emit("ready");
+    }
+  };
+  window.Rapport = R;
+})();
+
+</script>
+<script>/* toc */
+/* toc: highlight the section currently in view. */
+Rapport.module("toc", {
+  mount: function (el) {
+    var links = [].slice.call(el.querySelectorAll("a[href^='#']"));
+    var targets = links.map(function (a) { return document.getElementById(a.getAttribute("href").slice(1)); });
+    if (!links.length || !("IntersectionObserver" in window)) return;
+    var visible = {};
+    function update() {
+      var current = null;
+      for (var i = 0; i < targets.length; i++) {
+        if (!targets[i]) continue;
+        if (targets[i].getBoundingClientRect().top < window.innerHeight * 0.3) current = i;
+      }
+      links.forEach(function (a, i) { a.classList.toggle("rp-active", i === current); });
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { visible[e.target.id] = e.isIntersecting; });
+      update();
+    }, { rootMargin: "0px 0px -60% 0px" });
+    targets.forEach(function (t) { if (t) io.observe(t); });
+    window.addEventListener("scroll", update, { passive: true });
+    update();
+  }
+});
+
+</script>
+<script>/* image */
+/* image: click to view full size. */
+Rapport.module("image", {
+  mount: function (el) {
+    var img = el.querySelector("img[data-rp-zoom]");
+    if (!img) return;
+    img.addEventListener("click", function () {
+      if (window.getSelection && !window.getSelection().isCollapsed) return;
+      var ov = document.createElement("div");
+      ov.className = "rp-zoom-overlay";
+      ov.setAttribute("data-rp-ui", "");
+      var big = document.createElement("img");
+      big.src = img.src;
+      big.alt = img.alt;
+      ov.appendChild(big);
+      function close() { ov.remove(); document.removeEventListener("keydown", onKey); }
+      function onKey(e) { if (e.key === "Escape") close(); }
+      ov.addEventListener("click", close);
+      document.addEventListener("keydown", onKey);
+      document.body.appendChild(ov);
+    });
+  }
+});
+
+</script>
+<script>/* collapse */
+/* collapse: open when something inside needs to be shown (feedback, links). */
+Rapport.module("collapse", {
+  reveal: function (el) { var d = el.matches("details") ? el : el.querySelector("details"); if (d) d.open = true; }
+});
+
+</script>
+<script>/* copy-code */
+/* copy-code: a copy button per code block (UI chrome, excluded from feedback quotes). */
+Rapport.module("copy-code", {
+  init: function () {
+    document.querySelectorAll(".rp-code").forEach(function (fig) {
+      var code = fig.querySelector("pre code");
+      if (!code) return;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "rp-copy";
+      b.setAttribute("data-rp-ui", "");
+      b.textContent = "Copy";
+      b.addEventListener("click", function () {
+        navigator.clipboard.writeText(code.textContent).then(function () {
+          b.textContent = "Copied";
+          setTimeout(function () { b.textContent = "Copy"; }, 1400);
+        });
+      });
+      fig.appendChild(b);
+    });
+  }
+});
+
+</script>
+<script>/* print */
+/* print: expand collapsed sections for printing, restore afterwards. */
+Rapport.module("print", {
+  init: function () {
+    var opened = [];
+    window.addEventListener("beforeprint", function () {
+      document.querySelectorAll(".rp-content details:not([open])").forEach(function (d) { d.open = true; opened.push(d); });
+    });
+    window.addEventListener("afterprint", function () {
+      opened.forEach(function (d) { d.open = false; });
+      opened = [];
+    });
+  }
+});
+
+</script>
+<script>/* static-hint */
+/* static-hint: opened via file:// there is no server, so no commenting; say how to get it.
+   The folder comes from the page's own location, so report.html embeds no local paths. */
+Rapport.module("static-hint", {
+  init: function (ctx) {
+    if (location.protocol !== "file:") return;
+    var KEY = "rp-hint-dismissed:" + location.pathname;
+    try { if (sessionStorage.getItem(KEY)) return; } catch (e) { /* show */ }
+    var dir = decodeURIComponent(location.pathname).replace(/\/[^/]*$/, "");
+    if (/^\/[A-Za-z]:\//.test(dir)) dir = dir.slice(1);   // file:///C:/… on Windows
+    var hint = document.createElement("div");
+    hint.className = "rp-hint";
+    hint.setAttribute("data-rp-ui", "");
+    var label = document.createElement("span");
+    label.textContent = "Read-only copy. To comment, ask your agent to serve it, or run:";
+    var cmd = document.createElement("code");
+    cmd.textContent = ((ctx.config && ctx.config.command) || "rapport") + " serve '" + dir + "'";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.setAttribute("aria-label", "Dismiss");
+    close.textContent = "✕";
+    close.addEventListener("click", function () {
+      try { sessionStorage.setItem(KEY, "1"); } catch (e) { /* per view */ }
+      hint.remove();
+    });
+    hint.appendChild(label); hint.appendChild(cmd); hint.appendChild(close);
+    document.body.appendChild(hint);
+  }
+});
+
+</script>
+<script>/* theme-toggle */
+/* theme-toggle: system → light → dark, stored per browser. */
+Rapport.module("theme-toggle", {
+  init: function () {
+    var btn = document.querySelector(".rp-theme-toggle");
+    if (!btn) return;
+    var MODES = ["system", "light", "dark"], KEY = "rp-theme";
+    var pinned = document.documentElement.getAttribute("data-theme");
+    function apply(mode) {
+      if (mode === "system") {
+        if (pinned) document.documentElement.setAttribute("data-theme", pinned);
+        else document.documentElement.removeAttribute("data-theme");
+      } else document.documentElement.setAttribute("data-theme", mode);
+      btn.title = btn.ariaLabel = "Theme: " + mode;
+    }
+    var mode = "system";
+    try { mode = localStorage.getItem(KEY) || "system"; } catch (e) { /* blocked */ }
+    if (MODES.indexOf(mode) < 0) mode = "system";
+    apply(mode);
+    btn.addEventListener("click", function () {
+      mode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+      try { localStorage.setItem(KEY, mode); } catch (e) { /* blocked */ }
+      apply(mode);
+    });
+  }
+});
+
+</script>
+<script>window.Rapport && Rapport.start();</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Settings for this example. A rapport.toml applies to every report in its
+# folder and below; the same keys work in your user config or front matter.
+
+# Header and footer: icons are emoji or image files; an SVG drawn in
+# currentColor takes the text colour, so it works in dark mode too.
+[[modules.header.entries]]
+icon = "assets/github.svg"
+text = "andrewendlinger/rapport"
+href = "https://github.com/andrewendlinger/rapport"
+
+[modules.footer]
+show_date = false
+text = "Built from report.md with rapport"

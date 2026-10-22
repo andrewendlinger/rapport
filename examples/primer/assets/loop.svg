@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" width="720" height="300" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>The rapport loop: the agent writes, you review, the agent revises</title>
+  <!-- mid-tone colours on a transparent ground: readable on light and dark pages alike -->
+  <style>
+    .box  { fill: rgba(128,128,140,.07); stroke: rgba(128,128,140,.45); stroke-width: 1; }
+    .you  { fill: rgba(59,130,246,.10); stroke: #3B82F6; stroke-width: 1.25; }
+    .h    { fill: #8A8A93; font-size: 15px; font-weight: 600; }
+    .hy   { fill: #3B82F6; font-size: 15px; font-weight: 600; }
+    .s    { fill: #8A8A93; font-size: 12.5px; }
+    .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; }
+    .edge { stroke: rgba(128,128,140,.6); stroke-width: 1.25; fill: none; }
+    .lab  { fill: #3B82F6; }
+    .tip  { fill: rgba(128,128,140,.8); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <rect class="box" x="20" y="24" width="220" height="76" rx="10"/>
+  <text class="h" x="40" y="56">1  Agent writes</text>
+  <text class="s mono" x="40" y="80">report.md</text>
+
+  <rect class="box" x="480" y="24" width="220" height="76" rx="10"/>
+  <text class="h" x="500" y="56">2  rapport builds</text>
+  <text class="s mono" x="500" y="80">report.html · one file</text>
+
+  <rect class="you" x="480" y="200" width="220" height="76" rx="10"/>
+  <text class="hy" x="500" y="232">3  You review</text>
+  <text class="s" x="500" y="256">select · comment · flag</text>
+
+  <rect class="box" x="20" y="200" width="220" height="76" rx="10"/>
+  <text class="h" x="40" y="232">4  Agent revises</text>
+  <text class="s" x="40" y="256">one edit per comment</text>
+
+  <path class="edge" d="M244,62 L474,62" marker-end="url(#arrow)"/>
+  <text class="lab mono" x="360" y="52" text-anchor="middle">rapport lint</text>
+
+  <path class="edge" d="M590,104 L590,194" marker-end="url(#arrow)"/>
+  <text class="lab mono" x="602" y="154">rapport serve</text>
+
+  <path class="edge" d="M476,238 L246,238" marker-end="url(#arrow)"/>
+  <text class="lab mono" x="360" y="228" text-anchor="middle">rapport feedback</text>
+
+  <path class="edge" d="M130,196 L130,106" marker-end="url(#arrow)"/>
+  <text class="lab mono" x="118" y="146" text-anchor="end">resolve</text>
+  <text class="s" x="118" y="164" text-anchor="end">page reloads</text>
+</svg>
