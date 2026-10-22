@@ -2,6 +2,7 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
 from conftest import write
 from rapport_core.cli import main
 
@@ -160,6 +161,18 @@ def test_report_folder_as_a_plain_argument(capsys, report):
     code, out = run(capsys, "config", "--key", "theme.name", str(d))
     assert code == 0 and 'theme.name = "default"' in out
     assert run(capsys, "feedback", "resolve", "FB-1", str(d), "--note", "ok")[0] == 0
+    for comment in ("b", "c", "d"):
+        assert run(capsys, "feedback", "add", comment, str(d))[0] == 0
+    # ids and the folder may also follow --note
+    code, out = run(capsys, "feedback", "resolve", "FB-2", "--note", "ok", str(d))
+    assert code == 0 and "resolved FB-2 → v3" in out
+    code, out = run(capsys, "feedback", "resolve", "FB-3", "--note", "ok", "FB-4", str(d))
+    assert code == 0 and "resolved FB-3, FB-4 → v4" in out
+    assert run(capsys, "feedback", "reopen", "FB-2", "-C", str(d), "FB-3")[0] == 0
+    with pytest.raises(SystemExit):                                # other commands still reject extras
+        main(["lint", str(d), "extra"])
+    with pytest.raises(SystemExit):
+        main(["feedback", "resolve", "FB-2", "--note", "ok", str(d), "--bogus"])
     code, out = run(capsys, "config", str(d), "--key", "theme.name")
     assert code == 0 and 'theme.name = "default"' in out
     code, out = run(capsys, "modules", "list", str(d))

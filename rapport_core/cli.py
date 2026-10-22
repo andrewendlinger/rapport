@@ -371,7 +371,11 @@ def with_default_action(argv: list[str]) -> list[str]:
 
 def main(argv=None) -> int:
     ap = build_parser()
-    args = ap.parse_args(with_default_action(sys.argv[1:] if argv is None else argv))
+    args, extra = ap.parse_known_args(with_default_action(sys.argv[1:] if argv is None else argv))
+    if extra and getattr(args, "ids", None) and not any(x.startswith("-") for x in extra):
+        args.ids += extra       # `feedback resolve FB-1 --note "…" <dir>`: argparse ends the ids at --note
+    elif extra:
+        ap.error("unrecognized arguments: " + " ".join(extra))
     if not getattr(args, "fn", None):
         ap.print_help()
         return 0
