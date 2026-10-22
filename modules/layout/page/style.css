@@ -1,4 +1,4 @@
-.rp-shell{--rp-side-w:220px;--rp-gap:56px;width:100%;max-width:calc(var(--rp-width) + 48px);
+.rp-shell{--rp-side-w:calc(220rem/17);--rp-gap:56px;width:100%;max-width:calc(var(--rp-width) + 48px);
   margin:0 auto;padding:0 24px}
 .rp-has-side .rp-shell{max-width:calc(var(--rp-width) + var(--rp-side-w) + var(--rp-gap) + 48px)}
 .rp-body{display:block}

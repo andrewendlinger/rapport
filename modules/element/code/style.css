@@ -1,9 +1,9 @@
 .rp-code{margin:1.2em 0;position:relative}
-.rp-code-title{font:12px var(--rp-mono);color:var(--rp-ink-soft);background:var(--rp-surface-2);border:1px solid var(--rp-line);
+.rp-code-title{font:calc(12rem/17) var(--rp-mono);color:var(--rp-ink-soft);background:var(--rp-surface-2);border:1px solid var(--rp-line);
   border-bottom:0;border-radius:var(--rp-radius) var(--rp-radius) 0 0;padding:7px 14px}
 .rp-code-title+.rp-pre{border-top-left-radius:0;border-top-right-radius:0}
 .rp-pre{margin:0;background:var(--rp-surface);border:1px solid var(--rp-line);border-radius:var(--rp-radius);
-  padding:14px 0;overflow-x:auto;font:13.5px/1.6 var(--rp-mono);tab-size:4;color:var(--rp-ink)}
+  padding:14px 0;overflow-x:auto;font:calc(13.5rem/17)/1.6 var(--rp-mono);tab-size:4;color:var(--rp-ink)}
 .rp-pre code{display:block;background:none;border:0;padding:0;font:inherit;min-width:max-content}
 .rp-pre.rp-wrap code{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .rp-line{display:inline-block;min-width:100%;padding:0 16px}

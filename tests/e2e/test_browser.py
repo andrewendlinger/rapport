@@ -326,6 +326,36 @@ def test_theme_css_wins_over_theme_and_module_rules(report, page):
     assert get(".rp-callout", "borderLeftColor") == "rgb(10, 20, 30)"
 
 
+SIZED = ("h2", ".rp-title", ".rp-pre", ".rp-callout-title", ".rp-toc a", ".rp-content>p")
+
+
+def test_sizes_scale_with_body_size(report, page):
+    d = report('## One\n\n::: callout Note\nBody.\n:::\n\n## Two\n\n```py\nx = 1\n```\n\n## Three\n\nText.\n')
+
+    def sizes(*sets):
+        assert build(d, list(sets)).ok
+        page.goto((d / "report.html").as_uri())
+        return {s: float(page.eval_on_selector(s, "e => getComputedStyle(e).fontSize")[:-2]) for s in SIZED}
+    base = sizes()
+    assert base["h2"] == 22 and base[".rp-title"] == 36 and base[".rp-pre"] == 13.5 and base[".rp-content>p"] == 17
+    big = sizes("theme.tokens.body-size=20px")
+    for s in SIZED:
+        assert abs(big[s] - base[s] * 20 / 17) <= .5, (s, base[s], big[s])
+    assert sizes("theme.name=paper")["h2"] == 24                    # a theme's own sizes keep their pixels
+    assert sizes('theme.tokens.body-size="1.1rem"')[".rp-content>p"] == 17.6     # 1.1 × 16, not 1.1²
+
+
+def test_feedback_ui_keeps_its_size_at_a_larger_body_size(served, page):
+    d, app, url = served(sets=["theme.tokens.body-size=20px"])
+    open_page(page, url)
+    select(page, "every request missed the cache once")
+
+    def size(sel):
+        return page.eval_on_selector(sel, "e => getComputedStyle(e).fontSize")
+    assert size(".rp-content h2") != "22px"
+    assert (size(".rp-fb-win textarea"), size(".rp-fb-head"), size(".rp-fb-chipbtn")) == ("14.5px", "12px", "12.5px")
+
+
 def test_stale_token_reloads(served, page):
     d, app, url = served()
     open_page(page, url)

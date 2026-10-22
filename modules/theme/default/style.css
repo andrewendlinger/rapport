@@ -3,7 +3,7 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
-body{margin:0;background:var(--rp-bg);color:var(--rp-ink);font:var(--rp-body-size)/1.65 var(--rp-body-font);
+body{margin:0;background:var(--rp-bg);color:var(--rp-ink);font:1rem/1.65 var(--rp-body-font);
   text-rendering:optimizeLegibility}
 a{color:var(--rp-accent);text-underline-offset:.18em;text-decoration-thickness:1px}
 a:hover{text-decoration-thickness:2px}
@@ -12,12 +12,12 @@ a:hover{text-decoration-thickness:2px}
 
 .rp-content h1,.rp-content h2,.rp-content h3,.rp-content h4{font-family:var(--rp-heading-font);
   color:var(--rp-ink);text-wrap:balance;scroll-margin-top:24px}
-.rp-content h1{font-size:30px;line-height:1.15;letter-spacing:-.015em;font-weight:600;margin:1.6em 0 .5em}
-.rp-content h2{font-size:22px;line-height:1.25;font-weight:600;margin:2.2em 0 .6em;padding-top:1em;
+.rp-content h1{font-size:calc(30rem/17);line-height:1.15;letter-spacing:-.015em;font-weight:600;margin:1.6em 0 .5em}
+.rp-content h2{font-size:calc(22rem/17);line-height:1.25;font-weight:600;margin:2.2em 0 .6em;padding-top:1em;
   border-top:1px solid var(--rp-line)}
 .rp-content>.rp-m-heading:first-child h2,.rp-content>h2:first-child{margin-top:.6em;padding-top:0;border-top:0}
-.rp-content h3{font-size:17.5px;line-height:1.3;font-weight:600;margin:1.8em 0 .45em}
-.rp-content h4{font-size:13.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--rp-ink-soft);
+.rp-content h3{font-size:calc(17.5rem/17);line-height:1.3;font-weight:600;margin:1.8em 0 .45em}
+.rp-content h4{font-size:calc(13.5rem/17);letter-spacing:.06em;text-transform:uppercase;color:var(--rp-ink-soft);
   font-weight:600;margin:1.5em 0 .4em}
 .rp-content p{margin:0 0 1em;text-wrap:pretty}
 .rp-content ul,.rp-content ol{margin:0 0 1em;padding-left:1.4em}
@@ -31,5 +31,5 @@ a:hover{text-decoration-thickness:2px}
 .rp-content img{max-width:100%;height:auto}
 .rp-content del{color:var(--rp-ink-faint)}
 .rp-content input[type=checkbox]{accent-color:var(--rp-accent);margin-right:.4em}
-.rp-error{font:13px/1.5 var(--rp-mono);color:var(--rp-danger);background:var(--rp-danger-soft);
+.rp-error{font:calc(13rem/17)/1.5 var(--rp-mono);color:var(--rp-danger);background:var(--rp-danger-soft);
   border:1px solid var(--rp-danger);border-radius:var(--rp-radius);padding:8px 12px;margin:1em 0}

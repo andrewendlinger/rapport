@@ -23,6 +23,8 @@ from .util import RapportError, did_you_mean
 COLOR_RE = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgb\(|\bhsl\(")
 TOKEN_RE = re.compile(r"var\(--rp-([a-z0-9-]+)")
 IMPORTANT_RE = re.compile(r"!\s*important", re.I)
+FONT_RE = re.compile(r"(?<![-\w])(font-size|font)\s*:([^;{}]*)", re.I)
+AT_PRELUDE_RE = re.compile(r"@[-\w]+[^{};]*")      # @media (max-width:640px) …: conditions, not sizes
 
 
 def origin(mod: Module) -> str:
@@ -157,7 +159,7 @@ doc = "Shown above the block."
         "style.css": '''/* {name}: style through theme tokens (var(--rp-*)) only, so every theme applies. */
 .rp-{name}{{margin:1.2em 0;padding:12px 16px;border:1px solid var(--rp-line);border-radius:var(--rp-radius);
   background:var(--rp-surface)}}
-.rp-{name}-title{{font:600 13px var(--rp-sans);color:var(--rp-ink-soft);margin:0 0 6px}}
+.rp-{name}-title{{font:600 .75rem var(--rp-sans);color:var(--rp-ink-soft);margin:0 0 6px}}
 .rp-{name}>:last-child{{margin-bottom:0}}
 ''',
         "example.md": '''::: {name} Example title
@@ -201,7 +203,7 @@ doc = "Example setting, read in the template as cfg.text."
         "template.html": '''{{# Available: meta (title, subtitle, version, …), headings, cfg, config, region. #}}
 <div class="rp-{name}">{{{{ cfg.text or meta.title }}}}</div>
 ''',
-        "style.css": '''.rp-{name}{{font:13px var(--rp-sans);color:var(--rp-ink-soft);padding:12px 0}}
+        "style.css": '''.rp-{name}{{font:.75rem var(--rp-sans);color:var(--rp-ink-soft);padding:12px 0}}
 ''',
     },
     "feature": {
@@ -343,11 +345,22 @@ def check_css(mod: Module, cfg, tokens: set) -> list[str]:
     if mod.kind != "feature" and IMPORTANT_RE.search(css_mod.without_media(code, "prefers-reduced-motion")):
         out.append("warning: !important in style.css can't be overridden by theme.css; drop it "
                    "(cascade layers already put module rules over theme rules)")
+    if mod.kind != "feature" and px_font_size(code):
+        out.append("warning: font-size in px won't scale with body-size; use rem or em")
     local = set(re.findall(r"--rp-([a-z0-9-]+)\s*:", code))
     unknown = sorted({t for t in TOKEN_RE.findall(code) if t not in tokens | local})
     if unknown:
         out.append("warning: unknown theme tokens " + ", ".join(f"--rp-{t}" for t in unknown))
     return out
+
+
+def px_font_size(code: str) -> bool:
+    """A px size in font-size or a font shorthand (not its /line-height); @rule conditions don't count."""
+    for m in FONT_RE.finditer(AT_PRELUDE_RE.sub("", code)):
+        value = m[2] if m[1].lower() == "font-size" else re.sub(r"/\s*[^\s/]+", "", m[2])
+        if re.search(r"\dpx\b", value, re.I):
+            return True
+    return False
 
 
 def _roots_set(cfg) -> str:

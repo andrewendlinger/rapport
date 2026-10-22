@@ -1,2 +1,2 @@
 .rp-footer{display:flex;flex-wrap:wrap;gap:6px 16px;border-top:1px solid var(--rp-line);padding:18px 0 48px;
-  font:12px var(--rp-mono);color:var(--rp-ink-faint);max-width:var(--rp-width)}
+  font:calc(12rem/17) var(--rp-mono);color:var(--rp-ink-faint);max-width:var(--rp-width)}

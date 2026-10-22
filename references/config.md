@@ -69,6 +69,8 @@ accent = "#6FD3A8"
 
 `rapport modules info default` prints each token with its light and dark value. Code colours are Pygments styles: `[modules.code] light_style` and `dark_style`.
 
+**`body-size` scales all report text.** It is the page's root font size, and rapport's themes and modules size their text in `rem` or `em`. So `body-size = "19px"` also enlarges headings, code, tables, the header, callout titles, and the table of contents with its column. A `ch` width widens with it too. A `rem` or `%` value is relative to the reader's browser setting. Feature UI keeps its px sizes: the feedback window, toasts, copy buttons, the theme toggle, and hints. In your own CSS, `1rem` is the body size.
+
 **Scope** is the layer you set it in: the user config for every report, a `rapport.toml` for a project, front matter for one report. A look you reuse under a name is a preset.
 
 **Modules inherit it.** Every module styles itself through the `--rp-*` tokens only (`modules check` warns about literal colours), so a token change restyles every module, built-in or third-party, light and dark.

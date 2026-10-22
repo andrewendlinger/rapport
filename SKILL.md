@@ -50,7 +50,7 @@ Module settings live at `[modules.<name>]`. Every module, and every feedback act
 
 Before editing, check where a value comes from with `$RAPPORT config show --origin -C <dir>` (add `--key theme` to narrow it). For the full annotated reference run `$RAPPORT config defaults`. Prefer the project `rapport.toml` for project conventions and front matter for one report. Recipes: `references/config.md`.
 
-Style, lightest first: theme tokens (`[theme.tokens]`: palette, fonts, width; `$RAPPORT modules info default` lists them), then the user's own CSS (`[theme] css = ["brand.css"]`, which wins over rapport's CSS and can bundle fonts), and only for structural changes a forked module (`modules new <name>`). Details: "Styling" in `references/config.md`.
+Style, lightest first: theme tokens (`[theme.tokens]`: palette, fonts, body size (scales all text), width; `$RAPPORT modules info default` lists them), then the user's own CSS (`[theme] css = ["brand.css"]`, which wins over rapport's CSS and can bundle fonts), and only for structural changes a forked module (`modules new <name>`). Details: "Styling" in `references/config.md`.
 
 ## Adding a module
 

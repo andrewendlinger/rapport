@@ -95,7 +95,7 @@ doc = "auto follows the OS; light/dark pins it (the theme toggle can still overr
 type = "table"
 merge = "merge"
 default = {}
-doc = "Override theme tokens, e.g. accent = \"#c0392b\". Dark-mode values go in [theme.tokens.dark]. Valid names: `rapport modules info <theme>`."
+doc = "Override theme tokens, e.g. accent = \"#c0392b\", or body-size = \"19px\" (scales all report text). Dark-mode values go in [theme.tokens.dark]. Valid names: `rapport modules info <theme>`."
 
 [theme.css]
 type = "list"

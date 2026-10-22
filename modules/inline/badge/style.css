@@ -1,4 +1,4 @@
-.rp-badge{display:inline-block;font:600 10px/1.5 var(--rp-sans);letter-spacing:.09em;text-transform:uppercase;
+.rp-badge{display:inline-block;font:600 calc(10rem/17)/1.5 var(--rp-sans);letter-spacing:.09em;text-transform:uppercase;
   border-radius:4px;padding:1px 7px;vertical-align:.12em;white-space:nowrap;background:var(--rp-surface-2);color:var(--rp-ink-soft)}
 .rp-badge.rp-tone-accent{background:var(--rp-accent-soft);color:var(--rp-accent)}
 .rp-badge.rp-tone-ok{background:var(--rp-ok-soft);color:var(--rp-ok)}

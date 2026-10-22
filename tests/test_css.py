@@ -225,3 +225,39 @@ def test_served_page_assets_are_watched(report, isolated_home):
     res = build(report("x\n"), serve_data={"serve": {"token": "t", "api": "/api", "build_id": 1}})
     assert res.ok, res.messages()
     assert mod.resolve() / "dot.gif" in res.assets and "data:image/gif" not in res.html
+
+
+def test_body_size_is_the_rem_of_every_theme(report, isolated_home):
+    mod = isolated_home / "proj/rapport-modules/bare"
+    write(mod / "module.toml", 'name = "bare"\nkind = "theme"\nsummary = "Bare."\n[tokens]\nbody-size = "19px"\n')
+    write(mod / "style.css", "body{margin:0}\n")
+    write(isolated_home / "proj/rapport.toml", "")
+    d = report("x\n")
+    theme = style(build(d, ["theme.name=bare"]).html).split("@layer rp-modules{")[0]
+    assert "html{font-size:var(--rp-body-size)}" in theme and "--rp-body-size:19px;" in theme
+    # the body is 1rem, so a rem/em body-size applies once instead of compounding
+    for name, body in (("default", "font:1rem/1.65 "), ("paper", "font:1rem/1.7 ")):
+        css = style(build(d, [f"theme.name={name}", 'theme.tokens.body-size="1.1rem"']).html)
+        assert "--rp-body-size:1.1rem;" in css and body in css and "font:var(--rp-body-size)" not in css
+
+
+def test_check_warns_about_px_font_sizes_except_in_feature_ui(capsys, report, isolated_home):
+    write(isolated_home / "proj/rapport.toml", "")
+    d = report("x\n")
+    for name, kind in (("note", "block"), ("tag", "inline"), ("strip", "layout"), ("pop", "feature"), ("brand", "theme")):
+        assert main(["modules", "new", name, "--kind", kind, "-C", str(d)]) == 0
+        capsys.readouterr()
+        assert main(["modules", "check", name, "-C", str(d)]) == 0
+        assert f"{name:<14} ok" in capsys.readouterr().out    # scaffolds and theme copies use rem
+    mods = isolated_home / "proj/rapport-modules"
+
+    def check(name, css):
+        p = mods / name / "style.css"
+        p.write_text(p.read_text() + css)
+        main(["modules", "check", name, "-C", str(d)])
+        return capsys.readouterr().out
+    warning = "warning: font-size in px won't scale with body-size; use rem or em"
+    assert warning not in check("note", "@media (max-width:640px){.rp-note{padding:8px;font:1rem/20px x}}\n")
+    assert warning in check("note", ".rp-note-title{font:600 13px var(--rp-sans)}\n")
+    assert warning in check("brand", ".rp-content h2{font-size:22px}\n")
+    assert warning not in check("pop", ".rp-pop{font:12px var(--rp-sans)}\n")

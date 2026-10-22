@@ -488,6 +488,8 @@ class Renderer:
             light["width"] = width
         decl = lambda d: "".join(f"--rp-{k}:{v};" for k, v in d.items())  # noqa: E731
         css = f":root{{color-scheme:light dark;{decl(light)}}}\n"
+        # rem = body-size in every theme, so sizes in rem scale with it
+        css += "html{font-size:var(--rp-body-size)}\n"
         css += ':root[data-theme="light"]{color-scheme:light}\n'
         if dark:
             css += f'@media (prefers-color-scheme:dark){{:root:not([data-theme="light"]){{{decl(dark)}}}}}\n'
