@@ -14,7 +14,7 @@ from pathlib import Path
 
 from . import SCHEMA_FILE
 from .css import SCHEME_RE
-from .util import did_you_mean, is_image_file
+from .util import did_you_mean, is_image_file, unique
 
 TYPES = ("string", "int", "number", "bool", "enum", "list", "table", "tables", "any")
 
@@ -98,7 +98,7 @@ class Schema:
         if self.registry is None:
             return None
         mod = self.registry.get(name)
-        return mod.schema_tree() if mod else None
+        return mod.schema_tree if mod else None
 
     def lookup(self, path: tuple) -> dict | None:
         """Leaf spec, section dict, or None if unknown."""
@@ -168,16 +168,6 @@ def _resolve_paths(spec: dict, value, base: Path | None):
     return value
 
 
-def _dedupe(items: list) -> list:
-    out, seen = [], set()
-    for it in items:
-        key = repr(it)
-        if key not in seen:
-            seen.add(key)
-            out.append(it)
-    return out
-
-
 def merge_layer(dst: dict, src: dict, schema: Schema, origins: dict, origin: str,
                 base: Path | None, path: tuple = ()) -> None:
     for key, value in src.items():
@@ -194,7 +184,7 @@ def merge_layer(dst: dict, src: dict, schema: Schema, origins: dict, origin: str
                 if "" in value:                 # git-style reset: "" drops everything before it
                     cur, value = [], value[len(value) - value[::-1].index(""):]
                 prev = origins.get(dotted) if cur else None
-                dst[key] = _dedupe(cur + copy.deepcopy(value))
+                dst[key] = unique(cur + copy.deepcopy(value), key=repr)
                 origins[dotted] = f"{prev} + {origin}" if prev and value else (prev or origin)
                 continue
             if strat == "by-id" and isinstance(value, list):

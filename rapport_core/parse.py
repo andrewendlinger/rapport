@@ -75,19 +75,19 @@ class Document:
 
 
 def split_params(rest: str) -> tuple[str, dict, str | None]:
-    """'Title words {k = v}' → ('Title words', {'k': 'v'}, None)."""
+    """'Title words {k = v}' → ('Title words', {'k': 'v'}, None). Braces that aren't a
+    params table are title text, unless they look like a failed attempt at one (= or :)."""
     rest = rest.strip()
-    if not rest.endswith("}"):
-        if "{" in rest and ("=" in rest[rest.index("{"):] or ":" in rest[rest.index("{"):]):
-            return rest, {}, PARAMS_HINT
-        return rest, {}, None
-    for i, ch in enumerate(rest):
-        if ch == "{":
-            try:
-                return rest[:i].strip(), tomllib.loads("p = " + rest[i:])["p"], None
-            except tomllib.TOMLDecodeError:
-                continue
-    return rest, {}, PARAMS_HINT
+    if rest.endswith("}"):
+        for i, ch in enumerate(rest):
+            if ch == "{":
+                try:
+                    return rest[:i].strip(), tomllib.loads("p = " + rest[i:])["p"], None
+                except tomllib.TOMLDecodeError:
+                    continue
+    if "{" in rest and ("=" in rest[rest.index("{"):] or ":" in rest[rest.index("{"):]):
+        return rest, {}, PARAMS_HINT
+    return rest, {}, None
 
 
 # ── markdown-it rules ──────────────────────────────────────────────────────── #
@@ -341,8 +341,6 @@ class Builder:
             node.params = lang_params
         elif name == "list":
             node.attrs["ordered"] = tok.type == "ordered_list_open"
-        elif name == "html" and not self.config.get("report.raw_html", False):
-            node.module = "paragraph"
         self._params(node, node.params, "", a)
         return node
 

@@ -17,7 +17,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .util import RapportError, atomic_write, collapse_ws, ensure_state_dir, state_dir
+from .util import RapportError, atomic_write, bump_version, collapse_ws, ensure_state_dir, read_state, state_dir
 
 try:
     import fcntl
@@ -119,16 +119,22 @@ class Store:
             data["items"].remove(item)
             self.save(data)
 
-    def resolve(self, ids: list[str], note: str, version: int) -> list[dict]:
+    def resolve(self, ids: list[str], note: str) -> tuple[list[dict], int]:
+        """Resolve open items and bump the report version, as one step: parallel
+        resolves (an agent's concurrent tool calls) each get their own version."""
         with self.locked():
             data = self.load()
             items = [_find(data, i) for i in ids]
+            done = [i["id"] for i in items if i.get("status") != "open"]
+            if done:
+                raise RapportError(f"not open: {', '.join(done)} (see `rapport feedback --all`)")
+            version = bump_version(self.report_dir, note)
             for item in items:
                 item["status"] = "resolved"
                 item["resolution"] = {"note": note, "at": now(), "version": version}
                 item["updated"] = now()
             self.save(data)
-            return items
+            return items, version
 
     def reopen(self, ids: list[str]) -> list[dict]:
         with self.locked():
@@ -185,7 +191,7 @@ def check_content(actions: list, comment: str, cfg) -> None:
 
 def blocks_with_quote(quote: str, blocks: dict) -> list[str]:
     """Block ids whose source contains the quote (markup ignored)."""
-    want = collapse_ws(quote).lower()
+    want = loose(quote)
     return [bid for bid, b in blocks.items() if want and want in plain(b.get("src", "")).lower()]
 
 
@@ -264,11 +270,12 @@ def _param_text(params: str | None) -> str:
     return " ".join(a or b for a, b in STRING_RE.findall(params or ""))
 
 
+MARKS_RE = re.compile(r"[*_`~]+")       # emphasis and code marks; plain() drops them
 MD_STRIP = [(re.compile(r"^\s*:{3,}[ \t]*(?:[A-Za-z][\w-]*)?[ \t]*(.*?)[ \t]*(\{.*\})?[ \t]*$", re.M),
              lambda m: f"{m.group(1)} {_param_text(m.group(2))}"),
             (re.compile(r"^\s*(?:`{3,}|~{3,})[ \t]*[\w+#.-]*[ \t]*(\{.*\})?[ \t]*$", re.M),
              lambda m: _param_text(m.group(1))),
-            (re.compile(r"!?\[([^\]]*)\]\([^)]*\)"), r"\1"), (re.compile(r"[*_`~]+"), ""),
+            (re.compile(r"!?\[([^\]]*)\]\([^)]*\)"), r"\1"), (MARKS_RE, ""),
             (re.compile(r"^\s{0,3}(#{1,6}|>|[-+*]|\d+[.)])\s+", re.M), ""),
             (re.compile(r":[a-z][a-z0-9-]*\[([^\]]*)\](\{[^}]*\})?"), r"\1")]
 
@@ -277,6 +284,12 @@ def plain(md_text: str) -> str:
     for rx, rep in MD_STRIP:
         md_text = rx.sub(rep, md_text)
     return collapse_ws(md_text)
+
+
+def loose(quote: str) -> str:
+    """Rendered text (a reader's quote) made comparable with plain(source).lower(): the
+    marks plain() drops go here too, or `snake_case` and ~/paths would never match."""
+    return collapse_ws(MARKS_RE.sub("", quote)).lower()
 
 
 RANK = {"exact": 0, "moved": 1, "fuzzy": 2, "n/a": 3, "stale": 4}
@@ -343,7 +356,7 @@ def _locate_one(src: str, old, source: str, near: int | None = None) -> tuple[li
 def quote_in(quote: str, md_text: str) -> bool:
     """Is the (rendered-text) quote still in this Markdown? Tolerates markup
     and small differences: most of the quote must survive as one run."""
-    q, p = collapse_ws(quote).lower(), plain(md_text).lower()
+    q, p = loose(quote), plain(md_text).lower()
     if not q or q in p:
         return True
     m = difflib.SequenceMatcher(None, q, p, autojunk=False).find_longest_match(0, len(q), 0, len(p))
@@ -403,8 +416,8 @@ def format_items(described: list[dict], cfg, source_name: str, source: str, vers
         out.append("Nothing to do.")
         return "\n".join(out)
     out.append(f"Apply each item to {source_name}, then: rapport feedback resolve <ids> --note \"<what changed>\"")
-    general = [d for d in described if d.get("target", {}).get("kind") == "report"]
-    for d in [x for x in described if x not in general] + general:
+    # whole-report items last
+    for d in sorted(described, key=lambda x: x.get("target", {}).get("kind") == "report"):
         t = d.get("target", {})
         loc = d["located"]
         where = []
@@ -455,7 +468,6 @@ def format_items(described: list[dict], cfg, source_name: str, source: str, vers
 # ── CLI ─────────────────────────────────────────────────────────────────────── #
 def cli(args, report_dir: Path) -> int:
     from . import config as config_mod
-    from .build import bump_version, read_state
 
     if getattr(args, "ids", None):
         # `feedback resolve FB-1 ./reports/x`: a trailing folder is the report folder
@@ -489,14 +501,8 @@ def cli(args, report_dir: Path) -> int:
             print(format_items(described, cfg, name, source, version))
         return 0
     if action == "resolve":
-        open_ids = {i["id"] for i in store.items() if i.get("status") == "open"}
-        ids = [i.upper() if i.upper().startswith("FB-") else f"FB-{i}" for i in args.ids]
-        missing = [i for i in ids if i not in open_ids]
-        if missing:
-            raise RapportError(f"not open: {', '.join(missing)} (see `rapport feedback --all`)")
-        version = bump_version(report_dir, args.note)
-        store.resolve(ids, args.note, version)
-        print(f"resolved {', '.join(ids)} → v{version}")
+        items, version = store.resolve(args.ids, args.note)
+        print(f"resolved {', '.join(i['id'] for i in items)} → v{version}")
         return 0
     if action == "reopen":
         items = store.reopen(args.ids)
@@ -508,13 +514,13 @@ def cli(args, report_dir: Path) -> int:
 
 
 def _cli_add(args, cfg, store: Store, report_dir: Path) -> int:
-    from .build import BLOCKS_FILE, build, read_state
-    blocks_file = state_dir(report_dir) / BLOCKS_FILE
-    if not blocks_file.exists():
-        build(report_dir, getattr(args, "set", None))
-    blocks = json.loads(blocks_file.read_text(encoding="utf-8")).get("blocks", {})
+    from .build import build
+    # the block index of report.md as it is now: blocks.json is only as fresh as the last written build
+    blocks = build(report_dir, getattr(args, "set", None), write=False).blocks
     target: dict = {"kind": "report"}
     if args.block:
+        if args.block not in blocks:
+            raise RapportError(f"no block '{args.block}' in the current report (ids: .rapport/blocks.json after a build)")
         target = {"kind": "block", "blocks": [args.block]}
     if args.quote:
         hits = blocks_with_quote(args.quote, blocks)

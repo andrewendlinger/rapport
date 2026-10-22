@@ -189,11 +189,11 @@ Rapport.module("feedback", {
       });
     }
     function load() {
-      return fetch(API + "/feedback", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
+      return api("GET", "/feedback").then(function (d) {
         items = d.items || [];
         items.forEach(anchor);
         paint();
-      }).catch(function () { banner(true); });
+      }).catch(function (e) { if (e.kind === "http") toast(e.message); });   // api() shows the offline banner
     }
 
     /* ── anchoring items to the current page ─────────────── */

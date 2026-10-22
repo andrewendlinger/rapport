@@ -27,9 +27,9 @@ from pathlib import Path
 
 from . import ROOT
 from . import config as config_mod
-from .build import BLOCKS_FILE, STATE_FILE, build, read_state
+from .build import build
 from .feedback import NotFound, Store, check_content, make_item, update_fields
-from .util import RapportError, atomic_write, ensure_state_dir, state_dir
+from .util import STATE_FILE, RapportError, atomic_write, ensure_state_dir, read_state, state_dir, unique
 
 SERVER_FILE = "server.json"
 LOG_FILE = "server.log"
@@ -40,17 +40,27 @@ PORT_TRIES = 10
 MODULE_SUFFIXES = (".toml", ".html", ".css", ".js", ".py", ".md")
 
 
+def config_files(report_dir: Path) -> list[Path]:
+    """The config files every build reads, whether they exist yet or not."""
+    user = config_mod.user_paths()
+    files = [p for p in (user.config_file, user.learned_file) if p]
+    for d in config_mod.project_dirs_for(report_dir):
+        files += [d / config_mod.PROJECT_FILE, d / config_mod.LEARNED_PROJECT]
+    return files
+
+
+def fallback_files(report_dir: Path) -> list[Path]:
+    """What to watch before a build has worked out the full list."""
+    return [report_dir / "report.md"] + config_files(report_dir)
+
+
 def watched_files(report_dir: Path, cfg, assets=()) -> list[Path]:
     """Everything a rebuild depends on. Missing files are listed too (they
     show up as changed once created), and so are the module folders, whose
     mtime moves when a module or file is added."""
     report_dir = report_dir.resolve()
     state = state_dir(report_dir)
-    files = [cfg.source_path, state / STATE_FILE]
-    user = config_mod.user_paths()
-    files += [p for p in (user.config_file, user.learned_file) if p]
-    for d in config_mod.project_dirs_for(report_dir):
-        files += [d / config_mod.PROJECT_FILE, d / config_mod.LEARNED_PROJECT]
+    files = [cfg.source_path, state / STATE_FILE] + config_files(report_dir)
     for root in cfg.registry.roots:
         files.append(root)
         if root.is_dir():
@@ -69,14 +79,8 @@ def watched_files(report_dir: Path, cfg, assets=()) -> list[Path]:
             files.append(Path(a["instruction_file"]))
     # the build's own output must never trigger a build
     output = cfg.output_path.resolve()
-    seen, out = set(), []
-    for f in files:
-        f = Path(f)
-        if f in seen or f == output or (f.is_relative_to(state) and f.name != STATE_FILE):
-            continue
-        seen.add(f)
-        out.append(f)
-    return out
+    return unique(f for f in map(Path, files)
+                  if f != output and not (f.is_relative_to(state) and f.name != STATE_FILE))
 
 
 def signature(files: list[Path]) -> dict:
@@ -98,6 +102,24 @@ def settle(before: dict, files: list[Path]) -> dict:
     return {k: before[k] if k in before else v for k, v in after.items()}
 
 
+class Watcher:
+    """Calls rebuild() when a watched file changes. A tick only stats the files it
+    knows; the list itself comes back from rebuild(), since working it out walks
+    every module folder. sig=None: the first tick rebuilds."""
+
+    def __init__(self, rebuild, files: list[Path], sig: dict | None = None):
+        self.rebuild, self.files, self.sig = rebuild, files, sig
+
+    def tick(self) -> bool:
+        sig = signature(self.files)
+        if sig == self.sig:
+            return False
+        self.sig = sig                  # if rebuild() raises, the next tick doesn't retry the same change
+        self.files = self.rebuild() or self.files
+        self.sig = settle(sig, self.files)
+        return True
+
+
 # ── app state ───────────────────────────────────────────────────────────────── #
 class App:
     def __init__(self, report_dir: Path, sets, token: str):
@@ -113,7 +135,7 @@ class App:
         self.cfg = None
         self.blocks: dict = {}
         self.files: list[Path] = []
-        self.sig = None
+        self.watcher = Watcher(self._rebuild_files, fallback_files(report_dir))
         self.allowed_hosts: set[str] = set()
 
     def rebuild(self) -> None:
@@ -154,17 +176,15 @@ class App:
                 self.html = _error_page(message).encode("utf-8")
         print(f"build failed: {message}", flush=True)
 
+    def _rebuild_files(self) -> list[Path]:
+        self.rebuild()
+        return self.files
+
     def watch(self, interval: float) -> None:
         while True:
             time.sleep(interval)
             try:
-                files = self.files or [self.report_dir / "report.md"]
-                sig = signature(files)
-                if self.sig is None:
-                    self.sig = sig
-                elif sig != self.sig:
-                    self.rebuild()
-                    self.sig = settle(sig, self.files or files)
+                self.watcher.tick()
             except Exception:  # noqa: BLE001
                 traceback.print_exc()
 
@@ -244,23 +264,26 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, body, "text/html; charset=utf-8")
         elif path == "/api/meta":
             self._json(self.app.meta())
-        elif path == "/api/feedback":
-            self._json({"items": self.app.store.items(), "rev": self.app.store.rev()})
+        elif path == "/api/feedback":      # fails only on a broken feedback.json: the server's problem
+            self._answer(lambda: {"items": self.app.store.items(), "rev": self.app.store.rev()}, 500)
         else:
             self._send(404, b"not found", "text/plain")
 
-    def _mutate(self, fn) -> None:
-        if not self._host_ok() or not self._token_ok():
-            return
+    def _answer(self, fn, refused: int = 400) -> None:
+        """fn()'s result as JSON; its errors as {"error": …}, a RapportError with status `refused`."""
         try:
             self._json(fn())
         except NotFound as e:
             self._json({"error": str(e)}, 404)
         except RapportError as e:
-            self._json({"error": str(e)}, 400)
+            self._json({"error": str(e)}, refused)
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self._json({"error": f"server error: {e}"}, 500)
+
+    def _mutate(self, fn) -> None:
+        if self._host_ok() and self._token_ok():
+            self._answer(fn)
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path.split("?")[0] != "/api/feedback":
@@ -378,7 +401,8 @@ def make_server(report_dir: Path, sets=None, port: int | None = None, pinned: bo
     url = f"http://{shown}:{port}/"
     app.allowed_hosts = {f"{h}:{port}" for h in ("127.0.0.1", "localhost", "[::1]", shown)}
     app.rebuild()
-    app.sig = signature(app.files)
+    app.watcher.files = app.files or app.watcher.files
+    app.watcher.sig = signature(app.watcher.files)
     write_server(report_dir, {"pid": os.getpid(), "url": url, "port": port, "token": token, "dir": str(report_dir),
                               "started": time.strftime("%Y-%m-%dT%H:%M:%S")})
     return httpd, app, url, cfg
@@ -478,10 +502,11 @@ def stop(report_dir: Path) -> int:
     os.kill(int(pid), signal.SIGTERM)
     for _ in range(40):
         if not pid_alive(pid):
-            break
+            print(f"stopped server (pid {pid})")
+            return 0
         time.sleep(0.1)
-    print(f"stopped server (pid {pid})")
-    return 0
+    print(f"server (pid {pid}) is still running 4 s after SIGTERM; run --stop again, or kill {pid}", file=sys.stderr)
+    return 1
 
 
 def status(report_dir: Path) -> int:
@@ -497,28 +522,33 @@ def status(report_dir: Path) -> int:
 def watch_loop(report_dir: Path, sets) -> int:
     """`rapport build --watch`: rebuild on change, print problems."""
     report_dir = report_dir.resolve()
-    sig, assets = None, []
+    interval = 0.4
+
+    def rebuild() -> list[Path]:
+        nonlocal interval
+        try:
+            res = build(report_dir, sets)
+        except RapportError as e:       # reported once; config files stay watched for the fix
+            print(f"  error: {e}", flush=True)
+            return fallback_files(report_dir)
+        interval = max(0.1, int(res.config.get("serve.watch_ms", 400)) / 1000)
+        print(f"[{time.strftime('%H:%M:%S')}] built {res.config.output_path.name}"
+              + (f" with {len(res.errors)} error(s)" if res.errors else ""), flush=True)
+        for m in res.messages():
+            print("  " + m, flush=True)
+        return watched_files(report_dir, res.config, res.assets)
+
     print(f"watching {report_dir} (Ctrl-C to stop)")
+    watcher = Watcher(rebuild, fallback_files(report_dir))
     try:
         while True:
             try:
-                cfg, _ = config_mod.load_for_report(report_dir, sets)
-                files = watched_files(report_dir, cfg, assets)
-                new = signature(files)
-                if new != sig:
-                    sig = new           # a failing build is reported once, not every tick
-                    res = build(report_dir, sets)
-                    assets = res.assets
-                    sig = settle(new, watched_files(report_dir, res.config, assets))
-                    print(f"[{time.strftime('%H:%M:%S')}] built {res.config.output_path.name}"
-                          + (f" with {len(res.errors)} error(s)" if res.errors else ""), flush=True)
-                    for m in res.messages():
-                        print("  " + m, flush=True)
-            except RapportError as e:
+                watcher.tick()
+            except RapportError as e:   # e.g. the user config moved away under us
                 print(f"  error: {e}", flush=True)
-            time.sleep(0.5)
+            time.sleep(interval)
     except KeyboardInterrupt:
         return 0
 
 
-__all__ = ["run", "detach", "stop", "status", "watch_loop", "BLOCKS_FILE"]
+__all__ = ["run", "detach", "stop", "status", "watch_loop"]

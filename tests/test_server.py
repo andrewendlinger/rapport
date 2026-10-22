@@ -202,3 +202,49 @@ def test_warnings_print_when_they_change(report, capsys):
     (d / "report.md").write_text("::: collapse More\nClosed.\n:::\n", encoding="utf-8")
     app.rebuild()
     assert "warnings cleared" in capsys.readouterr().out
+
+
+def _main_thread_sleep(monkeypatch, fake):
+    """Swap time.sleep for this test's own loop only: earlier tests left watcher threads running."""
+    real = time.sleep
+    monkeypatch.setattr(time, "sleep", lambda s: fake(s) if threading.current_thread() is threading.main_thread()
+                        else real(s))
+
+
+def test_a_broken_feedback_file_gets_an_error_answer(server):
+    d, app, url = server
+    (d / ".rapport" / "feedback.json").write_text("{not json", encoding="utf-8")
+    code, body = req(url + "api/feedback")
+    assert code == 500 and "is not valid JSON" in body["error"]
+
+
+def test_stop_says_so_when_the_server_survives(report, monkeypatch, capsys):
+    from rapport_core import serve
+    d = report("x\n")
+    serve.write_server(d, {"pid": 4242, "url": "http://127.0.0.1:9/", "token": "t"})
+    monkeypatch.setattr(serve, "running", lambda _d: {"pid": 4242})
+    monkeypatch.setattr(serve, "pid_alive", lambda _p: True)
+    monkeypatch.setattr(os, "kill", lambda pid, sig: None)
+    _main_thread_sleep(monkeypatch, lambda s: None)
+    assert serve.stop(d) == 1
+    assert "still running" in capsys.readouterr().err
+
+
+def test_build_watch_loads_config_only_when_it_rebuilds(report, monkeypatch, capsys):
+    from rapport_core import config as config_mod
+    from rapport_core import serve
+    d = report("x\n")
+    loads, ticks = [], []
+    real_load = config_mod.load_for_report
+    monkeypatch.setattr(config_mod, "load_for_report", lambda *a, **k: loads.append(1) or real_load(*a, **k))
+
+    def sleep(_s):
+        ticks.append(1)
+        if len(ticks) == 3:
+            (d / "report.md").write_text("y, changed\n", encoding="utf-8")
+        if len(ticks) == 6:
+            raise KeyboardInterrupt
+    _main_thread_sleep(monkeypatch, sleep)
+    assert serve.watch_loop(d, None) == 0
+    assert capsys.readouterr().out.count("built report.html") == 2      # the first build, then the edit
+    assert len(loads) == 2                                              # not once per tick

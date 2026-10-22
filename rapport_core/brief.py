@@ -6,6 +6,7 @@ module manifests, so new modules show up without anyone editing docs.
 
 from __future__ import annotations
 
+from .feedback import actions_config, instruction_for
 from .registry import Module
 from .util import toml_repr
 
@@ -105,12 +106,11 @@ def brief(cfg) -> str:
         out.append("code params: " + "; ".join(_param_line(k, v) for k, v in code.params.items()))
     out.append("")
 
-    actions = cfg.module("feedback").get("actions", []) or []
+    actions = actions_config(cfg)
     if actions:
         out += ["## Feedback readers can leave (what `rapport feedback` will ask of you)"]
         for a in actions:
-            instr = a.get("instruction") or (f"(see {a['instruction_file']})" if a.get("instruction_file") else "")
-            out.append(f"- {a.get('label', a.get('id'))} [{a.get('id')}]: {' '.join(str(instr).split())}")
+            out.append(f"- {a.get('label', a['id'])} [{a['id']}]: {instruction_for(a)}")
         out.append("")
     out += ["Theme: " + str(cfg.get("theme.name")) + " · layout: top=" + ",".join(cfg.get("layout.top", []))
             + " side=" + ",".join(cfg.get("layout.side", [])) + " bottom=" + ",".join(cfg.get("layout.bottom", []))]

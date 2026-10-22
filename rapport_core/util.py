@@ -43,6 +43,17 @@ def did_you_mean(word: str, options) -> str:
     return f" (did you mean '{match[0]}'?)" if match else ""
 
 
+def unique(items, key=None) -> list:
+    """items in order, without repeats; key(item) decides what counts as the same."""
+    seen, out = set(), []
+    for it in items:
+        k = key(it) if key else it
+        if k not in seen:
+            seen.add(k)
+            out.append(it)
+    return out
+
+
 def atomic_write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
@@ -60,6 +71,8 @@ def atomic_write(path: Path, text: str) -> None:
 
 
 STATE_DIR = ".rapport"
+STATE_FILE = "state.json"      # version and history
+BLOCKS_FILE = "blocks.json"    # block index of the last build, for anchoring
 GITIGNORE_MARK = "# managed by rapport"
 OLD_GITIGNORE = "server.json\nserver.log\n"      # what rapport 0.1.0 wrote
 
@@ -97,6 +110,28 @@ def ensure_state_dir(report_dir: Path, commit_feedback: bool | None = None) -> P
         if have != want and (have.startswith(GITIGNORE_MARK) or have == OLD_GITIGNORE):
             atomic_write(gi, want)
     return d
+
+
+def read_state(report_dir: Path) -> dict:
+    try:
+        state = json.loads((state_dir(report_dir) / STATE_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        state = None
+    return state if isinstance(state, dict) else {"version": 1}
+
+
+def write_state(report_dir: Path, state: dict) -> None:
+    atomic_write(ensure_state_dir(report_dir) / STATE_FILE, json.dumps(state, indent=2) + "\n")
+
+
+def bump_version(report_dir: Path, note: str = "") -> int:
+    """Read-modify-write: callers that may race (feedback resolve) hold the feedback store's lock."""
+    state = read_state(report_dir)
+    state["version"] = int(state.get("version", 1)) + 1
+    if note:
+        state.setdefault("history", []).append({"version": state["version"], "note": note})
+    write_state(report_dir, state)
+    return state["version"]
 
 
 IMAGE_FILE_RE = re.compile(r"\.(?:svg|png|jpe?g|gif|webp|avif)$", re.I)

@@ -232,3 +232,15 @@ def test_feedback_add_honours_set(capsys, report):
     code, out = run(capsys, "feedback", "--set", "report.source=notes.md", "add", "source?", "--quote", "Some claim",
                     "-C", str(d))
     assert code == 0 and "added FB-1" in out, out
+
+
+def test_feedback_add_sees_edits_since_the_last_build(capsys, report):
+    d = report("First paragraph.\n")
+    run(capsys, "build", str(d))
+    (d / "report.md").write_text("First paragraph.\n\nSet `max_paragraph_words` to zero.\n", encoding="utf-8")
+    code, out = run(capsys, "feedback", "add", "why?", "--quote", "max_paragraph_words to zero", "-C", str(d))
+    assert code == 0 and "added FB-1" in out, out
+    code, out = run(capsys, "feedback", "-C", str(d))
+    assert "report.md:3" in out and "no longer in that passage" not in out
+    code, out = run(capsys, "feedback", "add", "x", "--block", "paragraph-nope", "-C", str(d))
+    assert code == 2 and "no block 'paragraph-nope' in the current report" in out

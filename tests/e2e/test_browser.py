@@ -274,7 +274,11 @@ def test_panel_reveals_collapsed_item_and_shows_resolution(served, page):
     a = s.add({"target": {"kind": "text", "blocks": [block], "quote": "Hidden sentence", "lines": [12, 12]},
                "actions": ["unclear"], "comment": ""})
     b = s.add({"target": {"kind": "report"}, "actions": [], "comment": "Add a timeline"})
-    s.resolve([b["id"]], "Added a timeline section", 2)
+    first = app.build_id
+    s.resolve([b["id"]], "Added a timeline section")
+    deadline = time.time() + 5
+    while app.build_id == first and time.time() < deadline:     # the version bump rebuilds the page
+        time.sleep(0.05)
     open_page(page, url)
     assert page.text_content(".rp-fb-chipbtn .rp-n") == "1"
     page.click(".rp-fb-chipbtn")
@@ -529,3 +533,22 @@ def test_logo_follows_the_theme_and_tinted_icons_take_the_text_colour(report, pa
     icon = page.eval_on_selector(".rp-footer .rp-icon-tint", """e => {const s = getComputedStyle(e);
       return [s.backgroundColor, getComputedStyle(e.parentElement).color, s.maskImage || s.webkitMaskImage]}""")
     assert icon[0] == icon[1] and icon[2].startswith('url("data:image/svg+xml;base64,')
+
+
+def test_toc_marks_the_section_in_view(served, page):
+    filler = "\n\n".join("Filler paragraph number %d with enough words to take up a line." % i for i in range(40))
+    d, app, url = served("".join(f"## Part {n}\n\n{filler}\n\n" for n in ("one", "two", "three")))
+    open_page(page, url)
+    active = "document.querySelector('.rp-toc a.rp-active')?.textContent"
+    assert page.evaluate(active) == "Part one"
+    page.evaluate("document.getElementById('part-three').scrollIntoView({block: 'start', behavior: 'instant'})")
+    page.wait_for_function(f"{active} === 'Part three'")
+
+
+def test_a_broken_feedback_file_is_shown_not_taken_for_no_feedback(served, page):
+    d, app, url = served()
+    (d / ".rapport" / "feedback.json").write_text("{not json", encoding="utf-8")
+    open_page(page, url)
+    page.wait_for_selector(".rp-fb-toast.rp-show")
+    assert "is not valid JSON" in page.text_content(".rp-fb-toast")
+    assert page.is_hidden(".rp-fb-banner")              # the server is up: not the offline banner

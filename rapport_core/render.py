@@ -411,7 +411,9 @@ class Renderer:
                 self.errors.extend(b.errors)
                 self.warnings.extend(b.warnings)
                 assign_ids(sub, node.heading_path, node.section, self._seen, {}, None, top=False)
+                line = self._line
                 rendered = Markup(self.render_nodes(sub))
+                self._line = line           # the rest of this element reports on its own line
                 ht = type(t)("html_block", "", 0)
                 ht.content = str(rendered) + "\n"
                 out.append(ht)
@@ -433,7 +435,7 @@ class Renderer:
 
     def render_node(self, node: Node) -> Markup:
         mod = self.registry.get(node.module)
-        self._line = node.lines[0] or None
+        line = self._line = node.lines[0] or None
         if mod is None:
             return Markup(f'<div class="rp-error">unknown module {html.escape(node.module)}</div>')
         if not node.directive and not self.config.enabled(mod.name):
@@ -446,21 +448,24 @@ class Renderer:
             if node.directive:
                 view.children = [self._child_view(c) for c in node.children]
                 view.body = Markup("\n".join(str(c.html) for c in view.children))
+                self._line = line           # the children moved it: this block's own problems are on its ::: line
             elif node.tokens:
                 view.html = Lazy(lambda: self.default_html(node))
             extra = {}
             prep = mod.prepare_fn()
+            if mod.load_error:
+                self.errors.append(Diag(None, f"module '{mod.name}' {mod.load_error}"))
             if prep:
                 try:
                     extra = prep(view, self.ctx) or {}
                 except Exception as e:  # noqa: BLE001
-                    self.errors.append(Diag(self._line, f"module '{mod.name}' prepare.py failed: {e}"))
+                    self.errors.append(Diag(line, f"module '{mod.name}' prepare.py failed: {e}"))
             out = self._render_template(mod, node=view, **extra)
         if not out.strip():
             return Markup("")
         if self.strict and (n := count_roots(out)) != 1:
-            self.warnings.append(Diag(self._line, f"module '{mod.name}' template renders {n} root "
-                                                  f"elements; wrap them in one (anchors attach to the first)"))
+            self.warnings.append(Diag(line, f"module '{mod.name}' template renders {n} root "
+                                            f"elements; wrap them in one (anchors attach to the first)"))
         attrs = {"data-rp-id": node.id, "data-rp-module": mod.name,
                  "data-rp-lines": f"{node.lines[0]}-{node.lines[1]}"}
         if mod.js_path and node.params and mod.name in self.used:
@@ -557,7 +562,7 @@ class Renderer:
 
         regions = {}
         fm = self.config.front_matter_lines or title_lines or (0, 0)
-        if fm and title_lines and self.config.front_matter_lines:
+        if title_lines and self.config.front_matter_lines:
             fm = (fm[0], max(fm[1], title_lines[1]))
         for region in ("top", "side", "bottom"):
             parts = []

@@ -8,10 +8,10 @@ import pytest
 from conftest import write
 from rapport_core import build as build_mod
 from rapport_core import serve
-from rapport_core.build import build, bump_version
+from rapport_core.build import build
 from rapport_core.cli import main
 from rapport_core.feedback import Store
-from rapport_core.util import OLD_GITIGNORE, RapportError, state_dir, state_gitignore
+from rapport_core.util import OLD_GITIGNORE, RapportError, bump_version, state_dir, state_gitignore
 
 needs_git = pytest.mark.skipif(not shutil.which("git"), reason="git not installed")
 COMMIT = ["report.commit_feedback=true"]

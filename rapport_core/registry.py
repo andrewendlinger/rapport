@@ -8,6 +8,7 @@ style.css, script.js, prepare.py, example.md.
 
 from __future__ import annotations
 
+import functools
 import importlib.util
 import re
 import tomllib
@@ -38,6 +39,7 @@ class Module:
     rank: int
     builtin: bool
     shadows: list[Path] = field(default_factory=list)
+    load_error: str | None = None   # prepare.py exists but failed to load (set by hook())
     _prepare: object = None
 
     # -- manifest accessors -------------------------------------------------- #
@@ -83,8 +85,7 @@ class Module:
 
     @property
     def tokens(self) -> dict:
-        light = {k: v for k, v in self.manifest.get("tokens", {}).items() if not isinstance(v, dict)}
-        return light
+        return {k: v for k, v in self.manifest.get("tokens", {}).items() if not isinstance(v, dict)}
 
     @property
     def dark_tokens(self) -> dict:
@@ -116,15 +117,19 @@ class Module:
         return self.file("prepare.py") is not None
 
     def hook(self, name: str):
-        """A function from prepare.py: prepare(node, ctx) -> dict, check(config) -> [warnings]."""
+        """A function from prepare.py: prepare(node, ctx) -> dict, check(config) -> [warnings].
+        prepare.py is loaded once; if that fails, load_error says why and there are no hooks."""
         if self._prepare is None:
             path = self.file("prepare.py")
             self._prepare = False
             if path:
-                spec = importlib.util.spec_from_file_location(f"rapport_mod_{self.name.replace('-', '_')}", path)
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                self._prepare = mod
+                try:
+                    spec = importlib.util.spec_from_file_location(f"rapport_mod_{self.name.replace('-', '_')}", path)
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    self._prepare = mod
+                except Exception as e:  # noqa: BLE001 - a module's own code: report it, don't crash
+                    self.load_error = f"prepare.py failed to load: {type(e).__name__}: {e}"
         return getattr(self._prepare, name, None) if self._prepare else None
 
     def prepare_fn(self):
@@ -132,6 +137,7 @@ class Module:
         return self.hook("prepare")
 
     # -- schema --------------------------------------------------------------- #
+    @functools.cached_property
     def schema_tree(self) -> dict:
         tree = {"enabled": {"type": "bool", "default": self.default_enabled,
                             "doc": "Switch this module on or off."}}

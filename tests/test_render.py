@@ -167,3 +167,23 @@ def test_page_data_has_no_angle_brackets(report):
     html = build(report(f'+++\ntitle = "{title}"\n+++\n\nx\n')).html
     data = html.split('<script type="application/json" id="rp-data">', 1)[1].split("</script>", 1)[0]
     assert "<" not in data and json.loads(data)["report"]["title"] == title
+
+
+def test_a_prepare_py_that_fails_to_load_fails_the_build(report, isolated_home):
+    mdir = isolated_home / "proj/reports/r/rapport-modules/note"
+    write(mdir / "module.toml", 'kind = "block"\nsummary = "s"\n')
+    write(mdir / "template.html", "<div>{{ extra }}{{ node.body }}</div>")
+    write(mdir / "prepare.py", "def prepare(node, ctx:\n    return {'extra': 'x'}\n")
+    res = build(report("::: note\nx\n:::\n\n::: note\ny\n:::\n"))
+    assert not res.ok
+    errors = [e.message for e in res.errors if "prepare.py failed to load: SyntaxError" in e.message]
+    assert len(errors) == 1, res.messages()                          # once, not once per use
+    assert any("modules.note: prepare.py failed to load" in w for w in res.warnings)
+
+
+def test_a_containers_own_errors_are_on_its_opening_line(report, isolated_home):
+    mdir = isolated_home / "proj/reports/r/rapport-modules/two"
+    write(mdir / "module.toml", 'kind = "block"\nsummary = "two roots"\n')
+    write(mdir / "template.html", "<p>{{ node.body }}</p><p>{{ 1 // 0 }}</p>")
+    res = build(report("Intro.\n\n::: two\nfirst child\n\nsecond child\n:::\n"), strict=True)
+    assert [e.line for e in res.errors if "failed to render" in e.message] == [3], res.messages()

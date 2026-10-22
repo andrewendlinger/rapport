@@ -4,8 +4,8 @@ import pytest
 
 from rapport_core import config as config_mod
 from rapport_core.build import build
-from rapport_core.feedback import Store, describe, format_items, locate, make_item
-from rapport_core.util import RapportError
+from rapport_core.feedback import Store, blocks_with_quote, describe, format_items, locate, make_item, quote_in
+from rapport_core.util import RapportError, read_state
 
 SRC = "## Summary\n\nThe cache key changed, so every request missed once.\n\nSecond paragraph here.\n"
 
@@ -55,9 +55,13 @@ def test_store_lifecycle_and_dedupe(report):
     assert again["id"] == a["id"] and again["duplicate"]
     assert len(s.items()) == 1
     s.update(a["id"], {"comment": "really"})
-    s.resolve([a["id"]], "removed it", 2)
+    _, version = s.resolve([a["id"]], "removed it")
     item = s.items()[0]
-    assert item["status"] == "resolved" and item["resolution"]["note"] == "removed it"
+    assert item["status"] == "resolved" and item["resolution"] == {**item["resolution"], "note": "removed it",
+                                                                   "version": version} and version == 2
+    with pytest.raises(RapportError, match="not open: FB-1"):
+        s.resolve([a["id"]], "again")
+    assert read_state(d)["version"] == 2              # a refused resolve bumps nothing
     s.reopen([a["id"]])
     assert s.items()[0]["status"] == "open" and "resolution" not in s.items()[0]
     s.delete(a["id"])
@@ -75,6 +79,29 @@ def test_concurrent_adds_get_unique_ids(report):
     [t.join() for t in threads]
     ids = [i["id"] for i in s.items()]
     assert len(ids) == 40 == len(set(ids))
+
+
+def test_parallel_resolves_each_get_their_own_version(report):
+    """An agent resolves items with parallel tool calls. Bumping the version outside the
+    store's lock lost most of 40 bumps here; inside it, each resolve gets its own."""
+    d, cfg, blocks, para = setup(report)
+    s = Store(d)
+    ids = [s.add({"target": {"kind": "report"}, "actions": [], "comment": f"c{i}"})["id"] for i in range(40)]
+    threads = [threading.Thread(target=s.resolve, args=([i], f"fixed {i}")) for i in ids]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    state = read_state(d)
+    assert state["version"] == 41
+    assert sorted(h["note"] for h in state["history"]) == sorted(f"fixed {i}" for i in ids)
+    assert sorted(i["resolution"]["version"] for i in s.items()) == list(range(2, 42))
+
+
+def test_quotes_with_code_and_emphasis_marks_are_found():
+    src = "Set `max_paragraph_words` to *zero*, or edit ~/.config/rapport/config.toml."
+    for quote in ("max_paragraph_words to zero", "edit ~/.config/rapport/config.toml"):
+        assert quote_in(quote, src), quote
+        assert blocks_with_quote(quote, {"p-1": {"src": src}}) == ["p-1"], quote
+    assert not quote_in("something else entirely", src)
 
 
 def test_locate_statuses():

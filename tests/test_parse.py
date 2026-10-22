@@ -19,6 +19,8 @@ def test_split_params():
     assert split_params("Use {x} carefully {open = true}") == ("Use {x} carefully", {"open": True}, None)
     assert split_params("Just a title") == ("Just a title", {}, None)
     assert split_params("{tone: 'x'}")[2] is not None
+    assert split_params("Output of {x}") == ("Output of {x}", {}, None)        # braces in a title are text
+    assert split_params("Heads up {tone = warning}")[2] is not None             # a failed params table isn't
 
 
 def test_directive_positional_and_params(report):

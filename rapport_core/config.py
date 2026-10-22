@@ -32,7 +32,7 @@ from pathlib import Path
 from . import BUILTIN_MODULES, BUILTIN_PRESETS
 from .registry import Registry
 from .schema import Schema, defaults_of, finalize, load_core_tree, merge_layer, validate
-from .util import RapportError, deep_get, state_dir
+from .util import RapportError, deep_get, did_you_mean, state_dir
 
 FRONT_FENCE = "+++"
 LEARNED_USER = "learned.toml"
@@ -284,7 +284,8 @@ def find_preset(name: str, dirs: list[Path]) -> Path | None:
 
 # ── loading ────────────────────────────────────────────────────────────────── #
 def load(report_dir: Path, front_matter: dict | None = None, sets=None,
-         front_matter_lines=None) -> Config:
+         front_matter_lines=None, registry: Registry | None = None) -> Config:
+    """registry: one discovered by an earlier load, reused if the module roots come out the same."""
     report_dir = Path(report_dir).resolve()
     core = load_core_tree()
     user = user_paths()
@@ -372,13 +373,14 @@ def load(report_dir: Path, front_matter: dict | None = None, sets=None,
             add_root(p)
     add_root(BUILTIN_MODULES)
 
-    registry = Registry(roots)
+    if registry is None or registry.roots != roots:
+        registry = Registry(roots)
     schema = Schema(core, registry)
 
     defaults = defaults_of(core)
     defaults["modules"] = {**defaults.get("modules", {})}
     for name, mod in registry.modules.items():
-        defaults["modules"][name] = defaults_of(mod.schema_tree())
+        defaults["modules"][name] = defaults_of(mod.schema_tree)
     layers = [Layer("defaults", "defaults", defaults)] + preset_layers + file_layers + top_layers
 
     data: dict = {}
@@ -409,7 +411,6 @@ def _check_theme_tokens(data: dict, registry: Registry) -> list[str]:
             out += [f"theme.tokens.dark.{dk}: theme '{name}' has no token '{dk}'"
                     for dk in v if dk not in known]
         elif k not in known:
-            from .util import did_you_mean
             out.append(f"theme.tokens.{k}: theme '{name}' has no token '{k}'{did_you_mean(k, known)}")
     return out
 
@@ -421,8 +422,11 @@ def _module_checks(data: dict, registry: Registry) -> list[str]:
         section = deep_get(data, f"modules.{name}", {}) or {}
         if not (mod.required or section.get("enabled", mod.default_enabled)):
             continue
+        fn = mod.hook("check")
+        if mod.load_error:
+            out.append(f"modules.{name}: {mod.load_error}")
+            continue
         try:
-            fn = mod.hook("check")
             if fn is not None:
                 out += [f"modules.{name}: {w}" for w in (fn(section) or [])]
         except Exception as e:  # noqa: BLE001 - a broken check must not break loading
@@ -441,7 +445,7 @@ def load_for_report(report_dir: Path, sets=None) -> tuple[Config, str]:
         raise RapportError(f"no {src.name} in {report_dir} (run `rapport init {report_dir}`)")
     text = src.read_text(encoding="utf-8")
     fm, body, fm_lines = split_front_matter(text)
-    cfg = load(report_dir, fm, sets, fm_lines) if fm else pre
+    cfg = load(report_dir, fm, sets, fm_lines, pre.registry) if fm else pre
     cfg.front_matter_lines = fm_lines
     return cfg, body
 

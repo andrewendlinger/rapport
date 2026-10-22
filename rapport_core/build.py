@@ -18,31 +18,7 @@ from pathlib import Path
 from . import config as config_mod
 from .parse import Diag, Document, parse
 from .render import Renderer
-from .util import RapportError, atomic_write, ensure_state_dir, state_dir
-
-STATE_FILE = "state.json"
-BLOCKS_FILE = "blocks.json"
-
-
-def read_state(report_dir: Path) -> dict:
-    p = state_dir(report_dir) / STATE_FILE
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {"version": 1}
-
-
-def write_state(report_dir: Path, state: dict) -> None:
-    atomic_write(ensure_state_dir(report_dir) / STATE_FILE, json.dumps(state, indent=2) + "\n")
-
-
-def bump_version(report_dir: Path, note: str = "") -> int:
-    state = read_state(report_dir)
-    state["version"] = int(state.get("version", 1)) + 1
-    if note:
-        state.setdefault("history", []).append({"version": state["version"], "note": note})
-    write_state(report_dir, state)
-    return state["version"]
+from .util import BLOCKS_FILE, RapportError, atomic_write, ensure_state_dir, read_state, unique
 
 
 @dataclass
@@ -71,16 +47,6 @@ class BuildResult:
         return [f"note for the user: {n}" for n in self.notices]
 
 
-def _dedupe_diags(diags: list[Diag]) -> list[Diag]:
-    seen, out = set(), []
-    for d in diags:
-        key = (d.line, d.message)
-        if key not in seen:
-            seen.add(key)
-            out.append(d)
-    return out
-
-
 def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bool = True,
           strict: bool = False) -> BuildResult:
     """Build the static report. With serve_data, also render the served page
@@ -98,7 +64,7 @@ def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bo
 
     static = Renderer(cfg, serve=False, state=state, strict=strict)
     html = static.render_document(doc)
-    errors = _dedupe_diags(doc.errors + static.errors)
+    errors = unique(doc.errors + static.errors, key=lambda d: (d.line, d.message))
     warnings = list(cfg.warnings) + [w.format(cfg.get("report.source")) for w in doc.warnings + static.warnings]
 
     served_html, assets = None, set(static.asset_paths)
@@ -113,7 +79,7 @@ def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bo
         atomic_write(ensure_state_dir(report_dir, commit) / BLOCKS_FILE, json.dumps(
             {"version": state.get("version", 1), "blocks": static.blocks}, ensure_ascii=False) + "\n")
     return BuildResult(html=html, served_html=served_html, config=cfg, doc=doc, errors=errors,
-                       warnings=_unique(warnings), notices=git_notices(cfg.state_dir, commit), blocks=static.blocks,
+                       warnings=unique(warnings), notices=git_notices(cfg.state_dir, commit), blocks=static.blocks,
                        assets=sorted(assets))
 
 
@@ -158,13 +124,4 @@ def git_notices(sd: Path, commit_feedback: bool) -> list[str]:
         if res and res.returncode == 0:
             out.append(f"commit_feedback = true, but an outer .gitignore still ignores {name} "
                        f"({cmd('check-ignore -v', ['feedback.json'])} shows which)")
-    return out
-
-
-def _unique(items: list[str]) -> list[str]:
-    seen, out = set(), []
-    for it in items:
-        if it not in seen:
-            seen.add(it)
-            out.append(it)
     return out
