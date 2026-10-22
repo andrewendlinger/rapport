@@ -86,6 +86,7 @@ tone = "ok"
 instruction = "Add a source or link supporting this claim."
 ```
 
+- Styling: theme tokens first, then your own CSS with `[theme] css` (it wins over rapport's and can bundle fonts); see [Styling](references/config.md#styling).
 - `rapport config show --origin` explains every value; `rapport config paths` lists the files it reads.
 - Config in a dotfiles repo? `export RAPPORT_CONFIG=~/dotfiles/rapport.toml` (see [references/config.md](references/config.md#keeping-your-config-elsewhere)).
 - `rapport config defaults` prints the full annotated reference.
@@ -108,7 +109,7 @@ To add one:
 2. Edit it, then run `rapport modules check tabs`.
 3. It's now usable as `::: tabs … :::`, listed in `rapport brief`, and shown in `rapport gallery`.
 
-`rapport modules new callout` copies the built-in so you can restyle it. The contract is in [references/modules.md](references/modules.md).
+`rapport modules new callout` copies the built-in so you can change its markup (for looks alone, `[theme] css` is lighter). The contract is in [references/modules.md](references/modules.md).
 
 ## Map
 

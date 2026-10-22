@@ -1,7 +1,7 @@
 .rp-callout{--c:var(--rp-accent);--c-soft:var(--rp-surface-2);border:1px solid var(--rp-line);border-left:3px solid var(--c);
   border-radius:var(--rp-radius);background:var(--c-soft);padding:12px 16px;margin:1.3em 0;font-size:.95em}
 .rp-callout>:last-child{margin-bottom:0}
-.rp-callout-title{font:600 10.5px var(--rp-sans)!important;letter-spacing:.13em;text-transform:uppercase;color:var(--c);margin:0 0 4px!important}
+.rp-callout-title{font:600 10.5px var(--rp-sans);letter-spacing:.13em;text-transform:uppercase;color:var(--c);margin:0 0 4px}
 .rp-callout.rp-tone-tip,.rp-callout.rp-tone-success{--c:var(--rp-ok);--c-soft:var(--rp-ok-soft)}
 .rp-callout.rp-tone-warning{--c:var(--rp-warn);--c-soft:var(--rp-warn-soft)}
 .rp-callout.rp-tone-danger{--c:var(--rp-danger);--c-soft:var(--rp-danger-soft)}

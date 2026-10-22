@@ -1,5 +1,5 @@
 .rp-compare{margin:1.4em 0}
-.rp-compare-title{font:600 14px var(--rp-sans);margin:0 0 8px!important}
+.rp-compare-title{font:600 14px var(--rp-sans);margin:0 0 8px}
 .rp-compare-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
 .rp-compare-grid>.rp-pane{min-width:0;display:flex;flex-direction:column}
 .rp-pane-label{font:600 10.5px var(--rp-sans);letter-spacing:.13em;text-transform:uppercase;color:var(--rp-ink-faint);margin:0 0 7px}

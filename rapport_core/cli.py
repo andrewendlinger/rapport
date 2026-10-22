@@ -231,7 +231,7 @@ def config_defaults_text() -> str:
             doc = spec.get("doc", "")
             extra = []
             if spec.get("merge") == "append":
-                extra.append("appends across layers")
+                extra.append('appends across layers; a "" entry drops what came before it')
             if spec.get("choices"):
                 extra.append("one of: " + ", ".join(spec["choices"]))
             out.append(f"# {doc}" + (f" ({'; '.join(extra)})" if extra else ""))

@@ -76,8 +76,8 @@ doc = "Layout modules below the content, in order."
 
 [layout.width]
 type = "string"
-default = "70ch"
-doc = "Max width of the reading column (any CSS length)."
+default = ""
+doc = "Max width of the reading column (any CSS length). Empty: the theme's `width` token (default 70ch, paper 64ch)."
 
 # ── theme ────────────────────────────────────────────────────────────────
 [theme.name]
@@ -96,6 +96,14 @@ type = "table"
 merge = "merge"
 default = {}
 doc = "Override theme tokens, e.g. accent = \"#c0392b\". Dark-mode values go in [theme.tokens.dark]. Valid names: `rapport modules info <theme>`."
+
+[theme.css]
+type = "list"
+items = "string"
+path = true
+merge = "append"
+default = []
+doc = "Your own CSS files, relative to the file that lists them. They come after rapport's CSS, outside its cascade layers, so they win regardless of specificity. Fonts and images they url() are inlined. Nearest layer last, so it wins ties."
 
 # ── writing: guidance for the agent (rapport brief) and checks (rapport lint) ─
 [writing.audience]

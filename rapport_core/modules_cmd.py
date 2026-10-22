@@ -12,14 +12,17 @@ import jinja2
 
 from . import BUILTIN_MODULES
 from . import config as config_mod
+from . import css as css_mod
 from .brief import _param_line, module_entry
 from .build import build
 from .registry import KINDS, NAME_RE, Module
+from .render import Renderer
 from .util import RapportError, did_you_mean
 
 # opaque literal colours; translucent rgba()/hsla() overlays and shadows are fine
 COLOR_RE = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgb\(|\bhsl\(")
 TOKEN_RE = re.compile(r"var\(--rp-([a-z0-9-]+)")
+IMPORTANT_RE = re.compile(r"!\s*important", re.I)
 
 
 def origin(mod: Module) -> str:
@@ -90,7 +93,12 @@ def do_info(cfg, name: str) -> int:
     if mod.config:
         print("config: " + "; ".join(_param_line(k, v) for k, v in mod.config.items()))
     if mod.kind == "theme":
-        print("tokens: " + ", ".join(mod.tokens))
+        light, dark = mod.tokens, mod.dark_tokens
+        names = list(light) + [k for k in dark if k not in light]
+        w = max(map(len, names), default=0)
+        print("tokens (each is --rp-<name>; set them in [theme.tokens] / [theme.tokens.dark]):")
+        for k in names:
+            print(f"  {k:<{w}}  {light.get(k, '-')}" + (f"    dark: {dark[k]}" if k in dark else ""))
     if mod.kind == "feature":
         print(f"when: {mod.when}" + (" · required" if mod.required else ""))
     current = cfg.module(mod.name)
@@ -314,19 +322,31 @@ def check_module(mod: Module, cfg, tokens: set) -> list[str]:
             jinja2.Environment().parse(mod.template_path.read_text(encoding="utf-8"))
         except jinja2.TemplateSyntaxError as e:
             out.append(f"error: template.html:{e.lineno}: {e.message}")
-    if mod.css_path and mod.kind != "theme":
-        css = mod.css_path.read_text(encoding="utf-8")
-        css_nocomment = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-        if COLOR_RE.search(css_nocomment):
-            out.append("warning: hard-coded colours in style.css; use var(--rp-*) tokens so themes apply")
-        local = set(re.findall(r"--rp-([a-z0-9-]+)\s*:", css_nocomment))
-        unknown = sorted({t for t in TOKEN_RE.findall(css_nocomment) if t not in tokens | local})
-        if unknown:
-            out.append("warning: unknown theme tokens " + ", ".join(f"--rp-{t}" for t in unknown))
+    if mod.css_path:
+        own = set(mod.tokens) | set(mod.dark_tokens) | {"width"} if mod.kind == "theme" else tokens
+        out += check_css(mod, cfg, own)
     if mod.kind in ("block", "inline") and not mod.example_path:
         out.append("warning: no example.md (brief, gallery and check use it)")
     if mod.example_path and mod.kind in ("block", "inline", "element"):
         out += render_example(mod, cfg)
+    return out
+
+
+def check_css(mod: Module, cfg, tokens: set) -> list[str]:
+    r = Renderer(cfg)
+    r.module_css(mod)          # url() targets resolve and inline exactly as in a build
+    out = [f"error: {d.message.removeprefix(f'module {mod.name!r} ')}" for d in r.errors]
+    code = css_mod.code_only(mod.css_path.read_text(encoding="utf-8"))
+    if COLOR_RE.search(code):
+        out.append("warning: hard-coded colours in style.css; use var(--rp-*) tokens so themes apply")
+    # reduced motion is an accessibility override: the one place a theme may insist
+    if mod.kind != "feature" and IMPORTANT_RE.search(css_mod.without_media(code, "prefers-reduced-motion")):
+        out.append("warning: !important in style.css can't be overridden by theme.css; drop it "
+                   "(cascade layers already put module rules over theme rules)")
+    local = set(re.findall(r"--rp-([a-z0-9-]+)\s*:", code))
+    unknown = sorted({t for t in TOKEN_RE.findall(code) if t not in tokens | local})
+    if unknown:
+        out.append("warning: unknown theme tokens " + ", ".join(f"--rp-{t}" for t in unknown))
     return out
 
 

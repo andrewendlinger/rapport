@@ -10,14 +10,14 @@
 | 4 | learned (user) | `~/.config/rapport/learned.toml` beside it (written by `rapport writing add`) |
 | 5 | project | every `rapport.toml` from `$HOME` down to the report folder, each followed by its `rapport-learned.toml` |
 | 6 | front matter | the `+++` block in report.md |
-| 7 | `--set key=value` | command line (value parsed as TOML, else as a string) |
+| 7 | `--set key=value` | command line (value parsed as TOML, else as a string; a string for a list key is a one-item list) |
 
 The preset is chosen first, from whichever layer sets `preset = "…"`, and then slotted in as layer 2.
 
 **Merge rules** (declared per key in the schema):
 - **Tables** merge key by key.
 - **Plain values and lists** are replaced.
-- **`writing.rules` and `writing.avoid`** are appended, so learned and project rules add up.
+- **`writing.rules`, `writing.avoid` and `theme.css`** are appended, so learned and project entries add up. An empty-string entry drops everything before it, inherited entries included: `avoid = ["", "very"]` leaves just `"very"`.
 - **Arrays of tables with an `id`** (e.g. `[[modules.feedback.actions]]`) merge by id: you can change one field of one entry, add entries, or drop one with `enabled = false`.
 
 **Inspect:**
@@ -42,6 +42,69 @@ export RAPPORT_CONFIG=~/dotfiles/rapport.toml       # or: the config file itself
 - A `RAPPORT_CONFIG` that is also a project file (`~/rapport.toml`) loads once, as the user layer.
 
 `rapport config paths` shows what's in effect.
+
+## Styling
+
+Three levels, lightest first: tokens, your own CSS, a forked module.
+
+**Tokens** hold the palette, fonts, corner radius, column width and body size. The theme module defines them (built-in: `default`, `paper`); `[theme.tokens]` overrides them and `[theme.tokens.dark]` sets dark-mode values:
+
+```toml
+[theme]
+name = "paper"
+
+[theme.tokens]
+accent = "#0B6E4F"
+width = "72ch"
+
+[theme.tokens.dark]
+accent = "#6FD3A8"
+```
+
+| | tokens |
+|---|---|
+| colour | `bg` `surface` `surface-2` `ink` `ink-soft` `ink-faint` `line` `accent` `accent-soft` `ok` `ok-soft` `warn` `warn-soft` `danger` `danger-soft` `violet` `violet-soft` `shadow` |
+| type | `sans` `serif` `mono` `body-font` `heading-font` `body-size` |
+| shape | `radius`, `width` (the reading column; `[layout] width` overrides it) |
+
+`rapport modules info default` prints each token with its light and dark value. Code colours are Pygments styles: `[modules.code] light_style` and `dark_style`.
+
+**Scope** is the layer you set it in: the user config for every report, a `rapport.toml` for a project, front matter for one report. A look you reuse under a name is a preset.
+
+**Modules inherit it.** Every module styles itself through the `--rp-*` tokens only (`modules check` warns about literal colours), so a token change restyles every module, built-in or third-party, light and dark.
+
+**Your own CSS** goes in `[theme] css`, a list of files relative to the config file that lists them:
+
+```toml
+[theme]
+css = ["brand.css"]
+```
+
+- It always wins over rapport's CSS. rapport's CSS sits in cascade layers (theme first, then modules, so module rules beat theme rules) and yours comes after it, unlayered, so a plain `h2{color:#123}` beats the theme's `.rp-content h2`.
+- Target one module with `.rp-m-<name>`, a class on every module's root element: `.rp-m-callout{font-size:1rem}`.
+- Re-scope a token for one module: `.rp-m-callout{--rp-accent:#0B6E4F}`. For a different dark value, use `light-dark()`: `.rp-m-callout{--rp-accent:light-dark(#0B6E4F,#6FD3A8)}` follows the reader's OS setting and the theme toggle. It takes colours only.
+- The lists append across layers, outer first (user, project, front matter), so a nearer file wins ties. `css = ["", "report.css"]` drops the inherited files.
+- `url()`s are inlined as `data:` URIs, resolved relative to the CSS file: fonts (woff2, woff, ttf, otf, eot) and images (svg, png, jpg, gif, webp, avif). Remote URLs, root-relative paths (`/x`) and `@import` fail the build, because the page must stay one file. List each CSS file in `theme.css` instead of importing it.
+
+A brand font:
+
+```css
+/* brand.css, next to rapport.toml */
+@font-face{font-family:Inter;src:url(fonts/Inter-Regular.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Inter;src:url(fonts/Inter-SemiBold.woff2) format("woff2");font-weight:600}
+```
+
+```toml
+[theme]
+css = ["brand.css"]
+
+[theme.tokens]
+sans = "Inter, system-ui, sans-serif"
+```
+
+Each weight adds about 20 to 100 KB to every report.html and counts toward `report.max_inline_mb`. Ship only the weights you use.
+
+**Structural changes** need a fork. For new markup or a different template, `rapport modules new callout --scope project` copies the module into your project, and the copy replaces the built-in. Later fixes to the built-in don't reach it. `rapport modules new brand --kind theme` starts a theme from a copy of `default`. Its style.css can url() files in its own folder, such as fonts.
 
 ## Recipes
 

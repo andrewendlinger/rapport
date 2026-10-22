@@ -97,10 +97,11 @@ def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bo
     errors = _dedupe_diags(doc.errors + static.errors)
     warnings = list(cfg.warnings) + [w.format(cfg.get("report.source")) for w in doc.warnings + static.warnings]
 
-    served_html = None
+    served_html, assets = None, set(static.asset_paths)
     if serve_data is not None:
         live = Renderer(cfg, serve=True, extra_data=serve_data, state=state)
         served_html = live.render_document(doc)
+        assets |= live.asset_paths      # serve-only modules' CSS may url() files too
 
     commit = bool(cfg.get("report.commit_feedback", False))
     if write:
@@ -109,7 +110,7 @@ def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bo
             {"version": state.get("version", 1), "blocks": static.blocks}, ensure_ascii=False) + "\n")
     warnings += git_warnings(cfg.state_dir, commit)
     return BuildResult(html=html, served_html=served_html, config=cfg, doc=doc, errors=errors,
-                       warnings=_unique(warnings), blocks=static.blocks, assets=sorted(static.asset_paths))
+                       warnings=_unique(warnings), blocks=static.blocks, assets=sorted(assets))
 
 
 def _git(cwd: Path, *args) -> subprocess.CompletedProcess | None:

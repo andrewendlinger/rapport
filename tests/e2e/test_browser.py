@@ -304,6 +304,28 @@ def test_static_file_is_read_only_with_hint(report, page):
     assert page.query_selector(".rp-fb-chipbtn") is None
 
 
+def test_theme_css_wins_over_theme_and_module_rules(report, page):
+    css = ("h2{color:rgb(1, 2, 3)}\np{font-size:21px}\n"
+           ".rp-m-callout{--rp-accent:light-dark(rgb(10, 20, 30), rgb(200, 210, 220))}\n")
+    d = report('+++\n[theme]\ncss = ["brand.css"]\n+++\n\n## Head\n\n::: callout Note\nBody.\n:::\n',
+               {"reports/r/brand.css": css})
+    assert build(d).ok
+    page.goto((d / "report.html").as_uri())
+
+    def get(sel, prop):
+        return page.eval_on_selector(sel, f"e => getComputedStyle(e).{prop}")
+    assert get(".rp-content h2", "color") == "rgb(1, 2, 3)"            # theme: .rp-content h2
+    assert get(".rp-callout-title", "fontSize") == "21px"              # module: .rp-callout-title
+    assert get(".rp-content h2", "fontSize") != "21px"
+    # a token re-scoped to one module, with a dark value: follows the OS and the toggle
+    assert get(".rp-callout", "borderLeftColor") == "rgb(10, 20, 30)"
+    assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--rp-accent')") == "#2050C8"
+    page.emulate_media(color_scheme="dark")
+    assert get(".rp-callout", "borderLeftColor") == "rgb(200, 210, 220)"
+    page.evaluate("document.documentElement.dataset.theme = 'light'")
+    assert get(".rp-callout", "borderLeftColor") == "rgb(10, 20, 30)"
+
+
 def test_stale_token_reloads(served, page):
     d, app, url = served()
     open_page(page, url)

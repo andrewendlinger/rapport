@@ -140,7 +140,7 @@ class Schema:
 def _resolve_path_value(value, base: Path | None):
     if base is None:
         return value
-    if isinstance(value, str):
+    if isinstance(value, str) and value:        # "" stays: it's the reset entry of an append list
         p = Path(value).expanduser()
         return str(p if p.is_absolute() else (base / p).resolve())
     if isinstance(value, list):
@@ -182,11 +182,16 @@ def merge_layer(dst: dict, src: dict, schema: Schema, origins: dict, origin: str
         dotted = ".".join(p)
         spec = schema.lookup(p)
         if is_leaf(spec) and spec["type"] != "any":
+            if spec["type"] == "list" and isinstance(value, str):
+                value = [value]                 # --set theme.css=x.css arrives as a string
             value = _resolve_paths(spec, value, base)
             strat = schema.strategy(spec)
-            if strat == "append" and isinstance(value, list) and isinstance(dst.get(key), list):
-                prev = origins.get(dotted) if dst[key] else None
-                dst[key] = _dedupe(dst[key] + copy.deepcopy(value))
+            if strat == "append" and isinstance(value, list):
+                cur = dst.get(key) if isinstance(dst.get(key), list) else []
+                if "" in value:                 # git-style reset: "" drops everything before it
+                    cur, value = [], value[len(value) - value[::-1].index(""):]
+                prev = origins.get(dotted) if cur else None
+                dst[key] = _dedupe(cur + copy.deepcopy(value))
                 origins[dotted] = f"{prev} + {origin}" if prev and value else (prev or origin)
                 continue
             if strat == "by-id" and isinstance(value, list):

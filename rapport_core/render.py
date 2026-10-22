@@ -3,7 +3,9 @@
 Every block is rendered by its module's Jinja template; the renderer injects
 the anchor attributes (data-rp-id / -module / -lines) into the template's root
 element, collects CSS/JS only from modules the page actually uses, and inlines
-everything (images and gifs become data: URIs).
+everything (images, gifs, and fonts or images that CSS url()s become data: URIs).
+rapport's CSS sits in cascade layers (theme, then modules); [theme] css files
+follow unlayered, so they win.
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ from pygments.token import STANDARD_TYPES
 from pygments.util import ClassNotFound
 
 from . import __version__
+from . import css as css_mod
 from .parse import Builder, Diag, Document, Node, _close_index, assign_ids, inline_text, make_markdown, parse
 from .registry import KIND_ORDER, Module, resolve_params
 from .util import json_block
@@ -34,7 +37,7 @@ from .util import json_block
 # leading whitespace and HTML comments are skipped: anchors go on the first real tag
 FIRST_TAG_RE = re.compile(r"^((?:\s|<!--.*?-->)*)<([a-zA-Z][\w-]*)((?:\s[^>]*?)?)(/?)>", re.S)
 CLASS_ATTR_RE = re.compile(r'\sclass="([^"]*)"')
-SCHEME_RE = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|//)")
+SCRIPT_END_RE = re.compile(r"</(script)", re.I)
 
 
 def _attr(v) -> str:
@@ -96,7 +99,7 @@ def count_roots(fragment: str) -> int:
 
 
 def _script_safe(js: str) -> str:
-    return js.replace("</script", "<\\/script")
+    return SCRIPT_END_RE.sub(r"<\\/\1", js)
 
 
 def _css_class(ttype) -> str:
@@ -289,31 +292,64 @@ class Renderer:
             return f'<div class="rp-error">module {html.escape(mod.name)} failed: {html.escape(str(e))}</div>'
 
     # -- assets ------------------------------------------------------------------ #
-    def asset(self, src: str, line: int | None = None) -> str:
+    def asset(self, src: str, line: int | None = None, base: Path | None = None, where: str | None = None) -> str:
+        """A local file as a data: URI. base: the folder src is relative to (default:
+        the report folder); where: "brand.css:12" for errors outside report.md."""
+        def error(msg: str) -> str:
+            self.errors.append(Diag(None, f"{where}: {msg}") if where else Diag(line, msg))
+            return ""
         if not src or src.startswith("data:") or src.startswith("#"):
             return src
-        if SCHEME_RE.match(src):
-            self.errors.append(Diag(line, f"remote asset {src!r}: reports are self-contained; "
-                                          f"download it into assets/ and reference it relatively"))
-            return ""
+        if css_mod.SCHEME_RE.match(src):
+            return error(f"remote asset {src!r}: reports are self-contained; "
+                         f"download it into assets/ and reference it relatively")
         # markdown-it percent-encodes link targets: "my file.png" arrives as "my%20file.png"
         name = urllib.parse.unquote(src)
-        path = (self.report_dir / name).resolve()
+        path = ((base or self.report_dir) / name).resolve()
         self.asset_paths.add(path)
         if not path.is_file():
-            self.errors.append(Diag(line, f"asset not found: {name} (looked in {path.parent})"))
-            return ""
+            return error(f"asset not found: {name} (looked in {path.parent})")
         size = path.stat().st_size
         self.inlined_bytes += size          # every use is another copy in the page
         budget = float(self.config.get("report.max_inline_mb", 8)) * 1024 * 1024
         if self.inlined_bytes > budget:
-            self.errors.append(Diag(line, f"inlined assets exceed report.max_inline_mb "
-                                          f"({self.inlined_bytes / 1048576:.1f} MB); shrink {name} "
-                                          f"or raise the budget"))
+            error(f"inlined assets exceed report.max_inline_mb ({self.inlined_bytes / 1048576:.1f} MB); "
+                  f"shrink {name} or raise the budget")
         if path not in self._data_uris:
-            mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+            mime = css_mod.MIME.get(path.suffix[1:].lower()) or mimetypes.guess_type(path.name)[0] \
+                or "application/octet-stream"
             self._data_uris[path] = f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
         return self._data_uris[path]
+
+    def inline_css(self, css: str, base: Path, where: str, fix: str = "list the file in theme.css instead") -> str:
+        """Inline the files a stylesheet url()s, relative to base (its folder)."""
+        refs, imports = css_mod.scan(css)
+        for n in imports:
+            self.errors.append(Diag(None, f"{where}:{n}: @import isn't supported; {fix}"))
+
+        def inline(ref):
+            try:
+                src, frag = css_mod.target(ref.value)
+            except ValueError as e:
+                self.errors.append(Diag(None, f"{where}:{ref.line}: {e}"))
+                return ""
+            return None if src is None else self.asset(src, base=base, where=f"{where}:{ref.line}") + frag
+        return css_mod.rewrite(css, refs, inline)
+
+    def user_css(self) -> list[str]:
+        """[theme] css files, outer layers first: unlayered, after rapport's CSS."""
+        out = []
+        for p in self.config.get("theme.css", []) or []:
+            path = Path(p)
+            self.asset_paths.add(path)
+            if path.suffix.lower() != ".css":
+                self.errors.append(Diag(None, f"theme.css: {path} isn't a .css file"))
+            elif not path.is_file():
+                self.errors.append(Diag(None, f"theme.css: file not found: {path}"))
+            else:
+                css = self.inline_css(path.read_text(encoding="utf-8"), path.parent, path.name)
+                out.append(f"/* theme.css: {path.name} */\n{css}")
+        return out
 
     # -- nodes --------------------------------------------------------------------- #
     def render_nodes(self, nodes: list[Node]) -> Markup:
@@ -438,6 +474,10 @@ class Renderer:
             out.append(mod)
         return out
 
+    def module_css(self, mod: Module) -> str:
+        return self.inline_css(mod.css_path.read_text(encoding="utf-8"), mod.dir, f"module '{mod.name}' style.css",
+                               "put the rules in style.css")
+
     def theme_css(self, theme: Module) -> str:
         overrides = dict(self.config.get("theme.tokens", {}) or {})
         dark_over = overrides.pop("dark", {}) if isinstance(overrides.get("dark"), dict) else {}
@@ -520,16 +560,14 @@ class Renderer:
             self.errors.append(Diag(None, f"theme.name: no theme module '{theme_name}'"))
             theme = self.registry.get("default")
         used_mods = self.registry.ordered(self.used)
-        css_parts = [self.theme_css(theme)]
-        if theme.css_path:
-            css_parts.append(theme.css_path.read_text(encoding="utf-8"))
-        for mod in used_mods:
-            if mod.css_path and mod.kind != "theme":
-                css_parts.append(f"/* {mod.name} */\n" + mod.css_path.read_text(encoding="utf-8"))
+        theme_parts = [self.theme_css(theme)] + ([self.module_css(theme)] if theme.css_path else [])
+        mod_parts = [f"/* {mod.name} */\n" + self.module_css(mod)
+                     for mod in used_mods if mod.css_path and mod.kind != "theme"]
         if "code" in self.used:
             code_cfg = self.config.module("code")
-            css_parts.append(pygments_css(code_cfg.get("light_style", "friendly"),
+            mod_parts.append(pygments_css(code_cfg.get("light_style", "friendly"),
                                           code_cfg.get("dark_style", "github-dark")))
+        css = css_mod.style_safe("\n".join([css_mod.layered(theme_parts, mod_parts)] + self.user_css()))
         js_mods = [m for m in used_mods if m.js_path]
         js_mods.sort(key=lambda m: (0 if m.name == "runtime" else 1, KIND_ORDER[m.kind], m.name))
         scripts = "\n".join(
@@ -545,7 +583,7 @@ class Renderer:
         }
         mode = self.config.get("theme.mode", "auto")
         return self._render_template(
-            page, content=content, regions=regions, css=Markup("\n".join(css_parts)),
+            page, content=content, regions=regions, css=Markup(css),
             scripts=Markup(scripts), features=Markup("\n".join(feature_html)),
             data_json=Markup(json_block(data)), lang=self.config.get("report.lang", "en"),
             theme_mode=None if mode == "auto" else mode, headings=headings)
