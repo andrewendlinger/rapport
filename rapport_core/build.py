@@ -53,6 +53,7 @@ class BuildResult:
     doc: Document | None
     errors: list[Diag] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    notices: list[str] = field(default_factory=list)       # git advice for the user: never a failure
     blocks: dict = field(default_factory=dict)
     assets: list = field(default_factory=list)
 
@@ -64,7 +65,10 @@ class BuildResult:
         name = self.config.get("report.source", "report.md") if self.config else "report.md"
         out = [f"error: {d.format(name)}" for d in self.errors]
         out += [f"warning: {w}" for w in self.warnings]
-        return out
+        return out + self.notes()
+
+    def notes(self) -> list[str]:
+        return [f"note for the user: {n}" for n in self.notices]
 
 
 def _dedupe_diags(diags: list[Diag]) -> list[Diag]:
@@ -108,23 +112,25 @@ def build(report_dir: Path, sets=None, serve_data: dict | None = None, write: bo
         atomic_write(cfg.output_path, html)
         atomic_write(ensure_state_dir(report_dir, commit) / BLOCKS_FILE, json.dumps(
             {"version": state.get("version", 1), "blocks": static.blocks}, ensure_ascii=False) + "\n")
-    warnings += git_warnings(cfg.state_dir, commit)
     return BuildResult(html=html, served_html=served_html, config=cfg, doc=doc, errors=errors,
-                       warnings=_unique(warnings), blocks=static.blocks, assets=sorted(assets))
+                       warnings=_unique(warnings), notices=git_notices(cfg.state_dir, commit), blocks=static.blocks,
+                       assets=sorted(assets))
 
 
 def _git(cwd: Path, *args) -> subprocess.CompletedProcess | None:
     env = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
     try:
-        return subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, encoding="utf-8",
-                              errors="replace", timeout=3, env=env)
+        # core.fsmonitor names a command: a repo's own config must not run code on every build
+        return subprocess.run(["git", "-c", "core.fsmonitor=false", "-C", str(cwd), *args], capture_output=True,
+                              encoding="utf-8", errors="replace", timeout=3, env=env)
     except (OSError, subprocess.SubprocessError):
         return None
 
 
-def git_warnings(sd: Path, commit_feedback: bool) -> list[str]:
+def git_notices(sd: Path, commit_feedback: bool) -> list[str]:
     """What git gets wrong about the state folder: files in it that are ignored
-    but still tracked, and commit_feedback undone by an outer ignore. Runs git
+    but still tracked, and commit_feedback undone by an outer ignore. The fix
+    changes git state, so it's the user's call, not a build problem. Runs git
     only if it's installed and a .git sits anywhere above (config.git_root
     stops at $HOME)."""
     root = next((d for d in sd.parents if (d / ".git").exists()), None) if sd.is_dir() else None

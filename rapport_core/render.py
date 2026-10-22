@@ -38,6 +38,8 @@ from .util import json_block
 FIRST_TAG_RE = re.compile(r"^((?:\s|<!--.*?-->)*)<([a-zA-Z][\w-]*)((?:\s[^>]*?)?)(/?)>", re.S)
 CLASS_ATTR_RE = re.compile(r'\sclass="([^"]*)"')
 SCRIPT_END_RE = re.compile(r"</(script)", re.I)
+# tokens rapport's own CSS relies on, for a theme that doesn't define them
+CORE_TOKENS = {"width": "70ch", "body-size": "17px"}
 
 
 def _attr(v) -> str:
@@ -323,18 +325,21 @@ class Renderer:
 
     def inline_css(self, css: str, base: Path, where: str, fix: str = "list the file in theme.css instead") -> str:
         """Inline the files a stylesheet url()s, relative to base (its folder)."""
-        refs, imports = css_mod.scan(css)
-        for n in imports:
-            self.errors.append(Diag(None, f"{where}:{n}: @import isn't supported; {fix}"))
-
         def inline(ref):
+            if ref.kind == "import":        # dropped: no remote url left in the page
+                self.errors.append(Diag(None, f"{where}:{ref.line}: @import isn't supported; {fix}"))
+                return ""
+            if ref.kind == "var":
+                self.errors.append(Diag(None, f"{where}:{ref.line}: var() inside {ref.value}(): a url can't be "
+                                              "checked or inlined through a variable; write it out"))
+                return None
             try:
                 src, frag = css_mod.target(ref.value)
             except ValueError as e:
                 self.errors.append(Diag(None, f"{where}:{ref.line}: {e}"))
                 return ""
             return None if src is None else self.asset(src, base=base, where=f"{where}:{ref.line}") + frag
-        return css_mod.rewrite(css, refs, inline)
+        return css_mod.rewrite(css, css_mod.scan(css), inline)
 
     def user_css(self) -> list[str]:
         """[theme] css files, outer layers first: unlayered, after rapport's CSS."""
@@ -347,7 +352,7 @@ class Renderer:
             elif not path.is_file():
                 self.errors.append(Diag(None, f"theme.css: file not found: {path}"))
             else:
-                css = self.inline_css(path.read_text(encoding="utf-8"), path.parent, path.name)
+                css = self.inline_css(path.read_text(encoding="utf-8-sig"), path.parent, path.name)
                 out.append(f"/* theme.css: {path.name} */\n{css}")
         return out
 
@@ -475,17 +480,16 @@ class Renderer:
         return out
 
     def module_css(self, mod: Module) -> str:
-        return self.inline_css(mod.css_path.read_text(encoding="utf-8"), mod.dir, f"module '{mod.name}' style.css",
-                               "put the rules in style.css")
+        return self.inline_css(mod.css_path.read_text(encoding="utf-8-sig"), mod.dir,
+                               f"module '{mod.name}' style.css", "put the rules in style.css")
 
     def theme_css(self, theme: Module) -> str:
         overrides = dict(self.config.get("theme.tokens", {}) or {})
         dark_over = overrides.pop("dark", {}) if isinstance(overrides.get("dark"), dict) else {}
         light = {**theme.tokens, **overrides}
         dark = {**theme.dark_tokens, **dark_over}
-        width = self.config.get("layout.width")
-        if width:
-            light["width"] = width
+        light["width"] = self.config.get("layout.width") or light.get("width") or CORE_TOKENS["width"]
+        light.setdefault("body-size", CORE_TOKENS["body-size"])
         decl = lambda d: "".join(f"--rp-{k}:{v};" for k, v in d.items())  # noqa: E731
         css = f":root{{color-scheme:light dark;{decl(light)}}}\n"
         # rem = body-size in every theme, so sizes in rem scale with it

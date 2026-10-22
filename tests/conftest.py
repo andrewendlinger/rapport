@@ -7,6 +7,8 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from rapport_core import config as config_mod  # noqa: E402
+
 
 @pytest.fixture(autouse=True)
 def isolated_home(tmp_path, monkeypatch):
@@ -19,6 +21,7 @@ def isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(home / ".config"))
     monkeypatch.delenv("RAPPORT_CONFIG", raising=False)
     monkeypatch.delenv("RAPPORT_CONFIG_DIR", raising=False)
+    config_mod.start_cwd.cache_clear()          # tests chdir: each one starts afresh
     yield home
     os.environ.clear()
     os.environ.update(saved)

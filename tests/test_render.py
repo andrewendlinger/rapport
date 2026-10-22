@@ -1,3 +1,4 @@
+import json
 import re
 
 from conftest import GIF, write
@@ -159,3 +160,10 @@ def test_generated_labels_are_chrome(report):
     assert '<p class="rp-callout-title" data-rp-ui>Note</p>' in res.html
     assert '<div class="rp-pane" data-rp-label="Before"><div class="rp-pane-label" data-rp-ui>Before</div>' in res.html
     assert 'data-rp-label="Old approach"' in res.html
+
+
+def test_page_data_has_no_angle_brackets(report):
+    title = "a <!-- b <script> c </script>"
+    html = build(report(f'+++\ntitle = "{title}"\n+++\n\nx\n')).html
+    data = html.split('<script type="application/json" id="rp-data">', 1)[1].split("</script>", 1)[0]
+    assert "<" not in data and json.loads(data)["report"]["title"] == title

@@ -124,7 +124,7 @@ class App:
                 self.build_id += 1
                 self.html = res.served_html.encode("utf-8")
                 self.errors = [f"{d.format(res.config.get('report.source'))}" for d in res.errors]
-                old, self.warnings = self.warnings, res.warnings
+                old, self.warnings = self.warnings, res.warnings + res.notes()
                 self.cfg = res.config
                 self.blocks = res.blocks
                 self.files = watched_files(self.report_dir, res.config, res.assets)
@@ -133,10 +133,12 @@ class App:
             print(msg + (f" with {len(self.errors)} error(s)" if self.errors else ""), flush=True)
             for e in self.errors:
                 print(f"  error: {e}", flush=True)
-            if set(res.warnings) != set(old):       # warnings show when they change, not on every rebuild
+            if set(self.warnings) != set(old):      # warnings show when they change, not on every rebuild
                 for w in res.warnings:
                     print(f"  warning: {w}", flush=True)
-                if not res.warnings:
+                for n in res.notes():
+                    print(f"  {n}", flush=True)
+                if not self.warnings:
                     print("  warnings cleared", flush=True)
         except RapportError as e:
             self._fail(str(e))

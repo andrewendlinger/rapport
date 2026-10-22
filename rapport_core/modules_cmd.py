@@ -16,7 +16,7 @@ from . import css as css_mod
 from .brief import _param_line, module_entry
 from .build import build
 from .registry import KINDS, NAME_RE, Module
-from .render import Renderer
+from .render import CORE_TOKENS, Renderer
 from .util import RapportError, did_you_mean
 
 # opaque literal colours; translucent rgba()/hsla() overlays and shadows are fine
@@ -300,7 +300,7 @@ def do_check(cfg, name: str | None) -> int:
     reg = cfg.registry
     mods = [_get(cfg, name)] if name else sorted(reg.modules.values(), key=lambda m: (m.kind, m.name))
     theme = reg.get(cfg.get("theme.name", "default")) or reg.get("default")
-    tokens = set(theme.tokens) | set(theme.dark_tokens) | {"width"} if theme else set()
+    tokens = set(theme.tokens) | set(theme.dark_tokens) | set(CORE_TOKENS) if theme else set()
     total = 0
     for e in reg.errors:
         print(f"error: {e}")
@@ -324,8 +324,11 @@ def check_module(mod: Module, cfg, tokens: set) -> list[str]:
             jinja2.Environment().parse(mod.template_path.read_text(encoding="utf-8"))
         except jinja2.TemplateSyntaxError as e:
             out.append(f"error: template.html:{e.lineno}: {e.message}")
+    if mod.kind == "theme" and (missing := [t for t in CORE_TOKENS if t not in mod.tokens]):
+        out.append(f"warning: no {' or '.join(missing)} token; the page falls back to "
+                   + ", ".join(f"{t} = {CORE_TOKENS[t]}" for t in missing))
     if mod.css_path:
-        own = set(mod.tokens) | set(mod.dark_tokens) | {"width"} if mod.kind == "theme" else tokens
+        own = set(mod.tokens) | set(mod.dark_tokens) | set(CORE_TOKENS) if mod.kind == "theme" else tokens
         out += check_css(mod, cfg, own)
     if mod.kind in ("block", "inline") and not mod.example_path:
         out.append("warning: no example.md (brief, gallery and check use it)")
@@ -338,7 +341,7 @@ def check_css(mod: Module, cfg, tokens: set) -> list[str]:
     r = Renderer(cfg)
     r.module_css(mod)          # url() targets resolve and inline exactly as in a build
     out = [f"error: {d.message.removeprefix(f'module {mod.name!r} ')}" for d in r.errors]
-    code = css_mod.code_only(mod.css_path.read_text(encoding="utf-8"))
+    code = css_mod.code_only(mod.css_path.read_text(encoding="utf-8-sig"))
     if COLOR_RE.search(code):
         out.append("warning: hard-coded colours in style.css; use var(--rp-*) tokens so themes apply")
     # reduced motion is an accessibility override: the one place a theme may insist

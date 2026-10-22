@@ -36,7 +36,7 @@ export RAPPORT_CONFIG=~/dotfiles/rapport.toml       # or: the config file itself
 ```
 
 - **`RAPPORT_CONFIG_DIR`** replaces the whole folder and wins over `XDG_CONFIG_HOME`. A folder that doesn't exist yet just means no user config.
-- **`RAPPORT_CONFIG`** names the file and wins over `RAPPORT_CONFIG_DIR`. Its siblings follow the project names, as if it were a rapport.toml: learned rules in `rapport-learned.toml`, modules in `rapport-modules/`, presets in `rapport-presets/`, all beside it. Relative paths inside it resolve against its folder. If the file doesn't exist, every command stops with an error (except `config paths`, which reports it).
+- **`RAPPORT_CONFIG`** names the file and wins over `RAPPORT_CONFIG_DIR`. Its siblings follow the project names, as if it were a rapport.toml: learned rules in `rapport-learned.toml`, modules in `rapport-modules/`, presets in `rapport-presets/`, all beside it. Relative paths inside it resolve against its folder. If the file doesn't exist, every command stops with an error, except `config paths`, which reports it, and `serve --stop` / `serve --status`.
 - `RAPPORT_CONFIG=/dev/null` turns user config off: no user layer, learned rules, modules or presets, and `writing add --scope user` and `modules new --scope user` refuse. Pointing it at a folder is an error; that's what `RAPPORT_CONFIG_DIR` is for.
 - Empty values are ignored. `~` and relative paths work; rapport makes them absolute against the current folder.
 - A `RAPPORT_CONFIG` that is also a project file (`~/rapport.toml`) loads once, as the user layer.
@@ -86,7 +86,7 @@ css = ["brand.css"]
 - Target one module with `.rp-m-<name>`, a class on every module's root element: `.rp-m-callout{font-size:1rem}`.
 - Re-scope a token for one module: `.rp-m-callout{--rp-accent:#0B6E4F}`. For a different dark value, use `light-dark()`: `.rp-m-callout{--rp-accent:light-dark(#0B6E4F,#6FD3A8)}` follows the reader's OS setting and the theme toggle. It takes colours only.
 - The lists append across layers, outer first (user, project, front matter), so a nearer file wins ties. `css = ["", "report.css"]` drops the inherited files.
-- `url()`s are inlined as `data:` URIs, resolved relative to the CSS file: fonts (woff2, woff, ttf, otf, eot) and images (svg, png, jpg, gif, webp, avif). Remote URLs, root-relative paths (`/x`) and `@import` fail the build, because the page must stay one file. List each CSS file in `theme.css` instead of importing it.
+- `url()`s are inlined as `data:` URIs, resolved relative to the CSS file: fonts (woff2, woff, ttf, otf, eot) and images (svg, png, jpg, gif, webp, avif). Remote URLs, root-relative paths (`/x`), `@import` and a `var()` inside `image-set()` (a url the build can't see) fail the build, because the page must stay one file. List each CSS file in `theme.css` instead of importing it.
 
 A brand font:
 
@@ -234,7 +234,7 @@ To commit feedback and version history with the report:
 commit_feedback = true
 ```
 
-The `.gitignore` then lets `feedback.json`, `state.json` and itself through (so clones keep the rule); everything else stays ignored. An outer `.gitignore` that ignores `.rapport/` still wins; the build warns and prints the `git check-ignore -v` command that shows which file does it.
+The `.gitignore` then lets `feedback.json`, `state.json` and itself through (so clones keep the rule); everything else stays ignored. An outer `.gitignore` that ignores `.rapport/` still wins; `build` and `lint` say so in a note for the user, with the `git check-ignore -v` command that shows which file does it.
 
-- `git clean -fd` keeps `.rapport/` (it skips ignored files); `git clean -fdx` and `-fdX` delete it, unresolved feedback included.
-- Files committed before the folder ignored itself stay tracked. `build` and `lint` warn and print the exact command, e.g. `git rm --cached reports/q3/.rapport/blocks.json reports/q3/.rapport/feedback.json`.
+- `git clean -fd` skips ignored files, so it keeps `.rapport/`; `git clean -fdx` and `-fdX` delete it, unresolved feedback included. With `commit_feedback = true`, `feedback.json`, `state.json` and the `.gitignore` aren't ignored: until they're committed they're untracked, and `git clean -fd` deletes them.
+- Files committed before the folder ignored itself stay tracked. `build` and `lint` print a note for the user with the exact command, e.g. `git rm --cached reports/q3/.rapport/blocks.json reports/q3/.rapport/feedback.json`; it doesn't fail `lint`, since changing git state is the user's call. Once that's committed, collaborators' tracked copies are deleted on their next pull (they're recoverable from git history).

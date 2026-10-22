@@ -74,7 +74,7 @@ Spec keys: `type`, `default`, `doc`, plus `choices` (enum), `items` (the item ty
 Blocks nest, and every block is commentable on its own: a reader's comment lands on the innermost block, so each pane of a `compare` (or each code block in it) takes its own comments. To tell the agent *which* part of your module a comment is about, put `data-rp-label="…"` on that part (e.g. a pane or tab); `rapport feedback` shows it as `in “After”`.
 
 - Users set defaults for every use at `[modules.side-note]`, with both params and config keys. Per-use params win. `enabled = true|false` is added to every module automatically.
-- **Themes** add `[tokens]` and `[tokens.dark]` tables. Each token becomes `--rp-<name>`. Their style.css holds base typography. rapport sets the root font size to `--rp-body-size` for every theme, so give `body` `1rem` and size headings in `rem`.
+- **Themes** add `[tokens]` and `[tokens.dark]` tables. Each token becomes `--rp-<name>`. Their style.css holds base typography. rapport sets the root font size to `--rp-body-size` for every theme, so give `body` `1rem` and size headings in `rem`. Define `width` and `body-size`: a theme without them gets rapport's 70ch and 17px, and `modules check` warns.
 - **Features** add `when`, and `required = true` for the kernel only.
 - For a list-of-tables setting merged by id (as `feedback.actions` is), declare `type = "tables"` with `merge = "by-id"`, a `[config.x.fields.*]` schema, and `[[config.x.default]]` entries.
 
@@ -106,7 +106,7 @@ Layout modules also get `headings` (`level`, `text`, `id`) and `region`. The `pa
 - Use theme tokens only: `var(--rp-ink)`, `--rp-surface`, `--rp-accent`, `--rp-line`, `--rp-radius`, `--rp-sans`, …. Run `rapport modules info default` for the full list. Then every theme, light and dark, applies automatically. `modules check` warns about literal colours and unknown tokens. Custom properties your module defines itself are fine.
 - **Cascade layers.** The theme's CSS goes in `@layer rp-theme` and module CSS in `@layer rp-modules`, so a module rule beats any theme rule regardless of specificity. A user's `[theme] css` comes after both, unlayered, and beats them. Don't use `!important`: in a layer it beats the user's CSS, which then can't override your module. `modules check` warns about it (feature modules and a theme's `prefers-reduced-motion` block excepted).
 - **Font sizes in `rem` or `em`**, so they follow the theme's `body-size` (`1rem` is the body size). The built-ins write `calc(13.5rem/17)`: 13.5px at the default 17px. Feature modules may use px, because their UI shouldn't grow with the report's text. Elsewhere `modules check` warns about px font sizes.
-- **Bundled files.** `url()` paths resolve relative to the module folder, and the files are inlined as `data:` URIs (fonts and images only), so a theme can ship its fonts: `src:url(fonts/Brand.woff2)`. Remote URLs, root-relative paths and `@import` fail the build. Inlined files count toward `report.max_inline_mb`.
+- **Bundled files.** `url()` paths resolve relative to the module folder, and the files are inlined as `data:` URIs (fonts and images only), so a theme can ship its fonts: `src:url(fonts/Brand.woff2)`. Remote URLs, root-relative paths, `@import` and a `var()` inside `image-set()` fail the build. Inlined files count toward `report.max_inline_mb`.
 - CSS is included only when the module is used on the page.
 
 ## script.js

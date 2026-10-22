@@ -22,6 +22,7 @@ rapport-presets/), and a non-file such as /dev/null means no user config.
 
 from __future__ import annotations
 
+import functools
 import os
 import re
 import tomllib
@@ -46,6 +47,16 @@ CONFIG_DIR_ENV = "RAPPORT_CONFIG_DIR"
 def config_home() -> Path:
     base = os.environ.get("XDG_CONFIG_HOME")
     return (Path(base) if base else Path.home() / ".config") / "rapport"
+
+
+@functools.cache
+def start_cwd() -> Path | None:
+    """The cwd at startup: --set paths resolve against it, even after the folder is
+    deleted under a running server. None if it was already gone."""
+    try:
+        return Path.cwd()
+    except OSError:
+        return None
 
 
 def env_path(var: str) -> Path | None:
@@ -293,7 +304,7 @@ def load(report_dir: Path, front_matter: dict | None = None, sets=None,
                                 report_dir / "report.md", report_dir))
     cli = parse_set(sets)
     if cli:
-        top_layers.append(Layer("--set", "--set", cli, None, Path.cwd()))
+        top_layers.append(Layer("--set", "--set", cli, None, start_cwd()))
 
     # preset: resolved across all layers first
     preset_name = "default"

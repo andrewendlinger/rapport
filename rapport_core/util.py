@@ -21,10 +21,11 @@ class RapportError(Exception):
 
 
 def json_block(obj, **kw) -> str:
-    """json.dumps safe to embed in a <script> element: '</' is escaped, since an
-    HTML parser ends the element at the first literal '</script' no matter how
-    deep in the JSON it sits. '\\/' is a legal JSON escape for '/'."""
-    return json.dumps(obj, ensure_ascii=False, **kw).replace("</", "<\\/")
+    """json.dumps safe to embed in a <script> element: every '<' becomes \\u003c, since
+    an HTML parser ends the element at the first literal '</script' (and '<!--' changes
+    how it looks for one) no matter how deep in the JSON it sits. '<' only occurs in
+    strings, where \\u003c is the same character to a JSON parser."""
+    return json.dumps(obj, ensure_ascii=False, **kw).replace("<", "\\u003c")
 
 
 def short_hash(text: str, n: int = 6) -> str:
@@ -70,9 +71,12 @@ def state_dir(report_dir: Path) -> Path:
 
 
 def state_gitignore(commit_feedback: bool = False) -> str:
+    """The managed .gitignore. Its first line must keep starting with GITIGNORE_MARK:
+    that's how ensure_state_dir knows it may rewrite it (older headers included)."""
     keep = "!.gitignore\n!feedback.json\n!state.json\n" if commit_feedback else ""
-    return (f"{GITIGNORE_MARK}: set [report] commit_feedback = true to commit feedback; "
-            f"edits are overwritten\n*\n{keep}")
+    how = ("[report] commit_feedback = true lets feedback through" if commit_feedback
+           else "set [report] commit_feedback = true to commit feedback")
+    return f"{GITIGNORE_MARK}: {how}; edits are overwritten\n*\n{keep}"
 
 
 def ensure_state_dir(report_dir: Path, commit_feedback: bool | None = None) -> Path:

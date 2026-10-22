@@ -77,7 +77,7 @@ doc = "Layout modules below the content, in order."
 [layout.width]
 type = "string"
 default = ""
-doc = "Max width of the reading column (any CSS length). Empty: the theme's `width` token (default 70ch, paper 64ch)."
+doc = "Max width of the reading column (any CSS length). Empty: the theme's `width` token (default 70ch, paper 64ch; 70ch for a theme without one)."
 
 # ── theme ────────────────────────────────────────────────────────────────
 [theme.name]

@@ -133,6 +133,69 @@ def test_css_errors_name_the_css_file_and_line(report):
     assert "cdn.example" not in css
 
 
+# escaped names, a comment or modifier after a quoted url, an escaped image-set
+HIDDEN = ["u\\72 l({})", '\\75rl("{}")', 'url("{}"/**/)', "url('{}' foo)", 'IMAGE-\\73 et("{}" 1x)']
+
+
+def test_escapes_and_url_modifiers_hide_no_remote_url(report):
+    res, css = themed(report, "".join(f".a{{background:{h.format('https://x.example/a.png')}}}\n" for h in HIDDEN))
+    msgs = res.messages()
+    for n in range(1, len(HIDDEN) + 1):
+        assert any(m.startswith(f"error: report.md: brand.css:{n}: remote url(https://x.example/a.png)")
+                   for m in msgs), (n, msgs)
+    assert "x.example" not in res.html
+
+
+def test_url_cut_off_by_the_end_of_the_css_is_still_checked(report):
+    res, css = themed(report, ".a{background:url(https://x.example/a.png")
+    assert any("brand.css:1: remote url(https://x.example/a.png)" in m for m in res.messages())
+    assert "x.example" not in res.html
+
+
+def test_scan_stays_linear_on_unclosed_urls():
+    from rapport_core import css as css_mod
+    start = time.time()
+    css_mod.scan("url(" * 20000 + "url(a" * 20000)
+    assert time.time() - start < 2
+
+
+def test_escapes_and_url_modifiers_still_inline(report):
+    res, css = themed(report, "".join(f".a{{background:{h.format('dot.gif')}}}\n" for h in HIDDEN),
+                      {"reports/r/dot.gif": GIF})
+    assert res.ok, res.messages()
+    gif = f'"data:image/gif;base64,{base64.b64encode(GIF).decode()}"'
+    assert css.splitlines() == [f".a{{background:url({gif})}}", f".a{{background:url({gif})}}",
+                                f".a{{background:url({gif}/**/)}}", f".a{{background:url({gif} foo)}}",
+                                f".a{{background:IMAGE-\\73 et({gif} 1x)}}"]
+
+
+def test_var_inside_image_set_is_an_error(report):
+    res, css = themed(report, '.a{--u:"https://x.example/a.png";background-image:image-set(var(--u) 1x)}\n'
+                              ".b{background:-webkit-image-set(var(--v) 1x, url(dot.gif) 2x)}\n"
+                              ".c{background:url(dot.gif) var(--pos)}\n", {"reports/r/dot.gif": GIF})
+    assert [m.removeprefix("error: report.md: ") for m in res.messages()] == [
+        f"brand.css:{n}: var() inside {f}(): a url can't be checked or inlined through a variable; write it out"
+        for n, f in ((1, "image-set"), (2, "-webkit-image-set"))]
+    assert "var(--pos)" in css
+
+
+def test_import_is_dropped_from_the_page(report):
+    res, css = themed(report, '@import "https://x.example/a.css";\n@IMPORT url(https://x.example/b.css) screen;\n'
+                              '@\\69mport "https://x.example/c.css" layer(x);\n.a{color:red}\n@import "d.css"')
+    assert [e.message.split(": @import")[0] for e in res.errors] == [f"brand.css:{n}" for n in (1, 2, 3, 5)]
+    assert css == "\n\n\n.a{color:red}\n" and "x.example" not in res.html
+
+
+def test_byte_order_mark_is_not_part_of_the_first_rule(report, isolated_home):
+    mod = isolated_home / "proj/rapport-modules/boxed"
+    write(mod / "module.toml", 'name = "boxed"\nkind = "feature"\nsummary = "B."\n')
+    write(mod / "style.css", "\ufeff.rp-boxed{color:var(--rp-ink)}\n")
+    write(isolated_home / "proj/rapport.toml", "")
+    res, css = themed(report, "\ufeffh2{color:red}\n")
+    assert css.startswith("h2{color:red}") and "/* boxed */\n.rp-boxed{" in style(res.html)
+    assert "\ufeff" not in res.html
+
+
 def test_style_and_script_end_tags_are_escaped(report):
     res, css = themed(report, '.x{content:"</STYLE><script>alert(1)</script>"}\n')
     assert res.html.lower().count("</style") == 1 and '"<\\/STYLE><script>' in css
@@ -158,8 +221,8 @@ def test_page_never_shows_local_paths(report, isolated_home):
 
 def test_module_css_url_is_relative_to_its_folder_and_checks_clean(capsys, report, isolated_home):
     mod = isolated_home / "proj/rapport-modules/brand"
-    write(mod / "module.toml", 'name = "brand"\nkind = "theme"\nsummary = "Brand."\n'
-                               '[tokens]\nink = "#111111"\nbg = "#ffffff"\n[tokens.dark]\nink = "#eeeeee"\n')
+    write(mod / "module.toml", 'name = "brand"\nkind = "theme"\nsummary = "Brand."\n[tokens]\nink = "#111111"\n'
+                               'bg = "#ffffff"\nwidth = "60ch"\nbody-size = "18px"\n[tokens.dark]\nink = "#eeeeee"\n')
     write(mod / "style.css", '@font-face{font-family:Brand;src:url(fonts/Brand.woff2) format("woff2")}\n'
                              "body{color:var(--rp-ink);background:url(\"data:image/svg+xml,<svg fill='#fff'/>\")}\n"
                              "@media (prefers-reduced-motion:reduce){*{animation:none!important}}\n")
@@ -174,7 +237,7 @@ def test_module_css_url_is_relative_to_its_folder_and_checks_clean(capsys, repor
     assert "brand          ok" in capsys.readouterr().out
     assert main(["modules", "info", "brand", "-C", str(d)]) == 0
     out = capsys.readouterr().out
-    assert "  ink  #111111    dark: #eeeeee" in out and "  bg   #ffffff\n" in out
+    assert "  ink        #111111    dark: #eeeeee" in out and "  bg         #ffffff\n" in out
 
 
 def test_check_flags_important_and_bad_urls(capsys, report, isolated_home):
@@ -195,6 +258,23 @@ def test_layout_width_defaults_to_the_theme_token(report):
     assert "--rp-width:64ch;" in style(build(d, ["theme.name=paper"]).html)
     assert "--rp-width:50ch;" in style(build(d, ["theme.name=paper", 'theme.tokens.width="50ch"']).html)
     assert "--rp-width:80ch;" in style(build(d, ["layout.width=80ch"]).html)
+
+
+def test_theme_without_width_or_body_size_gets_rapports_own(capsys, report, isolated_home):
+    mod = isolated_home / "proj/rapport-modules/bare"
+    write(mod / "module.toml", 'name = "bare"\nkind = "theme"\nsummary = "Bare."\n[tokens]\nink = "#111111"\n'
+                               '[tokens.dark]\nink = "#eeeeee"\n')
+    write(isolated_home / "proj/rapport.toml", '[theme]\nname = "bare"\n')
+    d = report("x\n")
+    root = style(build(d).html).split("\n")[2]
+    assert root == ":root{color-scheme:light dark;--rp-ink:#111111;--rp-width:70ch;--rp-body-size:17px;}"
+    assert "--rp-width:80ch;" in style(build(d, ["layout.width=80ch"]).html)
+    for name, size in (("default", "17px"), ("paper", "18px")):       # a theme's own, once
+        css = style(build(d, [f"theme.name={name}"]).html)
+        assert css.count("--rp-width:") == css.count("--rp-body-size:") == 1 and f"--rp-body-size:{size};" in css
+    assert main(["modules", "check", "bare", "-C", str(d)]) == 0
+    assert "bare           warning: no width or body-size token; the page falls back to width = 70ch, " \
+           "body-size = 17px" in capsys.readouterr().out
 
 
 def test_watch_covers_css_files_and_what_they_reference(report):

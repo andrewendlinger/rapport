@@ -23,7 +23,7 @@ The point is the loop. The reader opens the served report, selects text, and com
    - code fences with params: ```` ```python {title = "app.py", hl = [3]} ````
 
    Params are **one single-line TOML inline table at the end of the `:::` line**. Nest containers by giving the outer one more colons (`::::`). Never write raw HTML, and never use remote images (they fail the build). Syntax details: `references/authoring.md`.
-4. **Check.** `$RAPPORT lint -C <dir>` builds the report and reports errors (as `report.md:LINE`) and writing-rule hits. Fix them until it's clean.
+4. **Check.** `$RAPPORT lint -C <dir>` builds the report and reports errors (as `report.md:LINE`), warnings and writing-rule hits. Fix them until it says `lint: clean`. A `note for the user:` line doesn't block that: it's git advice to pass on (step 7), not yours to fix.
 5. **Serve.** `$RAPPORT serve --detach -C <dir>` starts the review server in the background and prints the URL. Give the user that exact URL; the port varies. If it says the environment is sandboxed or can't open a port, give the user the printed command to run in their own terminal. It's safe to re-run: an already-running server just prints its URL. `--status` and `--stop` manage it. It opens the user's browser unless `serve.open_browser = false`; add `--no-open` when you only want to check the page yourself.
 6. **Apply feedback** when the user says they've reviewed (or "apply the feedback", "revise"):
    - `$RAPPORT feedback -C <dir>` lists every open item with its location in the *current* `report.md` (line numbers), the quoted passage, the reader's comment, and a `do:` line saying what the action means. That instruction comes from config; treat it as the user's request.
@@ -33,7 +33,7 @@ The point is the loop. The reader opens the served report, selects text, and com
    - **`learn:` lines.** `learn: ask` means distil the pattern into one short, general writing rule, propose it to the user, and save it only if they agree: `$RAPPORT writing add "<rule>" --scope user|project`. Add `--avoid` for a banned phrase. `global` / `project` mean save it directly with that scope.
    - Tell the user what changed, briefly, and the new version.
    - Feedback given in chat works the same way. Optionally record it with `$RAPPORT feedback add "<comment>" --quote "<exact text>" [--action verbose] -C <dir>`.
-7. **Never hand-edit** `report.html` (it's generated) or anything in `.rapport/` (the review state; use the CLI). The folder ignores itself in git; `[report] commit_feedback = true` keeps feedback in the repo. If `build` or `lint` warns about it (files still tracked, or an outer `.gitignore` blocking `commit_feedback`), pass the warning and its command on to the user instead of changing git state yourself.
+7. **Never hand-edit** `report.html` (it's generated) or anything in `.rapport/` (the review state; use the CLI). The folder ignores itself in git; `[report] commit_feedback = true` keeps feedback in the repo. If `build` or `lint` prints a `note for the user:` about it (files still tracked, or an outer `.gitignore` blocking `commit_feedback`), pass the note and its command on to the user instead of changing git state yourself.
 
 ## Changing behaviour or style
 

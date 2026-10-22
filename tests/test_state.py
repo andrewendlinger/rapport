@@ -60,6 +60,17 @@ def test_old_gitignore_upgraded_and_user_file_left_alone(report):
     assert gitignore(d) == "server.json\n# mine\n"
 
 
+def test_header_fits_the_setting_and_older_headers_are_rewritten(report):
+    assert "set [report] commit_feedback = true" in state_gitignore()
+    assert "set [report] commit_feedback = true" not in state_gitignore(True)
+    assert all(state_gitignore(c).startswith("# managed by rapport: ") for c in (False, True))
+    d = report("x\n")
+    old = "# managed by rapport: set [report] commit_feedback = true to commit feedback; edits are overwritten\n*\n"
+    write(state_dir(d) / ".gitignore", old + "!.gitignore\n!feedback.json\n!state.json\n")
+    build(d, COMMIT)
+    assert gitignore(d) == state_gitignore(True)
+
+
 def test_unchanged_gitignore_is_not_rewritten(report):
     d = report("x\n")
     build(d)
@@ -113,27 +124,47 @@ def test_tracked_state_files_are_reported_on_every_build(report, repo, capsys, m
     Store(d).add(COMMENT)
     git(repo, "add", "-f", "reports/r/.rapport/feedback.json", "reports/r/.rapport/blocks.json")
     for _ in range(2):
-        assert [w for w in build(d).warnings if "still tracked" in w] == [
+        res = build(d)
+        assert res.notices == [
             ".rapport/ is git-ignored now, but these files in it are still tracked: blocks.json, feedback.json; "
             "untrack them with: git rm --cached reports/r/.rapport/blocks.json reports/r/.rapport/feedback.json"]
-    assert main(["lint", str(d)]) == 1
-    assert "warning: .rapport/ is git-ignored now" in capsys.readouterr().out
+        assert not res.warnings
+    capsys.readouterr()
+    assert main(["lint", str(d)]) == 0                   # the user's call: lint stays clean
+    assert capsys.readouterr().out == f"note for the user: {res.notices[0]}\nlint: clean\n"
+    httpd, app, url, cfg = serve.make_server(d, port=0, pinned=True)
+    httpd.server_close()
+    assert f"  note for the user: {res.notices[0]}\n" in capsys.readouterr().out
     monkeypatch.chdir(repo.parent)                       # outside the repo: say where to run it
     want = f"git -C {shlex.quote(str(repo.resolve()))} rm --cached reports/r/.rapport/blocks.json"
-    assert any(want in w for w in build(d).warnings)
+    assert any(want in w for w in build(d).notices)
     git(repo, "rm", "-q", "--cached", "reports/r/.rapport/blocks.json", "reports/r/.rapport/feedback.json")
-    assert not [w for w in build(d).warnings if "still tracked" in w]
+    assert not build(d).notices
 
 
 @needs_git
 def test_commit_feedback_under_an_outer_ignore_warns(report, repo):
     d = report("x\n")
-    assert not [w for w in build(d, COMMIT).warnings if "commit_feedback" in w]
+    assert not build(d, COMMIT).notices
     write(repo / ".gitignore", ".rapport/\n")
-    assert [w for w in build(d, COMMIT).warnings if "commit_feedback" in w] == [
+    assert build(d, COMMIT).notices == [
         "commit_feedback = true, but an outer .gitignore still ignores .rapport/ "
         "(git check-ignore -v reports/r/.rapport/feedback.json shows which)"]
-    assert not [w for w in build(d).warnings if "commit_feedback" in w]
+    assert not build(d).notices
+
+
+@needs_git
+def test_git_never_runs_the_repos_fsmonitor_command(report, repo):
+    d = report("x\n")
+    build(d)
+    ran = repo.parent / "fsmonitor-ran"
+    hook = write(repo.parent / "fsmonitor.sh", f"#!/bin/sh\ntouch {shlex.quote(str(ran))}\n")
+    hook.chmod(0o755)
+    git(repo, "config", "core.fsmonitor", str(hook))
+    build(d, COMMIT)
+    assert not ran.exists()
+    main(["lint", "--set", "report.commit_feedback=true", str(d)])
+    assert not ran.exists()
 
 
 def test_git_is_never_run_outside_a_repo(report, monkeypatch):
@@ -146,4 +177,4 @@ def test_git_is_never_run_outside_a_repo(report, monkeypatch):
     monkeypatch.setattr(build_mod.shutil, "which", forbidden)
     monkeypatch.setattr(build_mod.subprocess, "run", forbidden)
     res = build(d, COMMIT)
-    assert res.ok and not res.warnings
+    assert res.ok and not res.warnings and not res.notices

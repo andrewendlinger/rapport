@@ -3,7 +3,7 @@ theme can ship a font), the @layer wrapper, and </style escaping.
 
 The scanner walks the CSS token by token, skipping comments and strings, so a
 url( inside `content:"…"` or a comment is left alone, and a quoted url may
-contain ")".
+contain ")". Names are compared unescaped, so u\\72 l( is url(.
 """
 
 from __future__ import annotations
@@ -17,19 +17,27 @@ MIME = {"woff2": "font/woff2", "woff": "font/woff", "ttf": "font/ttf", "otf": "f
         "eot": "application/vnd.ms-fontobject", "svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg",
         "jpeg": "image/jpeg", "gif": "image/gif", "webp": "image/webp", "avif": "image/avif"}
 IMAGE_SETS = {"image-set", "-webkit-image-set"}
+VAR_BLIND = IMAGE_SETS | {"src"}        # a var( in these hides a url: it can't be checked or inlined
+STRING_URLS = VAR_BLIND | {"url"}       # a string directly inside these is a url
 SCHEME_RE = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|//)")
 STRING = r""""(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?"""
+# atomic, as CSS tokenizes, and an ident is a token of its own: a search starting inside one,
+# or backtracking into its escapes (\\31 2\\31 2…), would make the scan quadratic or worse
+IDENT = r"(?>(?:[-\w]|\\(?:[0-9a-fA-F]{1,6}[ \t\n]?|[^\n0-9a-fA-F]))+)"
 TOKEN_RE = re.compile(rf"""
   (?P<comment>/\*.*?(?:\*/|\Z))
 | (?P<string>{STRING})
-| (?P<url>url\(\s*(?:{STRING}|(?:\\.|[^)\s"'\\])*)\s*\))
-| (?P<func>[-\w]+\()
-| (?P<at>@[-\w]+)
+| (?P<func>{IDENT}\()
+| (?P<at>@{IDENT})
+| (?P<ident>{IDENT})
 | (?P<esc>\\.)
 | (?P<open>\()
 | (?P<close>\))
 | (?P<end>[;{{}}])
-""", re.X | re.S | re.I)
+""", re.X | re.S)
+# what follows url( when it's a single url token: quoted, or not. Unquoted, "(" makes it a
+# bad url (and keeps url(url(url(… linear); a url cut off by the end of the CSS still loads.
+URL_ARG_RE = re.compile(rf"""\s*({STRING}|(?:\\.|[^()\s"'\\])*)\s*(?:\)|\Z)""", re.S)
 STRIP_RE = re.compile(rf"/\*.*?(?:\*/|\Z)|{STRING}", re.S)
 ESCAPE_RE = re.compile(r"\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|(\n)|(.))", re.S)
 STYLE_END_RE = re.compile(r"</(style)", re.I)
@@ -37,12 +45,14 @@ STYLE_END_RE = re.compile(r"</(style)", re.I)
 
 @dataclass
 class Ref:
-    """A url(…), or a string argument of image-set(): css[start:end] is replaced whole."""
+    """Something to inline or reject; css[start:end] is replaced whole. kind: url (a whole
+    url(…)), string (in url(…), src() or image-set()), var (a var( where a url belongs;
+    value: the function it's in), import (an @import statement, up to its ;)."""
     start: int
     end: int
     value: str
     line: int
-    url: bool
+    kind: str
 
 
 def _unescape(s: str) -> str:
@@ -59,38 +69,46 @@ def _quote(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\a ") + '"'
 
 
-def scan(css: str) -> tuple[list[Ref], list[int]]:
-    """Every url() and image-set() string outside comments and strings, and the line of every @import."""
-    refs, imports, stack, in_import = [], [], [], False
+def scan(css: str) -> list[Ref]:
+    """Every url reference outside comments and strings, var() where a url should be, and every @import."""
+    refs, stack, imp, pos = [], [], None, 0
     line = lambda m: css.count("\n", 0, m.start()) + 1  # noqa: E731
-    for m in TOKEN_RE.finditer(css):
-        kind, text = m.lastgroup, m.group()
-        if kind == "url" and not in_import:
-            refs.append(Ref(m.start(), m.end(), _unquote(text[4:-1].strip()), line(m), True))
-        elif kind == "string" and stack and stack[-1] in IMAGE_SETS and not in_import:
-            refs.append(Ref(m.start(), m.end(), _unquote(text), line(m), False))
-        elif kind == "func":
-            stack.append(text[:-1].lower())
+    while m := TOKEN_RE.search(css, pos):
+        kind, text, pos = m.lastgroup, m.group(), m.end()
+        if kind == "func":
+            name = _unescape(text[:-1]).lower()
+            if name == "url" and (arg := URL_ARG_RE.match(css, pos)):
+                pos = arg.end()
+                if not imp:
+                    refs.append(Ref(m.start(), pos, _unquote(arg[1]), line(m), "url"))
+                continue
+            if name == "var" and stack and stack[-1] in VAR_BLIND and not imp:
+                refs.append(Ref(m.start(), pos, stack[-1], line(m), "var"))
+            stack.append(name)
+        elif kind == "string" and stack and stack[-1] in STRING_URLS and not imp:
+            refs.append(Ref(m.start(), pos, _unquote(text), line(m), "string"))
         elif kind == "open":
             stack.append("")
         elif kind == "close" and stack:
             stack.pop()
-        elif kind == "at" and text.lower() == "@import":
-            imports.append(line(m))
-            in_import = True
-        elif kind == "end":
-            in_import = False
-    return refs, imports
+        elif kind == "at" and _unescape(text).lower() == "@import" and not imp:
+            imp = Ref(m.start(), len(css), "", line(m), "import")
+            refs.append(imp)
+        elif kind == "end" and imp:
+            imp.end = pos if text == ";" else m.start()         # a { or } isn't the statement's
+            imp = None
+    return refs
 
 
 def rewrite(css: str, refs: list[Ref], fn) -> str:
-    """Replace each ref with fn(ref), quoted; None leaves it as written."""
+    """Replace each ref with fn(ref), quoted (an @import is dropped); None leaves it as written."""
     out, pos = [], 0
     for r in refs:
         new = fn(r)
         if new is None:
             continue
-        out += [css[pos:r.start], f"url({_quote(new)})" if r.url else _quote(new)]
+        out += [css[pos:r.start], "" if r.kind == "import" else f"url({_quote(new)})" if r.kind == "url"
+                else _quote(new)]
         pos = r.end
     return "".join(out) + css[pos:]
 
@@ -116,7 +134,7 @@ def target(value: str) -> tuple[str | None, str]:
 
 def code_only(css: str) -> str:
     """The CSS without comments, strings or url() contents: what checks should look at."""
-    return STRIP_RE.sub("", rewrite(css, scan(css)[0], lambda r: ""))
+    return STRIP_RE.sub("", rewrite(css, scan(css), lambda r: None if r.kind == "var" else ""))
 
 
 def without_media(css: str, word: str) -> str:

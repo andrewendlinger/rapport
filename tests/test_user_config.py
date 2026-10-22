@@ -9,6 +9,7 @@ import pytest
 from conftest import write
 from rapport_core import config as config_mod
 from rapport_core import serve
+from rapport_core.build import build
 from rapport_core.cli import main, with_default_action
 from rapport_core.util import RapportError
 
@@ -122,10 +123,10 @@ def test_missing_config_file_fails_every_command_but_paths(capsys, report, isola
     with pytest.raises(RapportError, match="doesn't exist"):
         load(d)
     code, out = run(capsys, "config", "paths", str(d))
-    assert code == 0 and f"{missing}  [missing]" in out and "error: RAPPORT_CONFIG points at" in out
+    assert code == 0 and f"{missing}  [unusable]" in out and "error: RAPPORT_CONFIG points at" in out
     code, out = run(capsys, "config", "paths", "--json", str(d))
     info = json.loads(out)
-    assert code == 0 and "doesn't exist" in info["error"] and info["user"]["config"]["status"] == "missing"
+    assert code == 0 and "doesn't exist" in info["error"] and info["user"]["config"]["status"] == "unusable"
     code, out = run(capsys, "serve", "--status", str(d))      # stopping a server never depends on config
     assert code == 1 and "no server running" in out
     code, out = run(capsys, "serve", "--stop", str(d))
@@ -137,6 +138,12 @@ def test_config_pointing_at_a_folder_is_an_error(capsys, report, isolated_home, 
     monkeypatch.setenv("RAPPORT_CONFIG", str(isolated_home))
     code, out = run(capsys, "build", str(d))
     assert code == 2 and "name a file, or set RAPPORT_CONFIG_DIR" in out
+    code, out = run(capsys, "config", "paths", str(d))
+    assert code == 0 and f"config   {isolated_home}  [unusable]\n" in out and "[exists]" not in out
+    assert f"learned  {isolated_home.parent / 'rapport-learned.toml'}  [unusable]\n" in out
+    assert out.count("[unusable]") == 4 and "error: RAPPORT_CONFIG points at the folder" in out
+    info = json.loads(run(capsys, "config", "paths", "--json", str(d))[1])
+    assert {v["status"] for v in info["user"].values()} == {"unusable"}
 
 
 def test_relative_values_are_made_absolute_and_exported(capsys, report, isolated_home, monkeypatch):
@@ -174,6 +181,16 @@ def test_detach_child_gets_our_cwd_and_absolute_env(capsys, report, isolated_hom
     assert seen["env"] == str(Path(os.getcwd()) / "my.toml")
     assert seen["cmd"][2:5] == ["serve", str(d.resolve()), "--no-open"]
     assert seen["cmd"][-2:] == ["--set", "modules.paths=mods"]
+
+
+def test_set_paths_outlive_a_deleted_cwd(report, monkeypatch):
+    d = report("x\n", {"reports/r/x.css": ".x{}"}).resolve()
+    (d / "gone").mkdir()
+    monkeypatch.chdir(d / "gone")
+    config_mod.start_cwd()                                    # main() does this first thing
+    (d / "gone").rmdir()                                      # e.g. under a detached server
+    res = build(d, ["theme.css=../x.css"])
+    assert res.ok and ".x{}" in res.html, res.messages()
 
 
 def test_home_rapport_toml_as_user_config_loads_once(capsys, report, isolated_home, monkeypatch):

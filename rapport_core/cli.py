@@ -112,7 +112,7 @@ def cmd_lint(args) -> int:
     from .lint import lint
     d = report_dir_of(args)
     problems, res = lint(d, args.set)
-    print_messages(problems, sys.stdout)
+    print_messages(problems + res.notes(), sys.stdout)       # notes are for the user: they don't fail lint
     if not problems:
         print("lint: clean")
     return 1 if problems else 0
@@ -179,6 +179,7 @@ def _status(p: Path | None) -> str:
 def config_paths(report_dir: Path, as_json: bool) -> int:
     """Where config is read from. Reports a bad RAPPORT_CONFIG instead of failing on it."""
     up = config_mod.user_paths(strict=False)
+    status = (lambda p: "unusable") if up.error else _status       # noqa: E731 - nothing there is read
     user = {"config": up.config_file, "learned": up.learned_file, "modules": up.modules_dir,
             "presets": up.presets_dir}
     env = {var: os.environ[var] for var in (config_mod.CONFIG_ENV, config_mod.CONFIG_DIR_ENV, "XDG_CONFIG_HOME")
@@ -193,7 +194,7 @@ def config_paths(report_dir: Path, as_json: bool) -> int:
     if as_json:
         print(json.dumps({
             "source": up.source, "env": env, "error": up.error, "notes": notes,
-            "user": {k: {"path": str(p) if p else None, "status": _status(p)} for k, p in user.items()},
+            "user": {k: {"path": str(p) if p else None, "status": status(p)} for k, p in user.items()},
             "project": [{"path": str(p), "loaded_as_user": p.resolve() in mine} for p in project],
             "state_dir": {"path": str(state), "status": _status(state)},
         }, indent=2))
@@ -201,9 +202,9 @@ def config_paths(report_dir: Path, as_json: bool) -> int:
     chosen = f"{up.source}={env[up.source]}" if up.source in env else "default (~/.config/rapport)"
     print(f"user config (chosen by {chosen})")
     for k, p in user.items():
-        print(f"  {k:<8} {p or '-'}  [{_status(p)}]")
+        print(f"  {k:<8} {p or '-'}  [{status(p)}]")
     if up.error:
-        print(f"  error: {up.error} (every other command fails until this is fixed)")
+        print(f"  error: {up.error} (every other command but serve --stop/--status fails until this is fixed)")
     for n in notes:
         print(f"  note: {n}")
     print(f"project files for {report_dir}")
@@ -385,6 +386,7 @@ def main(argv=None) -> int:
         ap.print_help()
         return 0
     try:
+        config_mod.start_cwd()          # before anything can delete it (--set paths resolve against it)
         config_mod.export_env()         # absolute, so the detached server sees the same files
         diagnostic = args.fn is cmd_config and args.action == "paths"
         lifecycle = args.fn is cmd_serve and (args.stop or args.status)     # never blocked by config
