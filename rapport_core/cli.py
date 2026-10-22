@@ -141,35 +141,25 @@ def cmd_config(args) -> int:
         return 0
     print(f"# resolved config for {cfg.report_dir}")
     print("# layers: " + " → ".join(layer.name for layer in cfg.layers))
-    for line in _flatten(cfg.data, (), cfg.origins if args.origin else None, args.key):
+    for line in _flatten(cfg.data, (), cfg if args.origin else None, args.key):
         print(line)
     print_messages([f"warning: {w}" for w in cfg.warnings])
     return 0
 
 
-def _flatten(data, path, origins, prefix):
+def _flatten(data, path, cfg, prefix):
     for k, v in data.items():
         p = path + (k,)
         dotted = ".".join(p)
         if isinstance(v, dict) and v and not (p[0] in ("meta",) and len(p) > 1):
-            yield from _flatten(v, p, origins, prefix)
+            yield from _flatten(v, p, cfg, prefix)
             continue
         if prefix and not dotted.startswith(prefix):
             continue
         line = f"{dotted} = {json.dumps(v, ensure_ascii=False)}"
-        if origins is not None:
-            line += f"    # {_origin_for(origins, dotted, v)}"
+        if cfg is not None:
+            line += f"    # {cfg.origin(dotted, v)}"
         yield line
-
-
-def _origin_for(origins, dotted, value):
-    if dotted in origins:
-        return origins[dotted]
-    if isinstance(value, list):
-        ids = {origins[k] for k in origins if k.startswith(dotted + "[")}
-        if ids:
-            return " + ".join(sorted(ids))
-    return "defaults"
 
 
 def _status(p: Path | None) -> str:

@@ -25,6 +25,7 @@ author = "Platform team"
 date = "2026-10-20"
 status = "draft"        # shown as a pill in the header
 kicker = "Incident"     # small label above the title
+icon = "🧪"             # before the title: an emoji, or an image in the report folder
 
 [theme]                 # any config section works here, for this report only
 name = "paper"

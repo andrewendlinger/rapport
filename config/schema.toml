@@ -7,7 +7,8 @@
 #
 # Spec fields: type (string|int|number|bool|enum|list|table|tables|any),
 # default, doc, choices (enum), items (list element type), merge
-# (replace|append|merge|by-id), path (resolve relative to the declaring file).
+# (replace|append|merge|by-id), path (true: resolve relative to the declaring
+# file; "icon": only when the value names an image file, else it's a symbol).
 
 [preset]
 type = "string"

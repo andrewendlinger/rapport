@@ -1,6 +1,6 @@
 name = "header"
 kind = "layout"
-summary = "Title block: kicker, title, subtitle, and a byline (author, date, status, version)."
+summary = "Title block: logo, kicker, title (with an optional icon), subtitle, and a byline (author, date, status, version, your entries)."
 
 [config.show_version]
 type = "bool"
@@ -11,3 +11,72 @@ doc = "Show the report version (bumped each time feedback is resolved)."
 type = "bool"
 default = true
 doc = "Show meta.date when set."
+
+[config.logo]
+type = "string"
+default = ""
+path = true
+doc = "Logo image above the title (svg, png, jpg, gif, webp, avif), relative to the config file that sets it; inlined into the page."
+
+[config.logo_dark]
+type = "string"
+default = ""
+path = true
+doc = "Logo for dark mode, e.g. a light-on-transparent version. Empty: `logo` in both modes."
+
+[config.logo_alt]
+type = "string"
+default = ""
+doc = "Alt text for the logo, e.g. the organisation's name. Empty: the logo is decorative."
+
+[config.logo_height]
+type = "number"
+default = 32
+doc = "Logo height in px at the default 17px text size; it scales with body-size."
+
+[config.logo_align]
+type = "enum"
+choices = ["left", "right"]
+default = "left"
+doc = "Which side of the header the logo sits on."
+
+[config.icon]
+type = "string"
+default = ""
+path = "icon"
+doc = "Symbol before the title: an emoji or any character, or an image file relative to the config file that sets it. A report's front matter `icon` takes precedence (an image there is relative to the report folder)."
+
+[config.entries]
+type = "tables"
+merge = "by-id"
+default = []
+doc = "Extra byline entries after author and date, e.g. {icon = \"🏢\", text = \"Platform team\", href = \"https://…\"}. Fields: icon, text, href, label, tint, id, enabled. Entries add up across config layers; one with an id can be changed or switched off (enabled = false) by a nearer layer."
+
+[config.entries.fields.id]
+type = "string"
+doc = "Optional; lets a nearer config layer change or switch off (enabled = false) this entry."
+
+[config.entries.fields.icon]
+type = "string"
+path = "icon"
+doc = "An emoji or any symbol, or an image file (svg, png, jpg, gif, webp, avif) relative to the config file that sets it."
+
+[config.entries.fields.text]
+type = "string"
+doc = "Text after the icon."
+
+[config.entries.fields.href]
+type = "string"
+doc = "Makes the entry a link (https:, mailto:, a relative path or #anchor)."
+
+[config.entries.fields.label]
+type = "string"
+doc = "Tooltip; for an entry without text, also what screen readers announce."
+
+[config.entries.fields.tint]
+type = "bool"
+doc = "Image icons: true draws the image in the text colour (a one-colour icon then follows light and dark mode), false keeps its colours. Unset: tinted only if it's an SVG that uses currentColor."
+
+[config.entries.fields.enabled]
+type = "bool"
+doc = "false removes the entry."

@@ -141,6 +141,16 @@ class Config:
     def module(self, name: str) -> dict:
         return self.data.get("modules", {}).get(name, {})
 
+    def origin(self, dotted: str, value=None) -> str:
+        """The layer(s) a value came from; a by-id list names the layers of its entries."""
+        if dotted in self.origins:
+            return self.origins[dotted]
+        if isinstance(value, list):
+            layers = {o for k, o in self.origins.items() if k.startswith(dotted + "[")}
+            if layers:
+                return " + ".join(sorted(layers))
+        return "defaults"
+
     def enabled(self, name: str) -> bool:
         mod = self.registry.get(name)
         if mod is None:

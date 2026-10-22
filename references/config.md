@@ -132,6 +132,40 @@ side = []
 bottom = []
 ```
 
+Logo, title icon, and header or footer entries with icons:
+
+```toml
+# paths are relative to this file; images are inlined into report.html
+[modules.header]
+logo = "brand/logo.svg"
+logo_dark = "brand/logo-dark.svg"   # optional: shown in dark mode instead
+logo_alt = "ACME"
+logo_align = "left"                 # left | right
+logo_height = 32                    # px at the default text size; scales with body-size
+icon = "📊"                         # before every title; a report's front matter `icon` wins
+
+[[modules.header.entries]]          # byline, after author and date
+icon = "brand/github.svg"
+href = "https://github.com/acme/platform"
+label = "Source on GitHub"          # tooltip; screen-reader name of an entry without text
+
+[modules.footer]
+logo = "brand/logo.svg"
+logo_align = "right"
+show_date = false                   # also show_title, show_version
+text = "© 2026 ACME"
+
+[[modules.footer.entries]]
+id = "conf"
+icon = "🔒"
+text = "Confidential"
+```
+
+- **An icon** is an emoji or any other symbol, or an image file (svg, png, jpg, gif, webp, avif). It's a file when it ends in one of those extensions.
+- **A one-colour icon follows the text colour**, so it stays visible in dark mode. An SVG that draws in `currentColor` (as Lucide, Feather, Tabler and Heroicons do) is tinted automatically. `tint = true` tints any image, and `tint = false` keeps an image's own colours.
+- **Entries add up across layers**: the user config's entries come first, then the project's, then the report's. Give an entry an `id` to change it or remove it (`enabled = false`) from a nearer layer, like feedback actions.
+- **Links** go to `https:`, `mailto:`, a relative path or a `#heading`. A `javascript:` link fails the build.
+
 Change, add, or remove feedback actions:
 
 ```toml

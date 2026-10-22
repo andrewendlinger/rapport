@@ -99,6 +99,14 @@ def ensure_state_dir(report_dir: Path, commit_feedback: bool | None = None) -> P
     return d
 
 
+IMAGE_FILE_RE = re.compile(r"\.(?:svg|png|jpe?g|gif|webp|avif)$", re.I)
+
+
+def is_image_file(value) -> bool:
+    """An icon names an image file when it ends in an image extension; else it's a symbol, drawn as text."""
+    return isinstance(value, str) and bool(IMAGE_FILE_RE.search(value))
+
+
 def collapse_ws(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 

@@ -1,2 +1,4 @@
-.rp-footer{display:flex;flex-wrap:wrap;gap:6px 16px;border-top:1px solid var(--rp-line);padding:18px 0 48px;
-  font:calc(12rem/17) var(--rp-mono);color:var(--rp-ink-faint);max-width:var(--rp-width)}
+.rp-footer{display:flex;flex-wrap:wrap;gap:6px 16px;border-top:1px solid var(--rp-line);padding:18px 0 48px;align-items:center;
+  font:calc(12rem/17) var(--rp-mono);color:var(--rp-ink-faint)}
+.rp-footer .rp-logo{display:flex;gap:10px}
+.rp-footer .rp-logo-right{order:1;margin-left:auto}

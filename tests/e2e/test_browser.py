@@ -503,3 +503,28 @@ def test_focus_and_enter_behaviour_can_be_switched_off(served, page):
     page.keyboard.press(f"{MOD}+Enter")
     it = wait_for(lambda: items(d))
     assert it[0]["comment"] == "x"
+
+
+def test_logo_follows_the_theme_and_tinted_icons_take_the_text_colour(report, page):
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path fill="{}" d="M0 0h8v8H0z"/></svg>'
+    d = report('+++\n[modules.header]\nlogo = "light.svg"\nlogo_dark = "dark.svg"\n'
+               '[[modules.footer.entries]]\nicon = "mono.svg"\ntext = "mono"\n+++\n\nBody.\n',
+               {"reports/r/light.svg": svg.format("#000"), "reports/r/dark.svg": svg.format("#fff"),
+                "reports/r/mono.svg": svg.format("currentColor")})
+    assert build(d).ok
+    page.goto((d / "report.html").as_uri())
+
+    def shown():
+        return [c for c in ("rp-light-only", "rp-dark-only")
+                if page.eval_on_selector(f".rp-header .{c}", "e => getComputedStyle(e).display") != "none"]
+    assert shown() == ["rp-light-only"]
+    page.emulate_media(color_scheme="dark")
+    assert shown() == ["rp-dark-only"]
+    page.evaluate("document.documentElement.dataset.theme = 'light'")      # the toggle beats the OS
+    assert shown() == ["rp-light-only"]
+    page.emulate_media(color_scheme="light")
+    page.evaluate("document.documentElement.dataset.theme = 'dark'")
+    assert shown() == ["rp-dark-only"]
+    icon = page.eval_on_selector(".rp-footer .rp-icon-tint", """e => {const s = getComputedStyle(e);
+      return [s.backgroundColor, getComputedStyle(e.parentElement).color, s.maskImage || s.webkitMaskImage]}""")
+    assert icon[0] == icon[1] and icon[2].startswith('url("data:image/svg+xml;base64,')

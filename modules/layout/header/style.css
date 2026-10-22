@@ -6,4 +6,8 @@
 .rp-byline{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0;font:calc(12.5rem/17) var(--rp-mono);color:var(--rp-ink-faint)}
 .rp-status{font:600 calc(10.5rem/17)/1 var(--rp-sans);letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;
   border-radius:999px;border:1px solid var(--rp-line);color:var(--rp-ink-soft);background:var(--rp-surface)}
+.rp-header .rp-logo{display:flex;gap:12px;margin:0 0 22px}
+.rp-header .rp-logo-right{justify-content:flex-end}
+.rp-header .rp-logo img{display:block;width:auto;max-width:100%}
+.rp-title .rp-icon{margin-right:.32em}
 @media (max-width:640px){.rp-header{padding-top:36px}.rp-title{font-size:calc(29rem/17)}}

@@ -13,7 +13,8 @@ import tomllib
 from pathlib import Path
 
 from . import SCHEMA_FILE
-from .util import did_you_mean
+from .css import SCHEME_RE
+from .util import did_you_mean, is_image_file
 
 TYPES = ("string", "int", "number", "bool", "enum", "list", "table", "tables", "any")
 
@@ -137,20 +138,22 @@ class Schema:
 
 
 # ── merge ──────────────────────────────────────────────────────────────────── #
-def _resolve_path_value(value, base: Path | None):
+def _resolve_path_value(value, base: Path | None, mode=True):
+    """mode true: a path. "icon": a path only if it names an image file; a symbol stays as written."""
     if base is None:
         return value
-    if isinstance(value, str) and value:        # "" stays: it's the reset entry of an append list
+    # "" stays: it's the reset entry of an append list; a url stays for the build to reject as remote
+    if isinstance(value, str) and value and not SCHEME_RE.match(value) and (mode is True or is_image_file(value)):
         p = Path(value).expanduser()
         return str(p if p.is_absolute() else (base / p).resolve())
     if isinstance(value, list):
-        return [_resolve_path_value(v, base) for v in value]
+        return [_resolve_path_value(v, base, mode) for v in value]
     return value
 
 
 def _resolve_paths(spec: dict, value, base: Path | None):
     if spec.get("path"):
-        return _resolve_path_value(value, base)
+        return _resolve_path_value(value, base, spec["path"])
     fields = spec.get("fields")
     if spec.get("type") == "tables" and isinstance(fields, dict) and isinstance(value, list):
         out = []
@@ -159,7 +162,7 @@ def _resolve_paths(spec: dict, value, base: Path | None):
                 item = dict(item)
                 for k, fspec in fields.items():
                     if k in item and isinstance(fspec, dict) and fspec.get("path"):
-                        item[k] = _resolve_path_value(item[k], base)
+                        item[k] = _resolve_path_value(item[k], base, fspec["path"])
             out.append(item)
         return out
     return value
@@ -231,6 +234,7 @@ def _merge_by_id(cur: list, new: list, origins: dict, dotted: str, origin: str) 
     index = {x.get("id"): i for i, x in enumerate(out) if isinstance(x, dict) and "id" in x}
     for item in new:
         if not isinstance(item, dict) or "id" not in item:
+            origins[f"{dotted}[#{len(out)}]"] = origin      # # : a position, not an id
             out.append(copy.deepcopy(item))
             continue
         iid = item["id"]

@@ -1,6 +1,24 @@
+{% macro entry(e, where) -%}
+{%- set href = ctx.href(e.href, where) -%}
+{%- set tag = "a" if href else "span" -%}
+<{{ tag }} class="rp-entry"{% if href %} href="{{ href }}"{% endif %}
+{%- if e.label %} title="{{ e.label }}"{% if not e.text %}{% if not href %} role="img"{% endif %} aria-label="{{ e.label }}"{% endif %}{% endif %}>
+{{- ctx.icon(e.icon, e.tint, where) }}{% if e.text %}<span>{{ e.text }}</span>{% endif -%}
+</{{ tag }}>
+{%- endmacro %}
+{% if cfg.logo or cfg.logo_dark or cfg.show_title or cfg.show_version or cfg.show_date or cfg.text or cfg.entries %}
 <footer class="rp-footer">
-<span>{{ meta.title }}</span>
-<span>v{{ meta.version }}</span>
-<span>built {{ today }}</span>
+{% if cfg.logo or cfg.logo_dark %}
+{% set h = "height:calc(%grem/17)"|format(cfg.logo_height|float(20)) %}
+<span class="rp-logo rp-logo-{{ cfg.logo_align }}">
+{% if cfg.logo %}<img{% if cfg.logo_dark %} class="rp-light-only"{% endif %} src="{{ ctx.asset(cfg.logo, where='modules.footer.logo') }}" alt="{{ cfg.logo_alt }}" style="{{ h }}">{% endif %}
+{% if cfg.logo_dark %}<img class="rp-dark-only" src="{{ ctx.asset(cfg.logo_dark, where='modules.footer.logo_dark') }}" alt="{{ cfg.logo_alt }}" style="{{ h }}">{% endif %}
+</span>
+{% endif %}
+{% if cfg.show_title %}<span>{{ meta.title }}</span>{% endif %}
+{% if cfg.show_version %}<span>v{{ meta.version }}</span>{% endif %}
+{% if cfg.show_date %}<span>built {{ today }}</span>{% endif %}
 {% if cfg.text %}<span>{{ cfg.text }}</span>{% endif %}
+{% for e in cfg.entries %}{{ entry(e, "modules.footer.entries") }}{% endfor %}
 </footer>
+{% endif %}

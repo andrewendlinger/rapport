@@ -52,6 +52,8 @@ Before editing, check where a value comes from with `$RAPPORT config show --orig
 
 Style, lightest first: theme tokens (`[theme.tokens]`: palette, fonts, body size (scales all text), width; `$RAPPORT modules info default` lists them), then the user's own CSS (`[theme] css = ["brand.css"]`, which wins over rapport's CSS and can bundle fonts), and only for structural changes a forked module (`modules new <name>`). Details: "Styling" in `references/config.md`.
 
+A logo, a title icon, or header and footer entries with icons (emoji or image files) are settings of the `header` and `footer` modules: `logo`, `icon`, `[[modules.footer.entries]]`. See the recipe in `references/config.md`.
+
 ## Adding a module
 
 When the user wants something the catalog lacks (tabs, a chart, a timeline, a file tree…):

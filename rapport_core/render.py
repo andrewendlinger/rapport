@@ -32,7 +32,7 @@ from . import __version__
 from . import css as css_mod
 from .parse import Builder, Diag, Document, Node, _close_index, assign_ids, inline_text, make_markdown, parse
 from .registry import KIND_ORDER, Module, resolve_params
-from .util import json_block
+from .util import is_image_file, json_block
 
 # leading whitespace and HTML comments are skipped: anchors go on the first real tag
 FIRST_TAG_RE = re.compile(r"^((?:\s|<!--.*?-->)*)<([a-zA-Z][\w-]*)((?:\s[^>]*?)?)(/?)>", re.S)
@@ -207,8 +207,14 @@ class Context:
     def inline(self, text: str) -> Markup:
         return Markup(self._r.md.renderInline(text, {"rp": self._r}))
 
-    def asset(self, src: str, line: int | None = None) -> str:
-        return self._r.asset(src, line)
+    def asset(self, src: str, line: int | None = None, where: str | None = None) -> str:
+        return self._r.asset(src, line, where=where)
+
+    def icon(self, value, tint: bool | None = None, where: str | None = None) -> Markup:
+        return self._r.icon(value, tint, where)
+
+    def href(self, url, where: str | None = None) -> str:
+        return self._r.href(url, where)
 
     def module(self, name: str) -> dict:
         return self._r.config.module(name)
@@ -322,6 +328,35 @@ class Renderer:
                 or "application/octet-stream"
             self._data_uris[path] = f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
         return self._data_uris[path]
+
+    def icon(self, value, tint: bool | None = None, where: str | None = None) -> Markup:
+        """A symbol (emoji, any text), or an image file inlined. tint draws the image in the
+        text colour; by default an SVG that uses currentColor is (as an <img> it would be
+        black: the page's colour doesn't reach into it), anything else keeps its colours."""
+        if not value:
+            return Markup("")
+        if not is_image_file(value):
+            return Markup('<span class="rp-icon" aria-hidden="true" data-rp-ui>{}</span>').format(value)
+        uri = self.asset(value, where=where)
+        if not uri:
+            return Markup("")
+        if tint is None or isinstance(tint, jinja2.Undefined):     # e.tint of an entry without one
+            tint = uri.startswith("data:image/svg+xml;") and \
+                b"currentcolor" in base64.b64decode(uri.partition(",")[2]).lower()
+        if tint:
+            return Markup('<span class="rp-icon rp-icon-tint" style="--rp-icon:url({})" aria-hidden="true" '
+                          'data-rp-ui></span>').format(uri)
+        return Markup('<img class="rp-icon" src="{}" alt="" data-rp-ui>').format(uri)
+
+    def href(self, url, where: str | None = None) -> str:
+        """A link target for a template: "" for none, or one markdown-it wouldn't link (javascript: …)."""
+        if not url:
+            return ""
+        if not self.md.validateLink(str(url)):
+            self.errors.append(Diag(None, f"{where + ': ' if where else ''}unsafe link {str(url)!r} "
+                                          "(javascript:, vbscript:, file: and non-image data: links are blocked)"))
+            return ""
+        return self.md.normalizeLink(str(url))
 
     def inline_css(self, css: str, base: Path, where: str, fix: str = "list the file in theme.css instead") -> str:
         """Inline the files a stylesheet url()s, relative to base (its folder)."""

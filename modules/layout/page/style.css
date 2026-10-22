@@ -12,6 +12,15 @@
   .rp-side{position:static;max-height:none;padding:8px 0 0}
 }
 @media (max-width:640px){.rp-shell{padding:0 16px}}
+/* icons and entries (ctx.icon) for any module: a symbol is text; a tinted image is a mask in currentColor */
+.rp-entry{display:inline-flex;align-items:center;gap:.4em}
+img.rp-icon{height:1.15em;width:auto;vertical-align:-.2em}
+.rp-icon-tint{--rp-icon:none;display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;background:currentColor;
+  -webkit-mask:var(--rp-icon) center/contain no-repeat;mask:var(--rp-icon) center/contain no-repeat}
+/* one of two variants, e.g. logos: follows the theme toggle and the system setting, like the tokens */
+:root[data-theme="light"] .rp-dark-only,:root[data-theme="dark"] .rp-light-only{display:none}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .rp-dark-only{display:none}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rp-light-only{display:none}}
 @media print{
   body{background:none}
   .rp-shell,.rp-has-side .rp-shell{max-width:none;padding:0}

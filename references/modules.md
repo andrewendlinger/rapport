@@ -69,7 +69,7 @@ doc = "Hide when printing."
 unit = "block"            # block | none (none = chrome: not commentable, never quoted)
 ```
 
-Spec keys: `type`, `default`, `doc`, plus `choices` (enum), `items` (the item type of a `list`, e.g. `"string"`), `required` (params), `path = true` (a string resolved relative to the config file that sets it), and `merge` / `fields` (below).
+Spec keys: `type`, `default`, `doc`, plus `choices` (enum), `items` (the item type of a `list`, e.g. `"string"`), `required` (params), `path = true` (a string resolved relative to the config file that sets it), `path = "icon"` (resolved only if it names an image file, so a symbol stays as written), and `merge` / `fields` (below).
 
 Blocks nest, and every block is commentable on its own: a reader's comment lands on the innermost block, so each pane of a `compare` (or each code block in it) takes its own comments. To tell the agent *which* part of your module a comment is about, put `data-rp-label="…"` on that part (e.g. a pane or tab); `rapport feedback` shows it as `in “After”`.
 
@@ -96,6 +96,8 @@ Jinja2 with autoescape on. The renderer injects `data-rp-id`, `data-rp-module`, 
 | `ctx.markdown(text)`, `ctx.inline(text)` | render more Markdown |
 | `ctx.highlight(code, lang, hl)` | Pygments → line spans (what `code` uses) |
 | `ctx.asset(path)` | a local file as a `data:` URI (enforces self-containment) |
+| `ctx.icon(value, tint)` | a symbol as text, or an image file inlined; tinted in the text colour when `tint`, or when it's an SVG drawn in `currentColor` |
+| `ctx.href(url)` | a link target, or `""` (with a build error) for `javascript:` and other unsafe links |
 | `today`, `generator` | build date, rapport version |
 
 Layout modules also get `headings` (`level`, `text`, `id`) and `region`. The `page` module gets `content`, `regions`, `css`, `scripts`, `features`, `data_json`, `lang`, `theme_mode`.

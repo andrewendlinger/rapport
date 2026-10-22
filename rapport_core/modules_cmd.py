@@ -107,7 +107,7 @@ def do_info(cfg, name: str) -> int:
     if current:
         print(f"current [modules.{mod.name}]:")
         for k, v in current.items():
-            src = cfg.origins.get(f"modules.{mod.name}.{k}", "defaults")
+            src = cfg.origin(f"modules.{mod.name}.{k}", v)
             print(f"  {k} = {json.dumps(v, ensure_ascii=False)[:160]}    # {src}")
     files = [f for f in ("module.toml", "template.html", "style.css", "script.js", "prepare.py", "example.md")
              if (mod.dir / f).is_file()]

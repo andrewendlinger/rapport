@@ -87,6 +87,7 @@ instruction = "Add a source or link supporting this claim."
 ```
 
 - Styling: theme tokens first, then your own CSS with `[theme] css` (it wins over rapport's and can bundle fonts); see [Styling](references/config.md#styling).
+- Branding: a logo (with a dark-mode variant), a title icon, and header or footer entries with emoji or image icons; see the [recipe](references/config.md#recipes).
 - `rapport config show --origin` explains every value; `rapport config paths` lists the files it reads.
 - Config in a dotfiles repo? `export RAPPORT_CONFIG=~/dotfiles/rapport.toml` (see [references/config.md](references/config.md#keeping-your-config-elsewhere)).
 - `rapport config defaults` prints the full annotated reference.

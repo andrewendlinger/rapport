@@ -1,13 +1,30 @@
+{% macro entry(e, where) -%}
+{%- set href = ctx.href(e.href, where) -%}
+{%- set tag = "a" if href else "span" -%}
+<{{ tag }} class="rp-entry"{% if href %} href="{{ href }}"{% endif %}
+{%- if e.label %} title="{{ e.label }}"{% if not e.text %}{% if not href %} role="img"{% endif %} aria-label="{{ e.label }}"{% endif %}{% endif %}>
+{{- ctx.icon(e.icon, e.tint, where) }}{% if e.text %}<span>{{ e.text }}</span>{% endif -%}
+</{{ tag }}>
+{%- endmacro %}
 <header class="rp-header">
+{% if cfg.logo or cfg.logo_dark %}
+{% set h = "height:calc(%grem/17)"|format(cfg.logo_height|float(32)) %}
+<div class="rp-logo rp-logo-{{ cfg.logo_align }}" data-rp-ui>
+{% if cfg.logo %}<img{% if cfg.logo_dark %} class="rp-light-only"{% endif %} src="{{ ctx.asset(cfg.logo, where='modules.header.logo') }}" alt="{{ cfg.logo_alt }}" style="{{ h }}">{% endif %}
+{% if cfg.logo_dark %}<img class="rp-dark-only" src="{{ ctx.asset(cfg.logo_dark, where='modules.header.logo_dark') }}" alt="{{ cfg.logo_alt }}" style="{{ h }}">{% endif %}
+</div>
+{% endif %}
 {% if meta.kicker %}<p class="rp-kicker">{{ meta.kicker }}</p>{% endif %}
-<h1 class="rp-title">{{ meta.title }}</h1>
+{% set icon = meta.icon or cfg.icon %}
+<h1 class="rp-title">{% if icon %}{{ ctx.icon(icon, where="icon" if meta.icon else "modules.header.icon") }}{% endif %}{{ meta.title }}</h1>
 {% if meta.subtitle %}<p class="rp-subtitle">{{ meta.subtitle }}</p>{% endif %}
 {% set parts = [] %}
 {% if meta.author %}{% set _ = parts.append(meta.author) %}{% endif %}
 {% if cfg.show_date and meta.date %}{% set _ = parts.append(meta.date|string) %}{% endif %}
-{% if parts or meta.status or cfg.show_version %}
+{% if parts or cfg.entries or meta.status or cfg.show_version %}
 <p class="rp-byline" data-rp-ui>
 {% for p in parts %}<span>{{ p }}</span>{% endfor %}
+{% for e in cfg.entries %}{{ entry(e, "modules.header.entries") }}{% endfor %}
 {% if meta.status %}<span class="rp-status">{{ meta.status }}</span>{% endif %}
 {% if cfg.show_version %}<span class="rp-version">v{{ meta.version }}</span>{% endif %}
 </p>
