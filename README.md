@@ -56,7 +56,7 @@ A double-clicked `report.html` is the same document, read-only, with a hint show
 Layers, nearest wins:
 1. built-in defaults
 2. preset
-3. `~/.config/rapport/config.toml`
+3. your user config, `~/.config/rapport/config.toml` (or wherever `RAPPORT_CONFIG` / `RAPPORT_CONFIG_DIR` point)
 4. learned rules
 5. every `rapport.toml` from `$HOME` down to the report folder
 6. the report's `+++` front matter
@@ -86,7 +86,8 @@ tone = "ok"
 instruction = "Add a source or link supporting this claim."
 ```
 
-- `rapport config show --origin` explains every value.
+- `rapport config show --origin` explains every value; `rapport config paths` lists the files it reads.
+- Config in a dotfiles repo? `export RAPPORT_CONFIG=~/dotfiles/rapport.toml` (see [references/config.md](references/config.md#keeping-your-config-elsewhere)).
 - `rapport config defaults` prints the full annotated reference.
 - More recipes: [references/config.md](references/config.md).
 

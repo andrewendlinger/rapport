@@ -2,5 +2,6 @@
 #
 # A preset is a named bundle of settings, selected with `preset = "<name>"`
 # in any config layer and applied just above the defaults (so user, project
-# and front-matter settings still win). Add your own as <name>.toml in
-# ~/.config/rapport/presets/ or a rapport-presets/ folder next to a rapport.toml.
+# and front-matter settings still win). Add your own as <name>.toml in the
+# user presets folder (`rapport config paths` shows it) or a rapport-presets/
+# folder next to a rapport.toml.

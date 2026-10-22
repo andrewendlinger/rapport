@@ -40,7 +40,7 @@ The point is the loop. The reader opens the served report, selects text, and com
 Config is TOML, merged nearest-wins in this order:
 1. built-in defaults
 2. preset
-3. `~/.config/rapport/config.toml`
+3. the user config: `~/.config/rapport/config.toml` unless `RAPPORT_CONFIG` or `RAPPORT_CONFIG_DIR` moves it, so run `$RAPPORT config paths` to find it before editing it
 4. learned rules
 5. every `rapport.toml` from `$HOME` down to the report folder
 6. the report's `+++` front matter
@@ -73,6 +73,6 @@ The contract is in `references/modules.md`; read it before writing a module.
 | `feedback [--all\|--json]` | list open reader feedback |
 | `feedback resolve\|reopen\|add` | manage feedback items |
 | `writing add "<rule>" [--avoid] [--scope user\|project]` | save a learned writing rule |
-| `config show [--origin] [--key K]\|validate\|defaults` | inspect configuration |
+| `config show [--origin] [--key K]\|validate\|defaults\|paths` | inspect configuration; `paths` shows which files are read |
 | `modules list\|info <name>\|new <name>\|check [name]` | discover and author modules |
 | `gallery [--out DIR]` | render every module's example |

@@ -96,7 +96,9 @@ def writing_add(report_dir: Path, rule: str, scope: str, avoid: bool) -> int:
     if not rule:
         raise RapportError("empty rule")
     if scope == "user":
-        path = config_mod.config_home() / config_mod.LEARNED_USER
+        path = config_mod.user_paths().learned_file
+        if path is None:
+            raise config_mod.no_user_config()
     else:
         path = config_mod.nearest_project_dir(report_dir) / config_mod.LEARNED_PROJECT
     path.parent.mkdir(parents=True, exist_ok=True)

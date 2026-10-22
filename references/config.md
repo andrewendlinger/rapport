@@ -5,9 +5,9 @@
 | # | layer | file |
 |---|---|---|
 | 1 | defaults | `config/schema.toml` + every module manifest |
-| 2 | preset | `presets/<name>.toml`: built-in, `~/.config/rapport/presets/`, or `rapport-presets/` next to a rapport.toml |
-| 3 | user | `~/.config/rapport/config.toml` (`$XDG_CONFIG_HOME` respected) |
-| 4 | learned (user) | `~/.config/rapport/learned.toml` (written by `rapport writing add`) |
+| 2 | preset | `presets/<name>.toml`: built-in, the user presets folder (`~/.config/rapport/presets/`), or `rapport-presets/` next to a rapport.toml |
+| 3 | user | `~/.config/rapport/config.toml` (`$XDG_CONFIG_HOME` respected; [movable](#keeping-your-config-elsewhere)) |
+| 4 | learned (user) | `~/.config/rapport/learned.toml` beside it (written by `rapport writing add`) |
 | 5 | project | every `rapport.toml` from `$HOME` down to the report folder, each followed by its `rapport-learned.toml` |
 | 6 | front matter | the `+++` block in report.md |
 | 7 | `--set key=value` | command line (value parsed as TOML, else as a string) |
@@ -24,13 +24,31 @@ The preset is chosen first, from whichever layer sets `preset = "…"`, and then
 - `rapport config show --origin [--key prefix]` prints each value and the file it came from.
 - `rapport config validate` finds unknown keys (with did-you-mean) and type errors.
 - `rapport config defaults` prints the annotated reference.
+- `rapport config paths [--json]` lists the files rapport reads: user config, learned rules, user modules and presets (and which variable chose them), the report's `rapport.toml` chain, and its state folder.
+
+## Keeping your config elsewhere
+
+User config lives in `~/.config/rapport/` (`$XDG_CONFIG_HOME/rapport/` if that's set): `config.toml`, `learned.toml`, `rapport-modules/` and `presets/`. To keep it in a dotfiles repo or a synced folder, set one of these in your shell profile:
+
+```sh
+export RAPPORT_CONFIG_DIR=~/dotfiles/rapport        # a folder laid out like ~/.config/rapport/
+export RAPPORT_CONFIG=~/dotfiles/rapport.toml       # or: the config file itself, any name
+```
+
+- **`RAPPORT_CONFIG_DIR`** replaces the whole folder and wins over `XDG_CONFIG_HOME`. A folder that doesn't exist yet just means no user config.
+- **`RAPPORT_CONFIG`** names the file and wins over `RAPPORT_CONFIG_DIR`. Its siblings follow the project names, as if it were a rapport.toml: learned rules in `rapport-learned.toml`, modules in `rapport-modules/`, presets in `rapport-presets/`, all beside it. Relative paths inside it resolve against its folder. If the file doesn't exist, every command stops with an error (except `config paths`, which reports it).
+- `RAPPORT_CONFIG=/dev/null` turns user config off: no user layer, learned rules, modules or presets, and `writing add --scope user` and `modules new --scope user` refuse. Pointing it at a folder is an error; that's what `RAPPORT_CONFIG_DIR` is for.
+- Empty values are ignored. `~` and relative paths work; rapport makes them absolute against the current folder.
+- A `RAPPORT_CONFIG` that is also a project file (`~/rapport.toml`) loads once, as the user layer.
+
+`rapport config paths` shows what's in effect.
 
 ## Recipes
 
 Change the look of every report (user-wide):
 
 ```toml
-# ~/.config/rapport/config.toml
+# user config (`rapport config paths` shows where)
 [theme]
 name = "paper"
 

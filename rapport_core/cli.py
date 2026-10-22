@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -11,7 +12,7 @@ from pathlib import Path
 from . import __version__
 from . import config as config_mod
 from .schema import is_leaf, load_core_tree
-from .util import RapportError, toml_repr
+from .util import RapportError, state_dir, toml_repr
 
 REPORT_TEMPLATE = """+++
 title = {title}
@@ -29,7 +30,7 @@ VALUE_OPTIONS = {"-C", "--set", "--key", "--kind", "--scope", "--out", "--note",
 # commands whose first positional is an action: `rapport feedback <dir>` means `feedback list <dir>`
 DEFAULT_ACTIONS = {
     "feedback": ("list", {"list", "resolve", "reopen", "add"}),
-    "config": ("show", {"show", "validate", "defaults"}),
+    "config": ("show", {"show", "validate", "defaults", "paths"}),
     "modules": ("list", {"list", "info", "new", "check"}),
 }
 
@@ -127,6 +128,8 @@ def cmd_config(args) -> int:
     if args.action == "defaults":
         print(config_defaults_text())
         return 0
+    if args.action == "paths":
+        return config_paths(report_dir_of(args), args.json)
     cfg = load_cfg(args)
     if args.action == "validate":
         print_messages(cfg.warnings, sys.stdout)
@@ -169,11 +172,55 @@ def _origin_for(origins, dotted, value):
     return "defaults"
 
 
+def _status(p: Path | None) -> str:
+    return "disabled" if p is None else "exists" if p.exists() else "missing"
+
+
+def config_paths(report_dir: Path, as_json: bool) -> int:
+    """Where config is read from. Reports a bad RAPPORT_CONFIG instead of failing on it."""
+    up = config_mod.user_paths(strict=False)
+    user = {"config": up.config_file, "learned": up.learned_file, "modules": up.modules_dir,
+            "presets": up.presets_dir}
+    env = {var: os.environ[var] for var in (config_mod.CONFIG_ENV, config_mod.CONFIG_DIR_ENV, "XDG_CONFIG_HOME")
+           if os.environ.get(var)}
+    notes = [f"{up.ignored} ignored because {config_mod.CONFIG_ENV} is set"] if up.ignored else []
+    if up.config_file is None:
+        notes.append(f"{config_mod.CONFIG_ENV} isn't a regular file: no user config, learned rules, modules or presets")
+    mine = {p.resolve() for p in (up.config_file, up.learned_file) if p}
+    project = [p for d in config_mod.project_dirs_for(report_dir)
+               for p in (d / config_mod.PROJECT_FILE, d / config_mod.LEARNED_PROJECT) if p.is_file()]
+    state = state_dir(report_dir)
+    if as_json:
+        print(json.dumps({
+            "source": up.source, "env": env, "error": up.error, "notes": notes,
+            "user": {k: {"path": str(p) if p else None, "status": _status(p)} for k, p in user.items()},
+            "project": [{"path": str(p), "loaded_as_user": p.resolve() in mine} for p in project],
+            "state_dir": {"path": str(state), "status": _status(state)},
+        }, indent=2))
+        return 0
+    chosen = f"{up.source}={env[up.source]}" if up.source in env else "default (~/.config/rapport)"
+    print(f"user config (chosen by {chosen})")
+    for k, p in user.items():
+        print(f"  {k:<8} {p or '-'}  [{_status(p)}]")
+    if up.error:
+        print(f"  error: {up.error} (every other command fails until this is fixed)")
+    for n in notes:
+        print(f"  note: {n}")
+    print(f"project files for {report_dir}")
+    for p in project:
+        print(f"  {p}" + ("  [same file as the user config: loaded once, as user]" if p.resolve() in mine else ""))
+    if not project:
+        print("  (none)")
+    print(f"state folder\n  {state}  [{_status(state)}]")
+    return 0
+
+
 def config_defaults_text() -> str:
     core = load_core_tree()
     out = ["# rapport configuration reference (generated from config/schema.toml).",
-           "# Put any of this in ~/.config/rapport/config.toml, a rapport.toml next to",
-           "# (or above) a report, or the report's +++ front matter. Nearer wins.", ""]
+           "# Put any of this in your user config (`rapport config paths` shows where), a",
+           "# rapport.toml next to (or above) a report, or the report's +++ front matter.",
+           "# Nearer wins.", ""]
 
     def emit(tree, path):
         leaves = [(k, v) for k, v in tree.items() if is_leaf(v)]
@@ -279,11 +326,12 @@ def build_parser() -> argparse.ArgumentParser:
     add("lint", cmd_lint, "check writing rules (avoid-list, paragraph length) and build problems")
     add("brief", cmd_brief, "print the writing rules and module catalog the agent writes against")
 
-    p = add("config", cmd_config, "inspect configuration", dir_arg=False)
-    p.add_argument("action", nargs="?", default="show", choices=["show", "validate", "defaults"])
+    p = add("config", cmd_config, "inspect configuration: show, validate, defaults, paths (where config is read from)",
+            dir_arg=False)
+    p.add_argument("action", nargs="?", default="show", choices=["show", "validate", "defaults", "paths"])
     p.add_argument("dir", nargs="?", help="report folder (default: current directory)")
     p.add_argument("--origin", action="store_true", help="show which file set each key")
-    p.add_argument("--json", action="store_true")
+    p.add_argument("--json", action="store_true", help="(show, paths) machine-readable output")
     p.add_argument("--key", help="only keys starting with this prefix")
 
     p = add("modules", cmd_modules, "discover and author modules", dir_arg=False)
@@ -337,6 +385,11 @@ def main(argv=None) -> int:
         ap.print_help()
         return 0
     try:
+        config_mod.export_env()         # absolute, so the detached server sees the same files
+        diagnostic = args.fn is cmd_config and args.action == "paths"
+        lifecycle = args.fn is cmd_serve and (args.stop or args.status)     # never blocked by config
+        if not (diagnostic or lifecycle):
+            config_mod.user_paths()     # a RAPPORT_CONFIG that doesn't exist fails every command
         return args.fn(args) or 0
     except RapportError as e:
         print(f"rapport: {e}", file=sys.stderr)

@@ -32,7 +32,7 @@ Start from a scaffold: `rapport modules new <name> --kind block --scope project`
 2. `<report>/rapport-modules/`
 3. for each `rapport.toml`, from the report folder upward: the `rapport-modules/` beside it, then its `[modules] paths` (relative to that file)
 4. the git repository root's `rapport-modules/` (after the `rapport.toml` files inside the repo), so `modules new --scope project` works in a repo with no `rapport.toml`
-5. `~/.config/rapport/rapport-modules/`, then `paths` from the user config
+5. the user `rapport-modules/` (`~/.config/rapport/rapport-modules/`, or beside the `RAPPORT_CONFIG` file; `rapport config paths` shows it), then `paths` from the user config
 6. built-ins (`<skill>/modules/`)
 
 Each root is scanned two levels deep: `root/<name>/module.toml`, or `root/<pack>/<name>/module.toml`. So a module pack is just a folder or git repo you add to `paths`.

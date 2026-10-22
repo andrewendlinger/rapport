@@ -219,7 +219,10 @@ Rapport.module("{name}", {{
 
 def scope_dir(args, cfg) -> Path:
     if args.scope == "user":
-        return config_mod.config_home() / config_mod.MODULE_DIR
+        d = config_mod.user_paths().modules_dir
+        if d is None:
+            raise config_mod.no_user_config()
+        return d
     if args.scope == "report":
         return cfg.report_dir / config_mod.MODULE_DIR
     return config_mod.nearest_project_dir(cfg.report_dir) / config_mod.MODULE_DIR

@@ -3,8 +3,8 @@
 Layers, merged in order (later wins):
   1. defaults   core schema defaults + every module manifest's defaults
   2. preset     resolved across all layers first, then slotted in here
-  3. user       ~/.config/rapport/config.toml (XDG_CONFIG_HOME respected)
-  4. learned    ~/.config/rapport/learned.toml
+  3. user       the user config file (see user_paths)
+  4. learned    the user learned rules beside it
   5. project    every rapport.toml from $HOME down to the report folder, each
                 followed by the rapport-learned.toml beside it
   6. front matter of report.md
@@ -12,6 +12,12 @@ Layers, merged in order (later wins):
 Module search roots follow the same nearness: each file-based layer contributes
 the rapport-modules/ folder beside it plus its [modules] paths, and the git
 root's rapport-modules/ ranks just below the rapport.toml files inside the repo.
+
+User config lives in ~/.config/rapport/ ($XDG_CONFIG_HOME respected):
+config.toml, learned.toml, rapport-modules/, presets/. RAPPORT_CONFIG_DIR
+replaces that folder. RAPPORT_CONFIG names the file itself; its siblings then
+follow the project names (rapport-learned.toml, rapport-modules/,
+rapport-presets/), and a non-file such as /dev/null means no user config.
 """
 
 from __future__ import annotations
@@ -33,6 +39,8 @@ LEARNED_PROJECT = "rapport-learned.toml"
 PROJECT_FILE = "rapport.toml"
 MODULE_DIR = "rapport-modules"
 PRESET_DIR = "rapport-presets"
+CONFIG_ENV = "RAPPORT_CONFIG"
+CONFIG_DIR_ENV = "RAPPORT_CONFIG_DIR"
 
 
 def config_home() -> Path:
@@ -40,8 +48,63 @@ def config_home() -> Path:
     return (Path(base) if base else Path.home() / ".config") / "rapport"
 
 
+def env_path(var: str) -> Path | None:
+    """An env var as an absolute path (~ expanded, relative to cwd); unset or empty → None."""
+    v = os.environ.get(var)
+    return Path(os.path.abspath(os.path.expanduser(v))) if v else None
+
+
+def export_env() -> None:
+    """Re-export the config env vars as absolute paths, so child processes
+    started from another folder (the detached server) see the same files."""
+    for var in (CONFIG_ENV, CONFIG_DIR_ENV):
+        p = env_path(var)
+        if p:
+            os.environ[var] = str(p)
+
+
+@dataclass
+class UserPaths:
+    source: str                     # RAPPORT_CONFIG | RAPPORT_CONFIG_DIR | XDG_CONFIG_HOME | default
+    dir: Path
+    config_file: Path | None        # None: no user config (RAPPORT_CONFIG isn't a regular file)
+    learned_file: Path | None
+    modules_dir: Path | None
+    presets_dir: Path | None
+    ignored: str | None = None      # an env var that lost to RAPPORT_CONFIG
+    error: str | None = None        # RAPPORT_CONFIG is unusable (only with strict=False)
+
+
+def user_paths(strict: bool = True) -> UserPaths:
+    """Where user-level config lives. strict: a RAPPORT_CONFIG that doesn't
+    exist is an error (`config paths` passes False to report it instead)."""
+    f = env_path(CONFIG_ENV)
+    if f:
+        ignored = CONFIG_DIR_ENV if env_path(CONFIG_DIR_ENV) else None
+        if f.is_dir():
+            error = f"{CONFIG_ENV} points at the folder {f}; name a file, or set {CONFIG_DIR_ENV} instead"
+        elif f.exists() and not f.is_file():            # /dev/null: no user config
+            return UserPaths(CONFIG_ENV, f.parent, None, None, None, None, ignored)
+        else:
+            error = None if f.exists() else f"{CONFIG_ENV} points at {f}, which doesn't exist"
+        if error and strict:
+            raise RapportError(error)
+        return UserPaths(CONFIG_ENV, f.parent, f, f.parent / LEARNED_PROJECT, f.parent / MODULE_DIR,
+                         f.parent / PRESET_DIR, ignored, error)
+    d = env_path(CONFIG_DIR_ENV)
+    source = CONFIG_DIR_ENV if d else "XDG_CONFIG_HOME" if os.environ.get("XDG_CONFIG_HOME") else "default"
+    d = d or config_home()
+    return UserPaths(source, d, d / "config.toml", d / LEARNED_USER, d / MODULE_DIR, d / "presets")
+
+
+def no_user_config() -> RapportError:
+    return RapportError(f"no user config: {CONFIG_ENV}={os.environ.get(CONFIG_ENV)} isn't a regular file "
+                        f"(use --scope project, or point {CONFIG_ENV} at a file)")
+
+
 @dataclass
 class Layer:
+    kind: str       # defaults | preset | user | learned-user | project | learned-project | front matter | --set
     name: str
     data: dict
     path: Path | None = None
@@ -203,47 +266,49 @@ def load(report_dir: Path, front_matter: dict | None = None, sets=None,
          front_matter_lines=None) -> Config:
     report_dir = Path(report_dir).resolve()
     core = load_core_tree()
-    user_dir = config_home()
+    user = user_paths()
 
     # file-based layers, outermost first
     file_layers: list[Layer] = []
-    user_file = user_dir / "config.toml"
-    if user_file.is_file():
-        file_layers.append(Layer("user", read_toml(user_file), user_file, user_dir))
-    learned_user = user_dir / LEARNED_USER
-    if learned_user.is_file():
-        file_layers.append(Layer("learned (user)", learned_to_layer(read_toml(learned_user)),
-                                 learned_user, user_dir))
+    if user.config_file and user.config_file.is_file():
+        file_layers.append(Layer("user", "user", read_toml(user.config_file), user.config_file,
+                                 user.config_file.parent))
+    if user.learned_file and user.learned_file.is_file():
+        file_layers.append(Layer("learned-user", "learned (user)", learned_to_layer(read_toml(user.learned_file)),
+                                 user.learned_file, user.learned_file.parent))
+    user_files = {p.resolve() for p in (user.config_file, user.learned_file) if p}
     project_dirs = []
     for d in project_dirs_for(report_dir):
         pf = d / PROJECT_FILE
-        if pf.is_file():
+        if pf.is_file() and pf.resolve() not in user_files:     # RAPPORT_CONFIG=~/rapport.toml loads once
             project_dirs.append(d)
-            file_layers.append(Layer(f"project {pf}", read_toml(pf), pf, d))
+            file_layers.append(Layer("project", f"project {pf}", read_toml(pf), pf, d))
         lf = d / LEARNED_PROJECT
-        if lf.is_file():
-            file_layers.append(Layer(f"learned {lf}", learned_to_layer(read_toml(lf)), lf, d))
+        if lf.is_file() and lf.resolve() not in user_files:
+            file_layers.append(Layer("learned-project", f"learned {lf}", learned_to_layer(read_toml(lf)), lf, d))
 
     top_layers: list[Layer] = []
     if front_matter:
-        top_layers.append(Layer("front matter", normalize_front_matter(front_matter, core),
+        top_layers.append(Layer("front matter", "front matter", normalize_front_matter(front_matter, core),
                                 report_dir / "report.md", report_dir))
     cli = parse_set(sets)
     if cli:
-        top_layers.append(Layer("--set", cli, None, Path.cwd()))
+        top_layers.append(Layer("--set", "--set", cli, None, Path.cwd()))
 
     # preset: resolved across all layers first
     preset_name = "default"
     for layer in file_layers + top_layers:
         if isinstance(layer.data.get("preset"), str):
             preset_name = layer.data["preset"]
-    preset_dirs = [d / PRESET_DIR for d in reversed(project_dirs)] + [user_dir / "presets", BUILTIN_PRESETS]
+    preset_dirs = [d / PRESET_DIR for d in reversed(project_dirs)]
+    preset_dirs += [user.presets_dir] if user.presets_dir else []
+    preset_dirs.append(BUILTIN_PRESETS)
     preset_layers: list[Layer] = []
     preset_file = find_preset(preset_name, preset_dirs)
     if preset_file:
         pdata = read_toml(preset_file)
         pdata.pop("preset", None)
-        preset_layers.append(Layer(f"preset {preset_name}", pdata, preset_file, preset_file.parent))
+        preset_layers.append(Layer("preset", f"preset {preset_name}", pdata, preset_file, preset_file.parent))
     elif preset_name != "default":
         raise RapportError(f"preset '{preset_name}' not found in: " + ", ".join(map(str, preset_dirs)))
 
@@ -268,18 +333,19 @@ def load(report_dir: Path, front_matter: dict | None = None, sets=None,
     add_root(report_dir / MODULE_DIR)
     repo = git_root(report_dir)
     for layer in reversed(file_layers):
-        in_project = bool(layer.path and layer.path.name in (PROJECT_FILE, LEARNED_PROJECT))
+        in_project = layer.kind in ("project", "learned-project")
         if repo and not (in_project and layer.base and layer.base.is_relative_to(repo)):
             add_root(repo / MODULE_DIR)        # below the layers inside the repo, above the rest
-        if layer.path and layer.path.name == PROJECT_FILE:
+        if layer.kind == "project":
             add_root(layer.path.parent / MODULE_DIR)
-        if layer.name == "user":
-            add_root(user_dir / MODULE_DIR)
+        if layer.kind == "user" and user.modules_dir:
+            add_root(user.modules_dir)
         for p in layer_paths(layer):
             add_root(p)
     if repo:
         add_root(repo / MODULE_DIR)
-    add_root(user_dir / MODULE_DIR)
+    if user.modules_dir:
+        add_root(user.modules_dir)
     for layer in preset_layers:
         for p in layer_paths(layer):
             add_root(p)
@@ -292,7 +358,7 @@ def load(report_dir: Path, front_matter: dict | None = None, sets=None,
     defaults["modules"] = {**defaults.get("modules", {})}
     for name, mod in registry.modules.items():
         defaults["modules"][name] = defaults_of(mod.schema_tree())
-    layers = [Layer("defaults", defaults)] + preset_layers + file_layers + top_layers
+    layers = [Layer("defaults", "defaults", defaults)] + preset_layers + file_layers + top_layers
 
     data: dict = {}
     origins: dict = {}

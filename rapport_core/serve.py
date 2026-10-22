@@ -47,8 +47,8 @@ def watched_files(report_dir: Path, cfg, assets=()) -> list[Path]:
     report_dir = report_dir.resolve()
     state = state_dir(report_dir)
     files = [cfg.source_path, state / STATE_FILE]
-    user = config_mod.config_home()
-    files += [user / "config.toml", user / config_mod.LEARNED_USER]
+    user = config_mod.user_paths()
+    files += [p for p in (user.config_file, user.learned_file) if p]
     for d in config_mod.project_dirs_for(report_dir):
         files += [d / config_mod.PROJECT_FILE, d / config_mod.LEARNED_PROJECT]
     for root in cfg.registry.roots:
@@ -429,9 +429,9 @@ def detach(report_dir: Path, args) -> int:
         cmd += ["--port", str(args.port)]
     for s in getattr(args, "set", None) or []:
         cmd += ["--set", s]
-    with open(log, "ab") as fh:
+    with open(log, "ab") as fh:     # our cwd: relative --set paths resolve as they would in the foreground
         proc = subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                start_new_session=True, cwd=str(report_dir))
+                                start_new_session=True, cwd=os.getcwd())
     deadline = time.time() + 20
     while time.time() < deadline:
         if proc.poll() is not None:

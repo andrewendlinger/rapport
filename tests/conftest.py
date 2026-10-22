@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -9,12 +10,18 @@ sys.path.insert(0, str(ROOT))
 
 @pytest.fixture(autouse=True)
 def isolated_home(tmp_path, monkeypatch):
-    """Every test gets its own $HOME and XDG config dir: no real user config leaks in."""
+    """Every test gets its own $HOME and XDG config dir: no real user config leaks
+    in. os.environ is restored afterwards (main() re-exports RAPPORT_CONFIG*)."""
+    saved = dict(os.environ)
     home = tmp_path / "home"
     (home / ".config").mkdir(parents=True)
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(home / ".config"))
-    return home
+    monkeypatch.delenv("RAPPORT_CONFIG", raising=False)
+    monkeypatch.delenv("RAPPORT_CONFIG_DIR", raising=False)
+    yield home
+    os.environ.clear()
+    os.environ.update(saved)
 
 
 @pytest.fixture
