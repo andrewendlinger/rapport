@@ -1,0 +1,12 @@
+.rp-grid{margin:1.3em 0}
+.rp-grid .rp-m-table{margin:0}
+.rp-grid table{border-collapse:collapse}
+.rp-grid .rp-table th,.rp-grid .rp-table td{border:1px solid var(--rp-line);padding:7px 10px}
+/* header column and header-marked cells: plain bold text, as in Confluence */
+.rp-grid .rp-table tbody th{font:inherit;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--rp-ink);
+  background:var(--rp-surface-2);white-space:normal;vertical-align:top}
+.rp-grid-fixed table{table-layout:fixed}
+.rp-grid-default table{width:auto}
+.rp-grid-wide table,.rp-grid-full-width table{width:100%}
+.rp-grid-num-col{width:2.6em}
+.rp-grid .rp-table .rp-grid-num{color:var(--rp-ink-faint);text-align:center;font-weight:400;background:var(--rp-surface-2)}

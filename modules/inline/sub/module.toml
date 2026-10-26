@@ -1,0 +1,4 @@
+name = "sub"
+kind = "inline"
+summary = "Subscript: H:sub[2]O."
+attach = true   # may follow a letter or digit directly: H:sub[2]O

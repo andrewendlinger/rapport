@@ -1,0 +1,1 @@
+:color[Bold blue]{color = "bold-blue"} · :color[Bold green]{color = "bold-green"} · :color[Bold orange]{color = "bold-orange"} · :color[Bold red]{color = "bold-red"} · :color[Purple]{color = "purple"} · :color[Gray]{color = "gray"}

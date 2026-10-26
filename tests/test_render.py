@@ -12,7 +12,7 @@ def test_anchor_attributes_and_classes(report):
     html = res.html
     assert re.search(r'<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-[0-9a-f]{6}" '
                      r'data-rp-module="paragraph" data-rp-lines="3-3">A paragraph.</p>', html)
-    assert 'class="rp-m-callout rp-block rp-callout rp-tone-note"' in html
+    assert 'class="rp-m-callout rp-block rp-callout rp-tone-info"' in html
     assert res.blocks and all({"lines", "src", "module"} <= set(b) for b in res.blocks.values())
 
 
@@ -212,7 +212,7 @@ def test_generated_labels_are_chrome(report):
                        "```python\nold()\n```\n```python\nnew()\n```\n:::\n\n:::: compare\n"
                        "::: pane Old approach\nLeft.\n:::\n::: pane New\nRight.\n:::\n::::\n"))
     assert res.ok, res.messages()
-    assert '<p class="rp-callout-title" data-rp-ui>Note</p>' in res.html
+    assert '<p class="rp-callout-title" data-rp-ui>Info</p>' in res.html
     assert '<div class="rp-pane" data-rp-label="Before"><div class="rp-pane-label" data-rp-ui>Before</div>' in res.html
     assert 'data-rp-label="Old approach"' in res.html
 

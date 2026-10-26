@@ -1,0 +1,3 @@
+.rp-column{min-width:0}
+.rp-column>:first-child{margin-top:0}
+.rp-column>:last-child{margin-bottom:0}

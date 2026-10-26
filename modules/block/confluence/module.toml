@@ -1,0 +1,10 @@
+name = "confluence"
+kind = "block"
+summary = "Confluence content rapport has no module for (a Jira macro, an uploaded image, …), kept verbatim: the export writes the body back unchanged. Shown here as a placeholder; don't edit the body."
+body = "text"
+positional = "label"
+
+[params.label]
+type = "string"
+default = "Confluence content"
+doc = "What it is, shown in the placeholder."

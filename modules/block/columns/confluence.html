@@ -1,0 +1,3 @@
+<section data-type="layout-{{ node.params.layout }}"{% if node.params.divider %} data-column-rule-style="solid"{% endif %}{% if node.params.width != "default" %} data-breakout="{{ node.params.width }}"{% endif %}>
+{{ node.body }}
+</section>

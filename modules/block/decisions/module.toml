@@ -1,0 +1,4 @@
+name = "decisions"
+kind = "block"
+summary = "A decision list: one line per decision, \"- [x]\" decided, \"- [ ]\" still open."
+body = "text"

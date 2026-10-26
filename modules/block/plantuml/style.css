@@ -1,0 +1,6 @@
+.rp-diagram{margin:1.4em 0;text-align:center}
+.rp-diagram img{max-width:var(--dia-w,100%);height:auto}
+.rp-diagram .rp-diagram-light{display:var(--rp-on-light,block);margin:0 auto}
+.rp-diagram .rp-diagram-dark{display:var(--rp-on-dark,none);margin:0 auto}
+.rp-diagram figcaption{font-size:calc(13rem/17);color:var(--rp-ink-soft);margin-top:.6em}
+.rp-diagram-source{text-align:left}

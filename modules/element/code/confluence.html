@@ -1,0 +1,3 @@
+{% if node.params.title %}<p><strong>{{ node.params.title }}</strong></p>
+{% endif %}<pre data-hide-line-numbers="{{ 'false' if node.params.line_numbers else 'true' }}"{% if node.params.wrap %} data-wrap="true"{% endif %}><code{% if node.attrs.lang %} class="language-{{ node.attrs.lang }}"{% endif %}>{{ node.text.rstrip("\n") }}</code></pre>
+{% if node.params.hl %}{{ cf.warn("code: highlighted lines (hl) don't exist in Confluence") }}{% endif %}

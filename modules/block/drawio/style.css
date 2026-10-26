@@ -1,0 +1,10 @@
+.rp-diagram{margin:1.4em 0;text-align:center}
+.rp-diagram img{max-width:var(--dia-w,100%);height:auto}
+.rp-diagram .rp-diagram-light{display:var(--rp-on-light,block);margin:0 auto}
+.rp-diagram .rp-diagram-dark{display:var(--rp-on-dark,none);margin:0 auto}
+.rp-diagram figcaption{font-size:calc(13rem/17);color:var(--rp-ink-soft);margin-top:.6em}
+.rp-diagram-source{text-align:left}
+.rp-diagram-remote{display:inline-flex;flex-direction:column;gap:2px;border:1px dashed var(--rp-line);border-radius:var(--rp-radius);
+  padding:14px 22px;color:var(--rp-ink);background:var(--rp-surface)}
+.rp-diagram-remote .rp-card-host{font:600 calc(11rem/17) var(--rp-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--rp-ink-faint)}
+.rp-diagram-remote .rp-card-title{font-weight:600}

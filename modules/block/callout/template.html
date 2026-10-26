@@ -1,5 +1,8 @@
-<aside class="rp-callout rp-tone-{{ node.params.tone }}">
+<aside class="rp-callout rp-tone-{{ node.params.tone }}"{% if node.params.tone == "custom" %} style="--c-soft:var(--rp-bg-{{ node.params.color }})"{% endif %}>
 {# a title derived from the tone isn't in report.md, so it's chrome (never quoted) #}
-<p class="rp-callout-title"{% if not node.params.title %} data-rp-ui{% endif %}>{{ node.params.title or node.params.tone | capitalize }}</p>
+{% if node.params.title or node.params.tone != "custom" %}<p class="rp-callout-title"{% if not node.params.title %} data-rp-ui{% endif %}>{{ node.params.title or node.params.tone | capitalize }}</p>
+{% endif %}
+{% if node.params.icon %}<span class="rp-callout-icon" data-rp-ui aria-hidden="true">{{ node.params.icon }}</span>
+{% endif %}
 {{ node.body }}
 </aside>

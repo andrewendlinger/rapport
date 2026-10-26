@@ -32,6 +32,7 @@ doc = "Colour."
 """
 TIP_TEMPLATE = '<div class="rp-tip rp-tip-{{ node.params.tone }}"><b>{{ node.params.title }}</b>{{ node.body }}</div>\n'
 TIP_FILES = {"module.toml": TIP, "template.html": TIP_TEMPLATE, "example.md": "::: tip Hello\nA tip.\n:::\n",
+             "confluence.html": "{{ node.body }}\n",
              "style.css": ".rp-tip{border:1px solid var(--rp-line)}\n.rp-tip b{color:var(--rp-accent)}\n"}
 
 
@@ -68,20 +69,21 @@ def test_a_thin_override_replaces_its_template_and_inherits_the_rest(capsys, rep
     assert mod.base.builtin and mod.example_path == mod.base.example_path and mod.positional == "title"
     code, out = run(capsys, "modules", "check", "callout", "-C", str(d))
     assert code == 0 and "callout        ok" in out                  # the inherited example renders
-    assert "::: callout Heads up" in run(capsys, "brief", "-C", str(d))[1]
+    assert "::: callout Before you deploy" in run(capsys, "brief", "-C", str(d))[1]
 
 
 def test_an_override_adds_a_param_and_changes_a_default(capsys, report, isolated_home):
-    d, mods = project(isolated_home, "::: callout Hi\nBody.\n:::\n\n::: callout {icon = \"!\"}\nB.\n:::\n", report)
+    d, mods = project(isolated_home, "::: callout Hi\nBody.\n:::\n\n::: callout {badge = \"!\"}\nB.\n:::\n", report)
     write(mods / "callout/module.toml", 'name = "callout"\nextends = "callout"\n\n[params.tone]\ndefault = "tip"\n\n'
-                                        '[params.icon]\ntype = "string"\ndefault = ""\ndoc = "Shown first."\n')
+                                        '[params.badge]\ntype = "string"\ndefault = ""\ndoc = "Shown first."\n')
     write(mods / "callout/template.html", '<aside class="rp-callout rp-tone-{{ node.params.tone }}">'
-                                          '{{ node.params.icon }}{{ node.body }}</aside>\n')
+                                          '{{ node.params.badge }}{{ node.body }}</aside>\n')
     res = build(d)
     assert res.ok, res.messages()
     mod = res.config.registry.get("callout")
-    assert mod.params["tone"]["choices"] == ["note", "tip", "warning", "danger", "success"]   # merged per field
-    assert list(mod.params) == ["tone", "title", "icon"] and mod.body == "markdown"
+    assert mod.params["tone"]["choices"] == ["info", "note", "success", "warning", "error", "tip", "danger",
+                                             "custom"]                    # merged per field
+    assert list(mod.params) == ["tone", "title", "icon", "color", "badge"] and mod.body == "markdown"
     assert res.html.count("rp-tone-tip") >= 2 and ">!<p " in res.html
     assert res.config.module("callout")["tone"] == "tip"                  # the default reaches config too
 
@@ -169,10 +171,10 @@ def test_a_chain_of_overrides_merges_every_level(capsys, report, isolated_home):
     assert res.html.index(".rp-tip b{") < res.html.index(".rp-tip-warm{")
     code, out = run(capsys, "modules", "info", "tip", "-C", str(d))
     assert code == 0 and "chain: tip (report) extends tip (project) extends tip (user)\n" in out
-    for line in ("  module.toml    report on top of project on top of user (merged)\n",
-                 "  example.md     user (inherited)\n",
-                 "  style.css      user, then project (each added after the one before)\n",
-                 "  template.html  report, replacing user's\n"):
+    for line in ("  module.toml      report on top of project on top of user (merged)\n",
+                 "  example.md       user (inherited)\n",
+                 "  style.css        user, then project (each added after the one before)\n",
+                 "  template.html    report, replacing user's\n"):
         assert line in out, line
 
 
@@ -245,8 +247,8 @@ def test_copy_skips_pycache_and_records_where_it_came_from(capsys, report, isola
     d, mods = project(isolated_home, report=report)
     code, out = run(capsys, "modules", "new", "tip", "--copy", "-C", str(d))
     assert code == 0 and "copied tip (user)" in out
-    assert sorted(p.name for p in (mods / "tip").iterdir()) == ["example.md", "module.toml", "style.css",
-                                                                "template.html"]
+    assert sorted(p.name for p in (mods / "tip").iterdir()) == ["confluence.html", "example.md", "module.toml",
+                                                                "style.css", "template.html"]
     data = tomllib.loads((mods / "tip/module.toml").read_text())
     assert data["upstream"]["version"] and sorted(data["upstream"]["files"]) == sorted(TIP_FILES)
     assert "extends" not in data and "upstream" not in tomllib.loads((base / "module.toml").read_text())
@@ -310,7 +312,7 @@ def test_check_warns_when_a_copy_falls_behind_and_diff_says_how_to_catch_up(caps
 def test_info_and_list_without_inheritance_are_unchanged(capsys, report):
     d = report("x\n")
     out = run(capsys, "modules", "info", "callout", "-C", str(d))[1]
-    assert "files: module.toml, template.html, style.css, example.md\n" in out and "chain:" not in out
+    assert "files: module.toml, template.html, confluence.html, style.css, example.md\n" in out and "chain:" not in out
     code, out = run(capsys, "modules", "diff", "callout", "-C", str(d))
     assert code == 2 and "neither extends nor overrides another module" in out
 

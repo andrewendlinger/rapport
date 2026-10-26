@@ -1,0 +1,22 @@
+name = "columns"
+kind = "block"
+summary = "A row of columns in one of Confluence's page layouts; each ::: column holds any Markdown. Stacks on narrow screens."
+body = "markdown"
+children = ["column"]
+
+[params.layout]
+type = "enum"
+choices = ["two-equal", "two-left-sidebar", "two-right-sidebar", "three-equal", "three-with-sidebars"]
+default = "two-equal"
+doc = "Column count and widths (Confluence's layouts)."
+
+[params.divider]
+type = "bool"
+default = false
+doc = "A thin rule between columns."
+
+[params.width]
+type = "enum"
+choices = ["default", "wide", "full-width"]
+default = "default"
+doc = "Confluence export: how wide the block is on the page (the HTML report keeps the reading column)."

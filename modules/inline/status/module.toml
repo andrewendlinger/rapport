@@ -1,0 +1,15 @@
+name = "status"
+kind = "inline"
+summary = "A status lozenge in Confluence's six colours, bold or subtle: :status[In progress]{color = \"blue\"}."
+
+[params.color]
+type = "enum"
+choices = ["neutral", "purple", "blue", "red", "yellow", "green"]
+default = "neutral"
+doc = "Lozenge colour (Confluence's status colours)."
+
+[params.style]
+type = "enum"
+choices = ["bold", "subtle"]
+default = "bold"
+doc = "bold: filled; subtle: tinted background."

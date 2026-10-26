@@ -1,0 +1,1 @@
+{% if cf.has("macro-pack") %}{{ cf.macro_pack("html", node.text, layout=(node.params.layout if node.params.layout != "default" else None)) }}{% else %}{{ cf.warn("html-embed: exported only through Macro Pack ([confluence] apps); dropped") }}{% endif %}

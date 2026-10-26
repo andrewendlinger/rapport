@@ -1,0 +1,9 @@
+.rp-tabs{margin:1.3em 0}
+.rp-tabs-bar{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--rp-line)}
+.rp-tabs-btn{font:500 .9em var(--rp-sans);color:var(--rp-ink-soft);background:none;border:0;border-bottom:2px solid transparent;
+  padding:6px 12px;margin-bottom:-1px;cursor:pointer}
+.rp-tabs-btn:hover{color:var(--rp-ink)}
+.rp-tabs-btn.rp-on{color:var(--rp-accent);border-bottom-color:var(--rp-accent)}
+.rp-tabs-panels{padding-top:10px}
+.rp-tab.rp-hidden{display:none}
+@media print{.rp-tabs-bar{display:none}.rp-tab.rp-hidden{display:block}}

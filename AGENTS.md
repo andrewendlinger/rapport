@@ -10,6 +10,8 @@ rapport is an Agent Skill plus a Python CLI, and this folder is both. `SKILL.md`
   - `render.py` nodes into HTML through module templates; assets, CSS/JS, the block index · `css.py` `url()` inlining, cascade layers · `build.py` parse, render, write
   - `serve.py` the review server · `routes.py` the routes of a module's `server.py` · `store.py` state files in `.rapport/`
   - `feedback.py` the feedback store and `rapport feedback` · `changes.py` the change bars · `brief.py`, `lint.py`, `modules_cmd.py` those commands · `util.py` errors, `did_you_mean`, `atomic_write`
+  - `confluence.py` the export (`confluence.html` templates) · `confluence_sync.py`, `confluence_cli.py` the page outline and `rapport confluence` · `dom.py` a small HTML tree for both
+  - `palette.py` the named colour palettes · `external.py` local tools (diagrams), with a cache · `mathjax.py`/`mathjax.cjs` math to SVG
 - `modules/<kind>/<name>/`: every built-in part of a page. `layout` (page, header, toc, footer), `theme`, `element` (heading, code…), `block` (`:::`), `inline`, `feature` (runtime kernel, feedback, live-reload…).
 - `config/schema.toml` core settings (type, default, doc, merge rule); a module's own live in its `module.toml`. `presets/` named bundles of settings.
 - `references/`: `modules.md` is THE module contract and the only place it is written down; `config.md`, `authoring.md`, `state.md`.

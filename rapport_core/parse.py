@@ -184,13 +184,16 @@ def _inline_rule(registry: Registry):
     def rule(state, silent: bool) -> bool:
         pos = state.pos
         src = state.src
-        if src[pos] != ":" or (pos > 0 and src[pos - 1].isalnum()):
+        if src[pos] != ":":
             return False
         m = INLINE_RE.match(src, pos)
         if not m or m.end() > state.posMax:
             return False
         mod = registry.get(m.group(1))
         if mod is None or mod.kind != "inline":
+            return False
+        # right after a letter or digit only for modules that attach to a word (H:sub[2]O)
+        if pos > 0 and src[pos - 1].isalnum() and not mod.manifest.get("attach", False):
             return False
         label_end = state.md.helpers.parseLinkLabel(state, m.end() - 1, True)
         if label_end < 0:

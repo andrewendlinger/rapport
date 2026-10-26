@@ -1,0 +1,60 @@
+name = "drawio"
+kind = "block"
+summary = "A draw.io diagram from a .drawio file in the report folder, rendered to SVG at build time with the draw.io CLI; light and dark variants. Exports to Confluence as a native draw.io diagram: inserted once by the user, then embedded."
+body = "none"
+positional = "src"
+
+[params.src]
+type = "string"
+default = ""
+doc = "The .drawio file, relative to the report folder (e.g. assets/flow.drawio). Optional for a diagram that only exists in Confluence (confluence_name)."
+
+[params.page]
+type = "int"
+default = 1
+doc = "Diagram page to show (1-based)."
+
+[params.caption]
+type = "string"
+default = ""
+doc = "Caption below the diagram (also its alt text)."
+
+[params.width]
+type = "int"
+default = 0
+doc = "Maximum width in percent of the text column; 0 = natural size."
+
+[params.zoom]
+type = "bool"
+default = true
+doc = "Click to view full size."
+
+[config.command]
+type = "string"
+default = "drawio"
+doc = "The draw.io desktop CLI (brew install --cask drawio)."
+
+[params.confluence_page]
+type = "string"
+default = ""
+doc = "Confluence export: ID of the page that holds the diagram (where the user inserted it)."
+
+[params.confluence_name]
+type = "string"
+default = ""
+doc = "Confluence export: the diagram's name there (e.g. flow.drawio)."
+
+[params.confluence_revision]
+type = "number"
+default = 0
+doc = "Confluence export: the diagram's revision there; goes up when someone edits it in Confluence."
+
+[params.confluence_width]
+type = "number"
+default = 0
+doc = "Confluence export: display width (from the inserted macro)."
+
+[params.confluence_height]
+type = "number"
+default = 0
+doc = "Confluence export: display height."

@@ -267,7 +267,8 @@ def test_theme_without_width_or_body_size_gets_rapports_own(capsys, report, isol
     write(isolated_home / "proj/rapport.toml", '[theme]\nname = "bare"\n')
     d = report("x\n")
     root = style(build(d).html).split("\n")[2]
-    assert root == ":root{color-scheme:light dark;--rp-ink:#111111;--rp-width:70ch;--rp-body-size:17px;}"
+    assert root == (":root{color-scheme:light dark;--rp-ink:#111111;--rp-width:70ch;--rp-body-size:17px;"
+                    "--rp-on-light:block;--rp-on-dark:none;}")
     assert "--rp-width:80ch;" in style(build(d, ["layout.width=80ch"]).html)
     for name, size in (("default", "16px"), ("classic", "17px"), ("paper", "18px")):       # a theme's own, once
         css = style(build(d, [f"theme.name={name}"]).html)

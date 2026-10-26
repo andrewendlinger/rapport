@@ -1,16 +1,30 @@
 name = "callout"
 kind = "block"
-summary = "A highlighted note, tip, warning, or danger box."
+summary = "A highlighted box in Confluence's panel types (info, note, success, warning, error) plus tip, danger, and custom (any emoji and background colour)."
 body = "markdown"
 positional = "title"
+palettes = ["background"]
 
 [params.tone]
 type = "enum"
-choices = ["note", "tip", "warning", "danger", "success"]
-default = "note"
-doc = "Colour and label."
+choices = ["info", "note", "success", "warning", "error", "tip", "danger", "custom"]
+default = "info"
+doc = "Colour and label. info blue, note purple, success/tip green, warning amber, error/danger red; custom uses icon and color."
 
 [params.title]
 type = "string"
 default = ""
-doc = "Label; defaults to the tone's name."
+doc = "Label; defaults to the tone's name (none for custom)."
+
+[params.icon]
+type = "string"
+default = ""
+doc = "Emoji shown before the body (custom panels; Confluence shows it as the panel icon)."
+
+[params.color]
+type = "enum"
+choices = ["white", "light-gray", "gray", "light-blue", "blue", "dark-blue", "light-teal", "teal", "dark-teal",
+           "light-green", "green", "dark-green", "light-yellow", "yellow", "dark-yellow", "light-red", "red",
+           "dark-red", "light-purple", "purple", "dark-purple"]
+default = "light-gray"
+doc = "Background for custom panels (background palette, --rp-bg-<name>)."

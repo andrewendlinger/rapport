@@ -1,0 +1,3 @@
+{%- set hex = cf.color('text', node.params.color) -%}
+{#- a highlight inside sets its own text colour (converter workaround); Confluence uses the innermost colour, so give it this one -#}
+<span style="color: {{ hex }}">{{ cf.recolor(node.body, hex) }}</span>

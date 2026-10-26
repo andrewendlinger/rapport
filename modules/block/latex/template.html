@@ -1,0 +1,6 @@
+<figure class="rp-latex" title="{{ tex }}">
+{% if fallback %}<div class="rp-code"><pre class="rp-pre"><code>{{ ctx.highlight(fallback, "latex") }}</code></pre></div>
+{% else %}<div class="rp-latex-math">{{ svg }}</div>
+{% endif %}
+{% if node.params.caption %}<figcaption>{{ node.params.caption }}</figcaption>{% endif %}
+</figure>

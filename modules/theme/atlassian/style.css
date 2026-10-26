@@ -1,0 +1,41 @@
+/* atlassian theme: Confluence's page typography on the rapport token set, so the
+   local review page looks like the published one. Sizes follow Confluence's
+   renderer: body 16px/1.714, H1 24px, H2 20px, H3 16px, H4 14px (500–600),
+   written relative to the body size so `body-size` scales them. */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--rp-bg);color:var(--rp-ink);font:var(--rp-body-size)/1.714 var(--rp-body-font);
+  text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+a{color:var(--rp-accent);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--rp-accent);outline-offset:2px}
+::selection{background:var(--rp-accent-soft)}
+
+.rp-content h1,.rp-content h2,.rp-content h3,.rp-content h4,.rp-content h5,.rp-content h6{
+  font-family:var(--rp-heading-font);color:var(--rp-ink);scroll-margin-top:24px;letter-spacing:-.008em}
+.rp-content h1{font-size:1.5em;line-height:1.167;font-weight:500;margin:1.667em 0 0}
+.rp-content h2{font-size:1.25em;line-height:1.2;font-weight:500;margin:1.8em 0 0}
+.rp-content>.rp-m-heading:first-child h2,.rp-content>h2:first-child{margin-top:.6em}
+.rp-content h3{font-size:1em;line-height:1.25;font-weight:600;margin:2em 0 0}
+.rp-content h4{font-size:.875em;line-height:1.143;font-weight:600;margin:1.357em 0 0}
+.rp-content h5{font-size:.75em;line-height:1.333;font-weight:600;margin:1.667em 0 0}
+.rp-content h6{font-size:.6875em;line-height:1.455;font-weight:700;color:var(--rp-ink-soft);margin:1.455em 0 0}
+.rp-content h1+*,.rp-content h2+*,.rp-content h3+*,.rp-content h4+*{margin-top:.75rem}
+.rp-content p{margin:.75rem 0 0}
+.rp-content :is(p,ul,ol,blockquote,pre,table):first-child,.rp-content .rp-callout-title+*,.rp-content .rp-callout-icon+*{margin-top:0}
+.rp-content ul,.rp-content ol{margin:.75rem 0 0;padding-left:1.5em}
+.rp-content li{margin:.25em 0}
+.rp-content li>p{margin:0}
+.rp-content strong{font-weight:600}
+.rp-content code{font:.875em var(--rp-mono);background:var(--rp-surface-2);border-radius:3px;padding:2px .5ch}
+.rp-content hr{border:0;height:2px;background:var(--rp-line);border-radius:1px;margin:1.714em 0}
+.rp-content blockquote{margin:.75rem 0 0;padding-left:16px;border-left:2px solid var(--rp-line);color:var(--rp-ink)}
+.rp-content img{max-width:100%;height:auto}
+.rp-content del{color:var(--rp-ink-faint)}
+.rp-content input[type=checkbox]{accent-color:var(--rp-accent);margin-right:.4em}
+.rp-content table{border-collapse:collapse}
+.rp-content th{background:var(--rp-surface)}
+.rp-content th,.rp-content td{border:1px solid var(--rp-line)}
+.rp-error{font:.8125em/1.5 var(--rp-mono);color:var(--rp-danger);background:var(--rp-danger-soft);
+  border:1px solid var(--rp-danger);border-radius:var(--rp-radius);padding:8px 12px;margin:1em 0}

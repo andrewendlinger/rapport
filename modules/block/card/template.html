@@ -1,0 +1,4 @@
+<a class="rp-card rp-card-{{ node.params.appearance }}" href="{{ ctx.href(node.params.url) }}" target="_blank" rel="noopener">
+<span class="rp-card-host" data-rp-ui>{% if node.params.appearance == "embed" %}▶ embedded · {% endif %}{{ host }}</span>
+<span class="rp-card-title">{{ node.params.title or node.params.url }}</span>
+</a>

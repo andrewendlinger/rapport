@@ -1,0 +1,7 @@
+{% set n = node.children | length %}{% if n > 3 %}{{ cf.warn("compare: Confluence layouts have at most 3 columns") }}{% endif %}{% if node.params.title %}<p><strong>{{ node.params.title }}</strong></p>
+{% endif %}<section data-type="layout-{{ 'three-equal' if n >= 3 else 'two-equal' }}">
+{% for c in node.children %}{% if c.module == "pane" %}{{ c.html }}{% else %}{% set label = node.params.labels[loop.index0] if loop.index0 < node.params.labels | length else "" %}<div data-type="column">
+{% if label %}<p><strong>{{ label }}</strong></p>
+{% endif %}{{ c.html }}
+</div>{% endif %}
+{% endfor %}</section>

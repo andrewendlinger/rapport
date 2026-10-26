@@ -1,0 +1,4 @@
+{{ cf.check_panel(node.body) }}{% set tone = node.params.tone %}{% if tone == "custom" %}<div data-type="panel-custom"{% if node.params.icon %} data-icon="{{ cf.emoji(node.params.icon) }}" data-icon-text="{{ node.params.icon }}"{% endif %} data-color="{{ cf.color('background', node.params.color) | upper }}">{% else %}<div data-type="panel-{{ cf.panel(tone) }}">{% endif %}
+{% if node.params.title %}<p><strong>{{ node.params.title }}</strong></p>
+{% endif %}{{ node.body }}
+</div>

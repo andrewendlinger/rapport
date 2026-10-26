@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import BUILTIN_MODULES
+from .palette import PALETTES
 from .schema import check_value, is_leaf
 from .util import did_you_mean
 
@@ -145,6 +146,11 @@ class Module:
     def origin(self) -> str:
         return "built-in" if self.builtin else str(self.dir)
 
+    @property
+    def palettes(self) -> list[str]:
+        """Named colour palettes (rapport_core.palette) whose tokens this module's CSS uses."""
+        return list(self.manifest.get("palettes", []))
+
     # -- files ----------------------------------------------------------------- #
     def inherits(self, name: str) -> bool:
         return self.base is not None and (name not in NAME_BOUND or self.base.name == self.name)
@@ -256,6 +262,7 @@ class Registry:
             builtin = root.resolve() == BUILTIN_MODULES.resolve()
             # root/<name>/module.toml or root/<pack>/<name>/module.toml
             manifests = sorted(root.glob("*/module.toml")) + sorted(root.glob("*/*/module.toml"))
+            here: dict[str, Path] = {}      # one name twice in one folder is a clash, not an override
             for mf in manifests:
                 mdir = mf.parent.resolve()
                 if mdir in seen_dirs:
@@ -272,6 +279,11 @@ class Registry:
                 if problem:
                     self.errors.append(f"{mf}: {problem}")
                     continue
+                if name in here:
+                    self.errors.append(f"{mf}: another module in {root} is already named '{name}' "
+                                       f"({here[name]}); module names are unique across kinds")
+                    continue
+                here[name] = mdir
                 self._found.setdefault(name, []).append(Found(mdir, mf, data, builtin))
         # every folder is resolved, shadowed ones too: their errors show, and an override finds its base
         for name, found in self._found.items():
@@ -353,6 +365,8 @@ class Registry:
             return f"when must be one of {', '.join(WHENS)}"
         if data.get("feedback", {}).get("unit", "block") not in UNITS:
             return f"[feedback] unit must be one of {', '.join(UNITS)}"
+        if unknown := [p for p in data.get("palettes", []) if p not in PALETTES]:
+            return f"unknown palettes {unknown} (known: {', '.join(PALETTES)})"
         for section in ("params", "config"):
             for key, spec in data.get(section, {}).items():
                 if not is_leaf(spec):

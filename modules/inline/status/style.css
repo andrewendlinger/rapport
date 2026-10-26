@@ -1,0 +1,9 @@
+.rp-status{--c:var(--rp-ink-soft);--c-soft:var(--rp-surface-2);display:inline-block;font:700 calc(10.5rem/17)/1.5 var(--rp-sans);
+  letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:0 5px;vertical-align:.1em;white-space:nowrap}
+.rp-status-subtle{background:var(--c-soft);color:var(--c)}
+.rp-status-bold{background:var(--c);color:var(--rp-bg)}
+.rp-status-purple{--c:var(--rp-violet);--c-soft:var(--rp-violet-soft)}
+.rp-status-blue{--c:var(--rp-accent);--c-soft:var(--rp-accent-soft)}
+.rp-status-red{--c:var(--rp-danger);--c-soft:var(--rp-danger-soft)}
+.rp-status-yellow{--c:var(--rp-warn);--c-soft:var(--rp-warn-soft)}
+.rp-status-green{--c:var(--rp-ok);--c-soft:var(--rp-ok-soft)}

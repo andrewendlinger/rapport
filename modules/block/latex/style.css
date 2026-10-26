@@ -1,0 +1,3 @@
+.rp-latex{margin:1.3em 0;text-align:center;overflow-x:auto}
+.rp-latex-math svg{max-width:100%;height:auto}
+.rp-latex figcaption{font-size:calc(13rem/17);color:var(--rp-ink-soft);margin-top:.4em}

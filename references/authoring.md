@@ -93,9 +93,13 @@ The language comes first, then optional params: `title`, `hl` (lines to highligh
 
 Every file is inlined as a `data:` URI. Remote URLs are a build error (download the file into `assets/` instead), and so is going over `report.max_inline_mb` in total.
 
+## Diagrams and math
+
+`::: mermaid`, `::: plantuml` and `::: latex` take their source as the body; `::: drawio assets/flow.drawio` points at a file; `:math[T_2^*]` is inline TeX. They render to SVG at build time with local programs (`mmdc`, `plantuml`, the draw.io CLI, Node for MathJax, which installs itself once into `~/.cache/rapport`) and are cached there, so the report stays one offline file. If a program is missing, the build warns and shows the source. Diagrams get a light and a dark rendering.
+
 ## Raw HTML
 
-Off by default: it's escaped. If the user really wants it, set `[report] raw_html = true`. Prefer writing a module.
+Off by default: it's escaped. If the user really wants it, set `[report] raw_html = true`. Prefer writing a module. For a styled widget with its own CSS, use `::: html-embed`: static HTML only (scripts are removed), isolated from the page's styles, local images inlined.
 
 ## Writing for feedback
 

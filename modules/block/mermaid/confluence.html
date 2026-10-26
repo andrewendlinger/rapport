@@ -1,0 +1,2 @@
+{% if cf.has("macro-pack") %}{{ cf.macro_pack("mermaid", src, options) }}{% else %}{{ cf.warn("mermaid: no Macro Pack on the target site ([confluence] apps); exported as a code block") }}<pre data-hide-line-numbers="true"><code class="language-mermaid">{{ src }}</code></pre>{% endif %}
+{% if node.params.caption %}<p style="text-align: center"><em>{{ node.params.caption }}</em></p>{% endif %}

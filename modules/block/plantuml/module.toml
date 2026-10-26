@@ -1,0 +1,24 @@
+name = "plantuml"
+kind = "block"
+summary = "A PlantUML diagram from its source, rendered to SVG at build time (needs plantuml and Java); light and dark variants."
+body = "text"
+
+[params.caption]
+type = "string"
+default = ""
+doc = "Caption below the diagram (also its alt text)."
+
+[params.width]
+type = "int"
+default = 0
+doc = "Maximum width in percent of the text column; 0 = natural size."
+
+[params.zoom]
+type = "bool"
+default = true
+doc = "Click to view full size."
+
+[config.command]
+type = "string"
+default = "plantuml"
+doc = "The PlantUML command (brew install plantuml)."

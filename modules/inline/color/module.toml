@@ -1,0 +1,12 @@
+name = "color"
+kind = "inline"
+summary = "Coloured text from Confluence's text palette: :color[careful]{color = \"bold-red\"}."
+palettes = ["text"]
+
+[params.color]
+type = "enum"
+choices = ["default", "bold-blue", "bold-teal", "bold-green", "bold-orange", "bold-red", "bold-purple",
+           "gray", "blue", "teal", "green", "yellow", "red", "purple", "white",
+           "subtle-blue", "subtle-teal", "subtle-green", "subtle-yellow", "subtle-red", "subtle-purple"]
+default = "bold-red"
+doc = "Palette name (tokens --rp-text-<name>)."

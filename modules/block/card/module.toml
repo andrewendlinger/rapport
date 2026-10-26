@@ -1,0 +1,22 @@
+name = "card"
+kind = "block"
+summary = "A link card: block (summary box) or embed (a video, board or doc shown in place in Confluence; a link box here)."
+body = "none"
+positional = "url"
+
+[params.url]
+type = "string"
+default = ""
+required = true
+doc = "The link target (http or https)."
+
+[params.appearance]
+type = "enum"
+choices = ["block", "embed"]
+default = "block"
+doc = "block: summary card; embed: full view in Confluence."
+
+[params.title]
+type = "string"
+default = ""
+doc = "Text shown here (Confluence fetches its own title)."

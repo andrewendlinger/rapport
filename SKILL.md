@@ -12,7 +12,7 @@ A report is a folder: `report.md` (Markdown plus `:::` modules, written by you) 
 ## Writing a report
 
 1. **Scaffold.** `rapport init <dir> --title "…"`; suggest `reports/<slug>/` in the repo unless the user names a place. Images and gifs go in `<dir>/assets/`. Replace the placeholder line "Lead with the conclusions."
-2. **Read the brief.** `rapport brief -C <dir>`, in full: this user's writing rules, the syntax, and every installed module with params and an example. Copy the examples; don't guess syntax.
+2. **Read the brief.** `rapport brief -C <dir>`, in full: this user's writing rules, the syntax, and every installed module with params and an example (Confluence-style elements, diagrams and math among them). Copy the examples; don't guess syntax.
 3. **Write `report.md`** (syntax: `references/authoring.md`). What breaks builds:
    - Params are **one single-line TOML inline table at the end of the `:::` line**: `::: callout Heads up {tone = "warning"}`.
    - Nest containers by giving the outer one more colons (`::::`).
@@ -35,6 +35,10 @@ For "apply the feedback", "I left comments", "revise": start here, skip the step
 5. Tell the user briefly what changed, and the new version. Run `rapport serve --detach -C <dir>` and give the URL: the server may have stopped while the reader was away.
 
 Feedback given in chat gets the same treatment. To record it: `rapport feedback add "<comment>" --quote "<exact text>" [--action verbose]`, or `--block <id>` for an image, table or code block (ids: the `blocks` keys in `.rapport/blocks.json`, written by `build` and `serve`). With neither it's about the whole report.
+
+## Publishing to Confluence
+
+`report.md` stays the source; the page is a copy people may edit. `rapport export confluence -C <dir>` writes the page body (`.rapport/confluence/export.html`) and prints the title; publish it with the user's Confluence tools, fetch the page back, and `rapport confluence record <page>`. Later updates must never overwrite other people's edits or comments: fetch the live page (save the getConfluencePage JSON to a file), `rapport confluence diff <page>`, apply each change to `report.md` yourself (surgical edits, like feedback), then publish only what `rapport confluence prepare <page>` produces (it refuses while Confluence has changes `report.md` lacks or a comment would come loose), only while the page is still at the version it checked, and `record` the result. Confluence comments become feedback items. Pass on every `for the user:` line. Follow the playbook in `references/confluence.md` (steps, outline format, module mapping, what's lossy).
 
 ## Rules
 

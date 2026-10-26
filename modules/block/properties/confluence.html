@@ -1,0 +1,1 @@
+{% set table %}<table><tbody>{% for k, v in node.attrs.data.items() %}<tr><th>{{ k }}</th><td>{{ ctx.inline(v | string) }}</td></tr>{% endfor %}</tbody></table>{% endset %}{{ cf.macro("details", "Page Properties", {"label": node.params.label} if node.params.label else {}, kind="bodied-extension", body=table) }}

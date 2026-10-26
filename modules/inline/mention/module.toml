@@ -1,0 +1,8 @@
+name = "mention"
+kind = "inline"
+summary = "An @mention: :mention[Ada Lovelace]{id = \"<atlassian account id>\"}; the id is used when exporting to Confluence."
+
+[params.id]
+type = "string"
+default = ""
+doc = "Atlassian account ID. Without it, an export writes plain @Name text."

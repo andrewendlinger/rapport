@@ -1,0 +1,5 @@
+name = "tabs"
+kind = "block"
+summary = "Tabbed panels: one ::: tab per panel, its title on the tab. Printing shows every panel."
+body = "markdown"
+children = ["tab"]

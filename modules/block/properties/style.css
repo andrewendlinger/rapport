@@ -1,0 +1,4 @@
+.rp-properties{margin:1.3em 0;overflow-x:auto}
+.rp-properties table{border-collapse:collapse;font-size:.95em}
+.rp-properties th,.rp-properties td{border:1px solid var(--rp-line);padding:6px 12px;text-align:left;vertical-align:top}
+.rp-properties th{background:var(--rp-surface-2);font-weight:600;white-space:nowrap}

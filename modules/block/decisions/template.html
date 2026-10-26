@@ -1,0 +1,3 @@
+<ul class="rp-decisions">
+{% for i in items %}<li class="rp-decision{% if i.decided %} rp-decided{% endif %}"><span class="rp-decision-icon" data-rp-ui aria-label="{{ 'Decided' if i.decided else 'Open' }}">{{ '◆' if i.decided else '◇' }}</span> {{ i.html }}</li>
+{% endfor %}</ul>

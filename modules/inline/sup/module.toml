@@ -1,0 +1,4 @@
+name = "sup"
+kind = "inline"
+summary = "Superscript: mc:sup[2]."
+attach = true   # may follow a letter or digit directly: H:sup[2]O

@@ -205,10 +205,10 @@ def test_project_module_in_a_git_repo_without_rapport_toml(capsys, isolated_home
     (repo / ".git").mkdir(parents=True)
     d = repo / "reports/r1"
     assert run(capsys, "init", str(d))[0] == 0
-    code, out = run(capsys, "modules", "new", "tabs", "--kind", "block", "-C", str(d))
-    assert code == 0 and (repo / "rapport-modules/tabs/module.toml").exists(), out
-    assert run(capsys, "modules", "check", "tabs", "-C", str(d))[0] == 0
-    (d / "report.md").write_text("::: tabs\nInside.\n:::\n", encoding="utf-8")
+    code, out = run(capsys, "modules", "new", "timeline", "--kind", "block", "-C", str(d))
+    assert code == 0 and (repo / "rapport-modules/timeline/module.toml").exists(), out
+    assert run(capsys, "modules", "check", "timeline", "-C", str(d))[0] == 0
+    (d / "report.md").write_text("::: timeline\nInside.\n:::\n", encoding="utf-8")
     code, out = run(capsys, "build", str(d))
     assert code == 0, out
 

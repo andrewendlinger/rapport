@@ -43,7 +43,7 @@ Everything is set in TOML files that stack: your user config, a `rapport.toml` i
 ```toml
 # rapport.toml in your repo
 [theme]
-name = "paper"                   # or default (minimal) or classic
+name = "paper"                   # or default (minimal), classic, atlassian (looks like Confluence)
 
 [theme.tokens]                   # colours, fonts and sizes for every module
 accent = "#0B6E4F"
@@ -59,7 +59,7 @@ icon = "📎"
 instruction = "Add a source or a link that supports this claim."
 ```
 
-- **Look:** the default theme is minimal: system fonts, a white page, one accent colour, and a dark mode. `classic` and `paper` are built in too. Adjust any theme's tokens, then add your own CSS, which always wins over rapport's. A logo and icons go in the header and footer, as in the primer's [`rapport.toml`](examples/primer/rapport.toml). See [Styling](references/config.md#styling).
+- **Look:** the default theme is minimal: system fonts, a white page, one accent colour, and a dark mode. `classic`, `paper` and `atlassian` (a report that looks like the Confluence page it will become) are built in too. Adjust any theme's tokens, then add your own CSS, which always wins over rapport's. A logo and icons go in the header and footer, as in the primer's [`rapport.toml`](examples/primer/rapport.toml). See [Styling](references/config.md#styling).
 - **Modules:** every part of the page is a module, a folder with a template. `rapport modules new tabs --kind block` starts one. `rapport modules new callout` overrides a built-in thinly: copy in only the files you change, and the rest keeps getting rapport's fixes. See [references/modules.md](references/modules.md).
 - **Where did a setting come from?** `rapport config show --origin`. All settings: `rapport config defaults`.
 
@@ -72,6 +72,7 @@ instruction = "Add a source or a link that supports this claim."
 | [Configuration](references/config.md) | config layers, styling, branding, recipes |
 | [Modules](references/modules.md) | writing your own modules and themes |
 | [State and user config](references/state.md) | the `.rapport/` folder, committing feedback, moving your config |
+| [Confluence](references/confluence.md) | publishing to Confluence and pulling edits back |
 | [SKILL.md](SKILL.md) | what the agent follows |
 | [AGENTS.md](AGENTS.md) | for an agent (or a person) changing rapport itself |
 | [Changelog](CHANGELOG.md) | what changed in each release |

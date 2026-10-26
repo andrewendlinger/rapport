@@ -1,0 +1,58 @@
+name = "atlassian"
+kind = "theme"
+summary = "Looks like a Confluence page: Atlassian text and surface colours, panel colours, heading scale and the 760 px fixed-width column, so a report reads locally as it will once published; light and dark."
+
+# Atlassian Design System colours (Confluence's light and dark themes). The -soft
+# tokens are Confluence's panel backgrounds: accent = info, violet = note,
+# ok = success, warn = warning, danger = error.
+[tokens]
+bg = "#FFFFFF"
+surface = "#F7F8F9"
+surface-2 = "#F1F2F4"
+ink = "#172B4D"
+ink-soft = "#44546F"
+ink-faint = "#626F86"
+line = "#DCDFE4"
+accent = "#0C66E4"
+accent-soft = "#E9F2FF"
+ok = "#216E4E"
+ok-soft = "#DCFFF1"
+warn = "#A54800"
+warn-soft = "#FFF7D6"
+danger = "#AE2E24"
+danger-soft = "#FFECEB"
+violet = "#5E4DB2"
+violet-soft = "#F3F0FF"
+shadow = "0 1px 1px rgba(9,30,66,.25), 0 0 1px rgba(9,30,66,.31)"
+sans = '"Atlassian Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif'
+serif = 'Charter, "Iowan Old Style", Georgia, serif'
+mono = '"Atlassian Mono", ui-monospace, Menlo, "Segoe UI Mono", "Ubuntu Mono", monospace'
+body-font = "var(--rp-sans)"
+heading-font = "var(--rp-sans)"
+body-size = "16px"
+radius = "3px"
+width = "760px"
+# panels as Confluence draws them: a flat tinted box, no outline, side bar or tone label
+callout-border = "0"
+callout-bar = "0"
+callout-label = "none"
+
+[tokens.dark]
+bg = "#1D2125"
+surface = "#22272B"
+surface-2 = "#2C333A"
+ink = "#B6C2CF"
+ink-soft = "#9FADBC"
+ink-faint = "#8C9BAB"
+line = "#38414A"
+accent = "#579DFF"
+accent-soft = "#1C2B41"
+ok = "#4BCE97"
+ok-soft = "#1C3329"
+warn = "#F5CD47"
+warn-soft = "#332E1B"
+danger = "#F87168"
+danger-soft = "#42221F"
+violet = "#9F8FEF"
+violet-soft = "#2B273F"
+shadow = "0 0 0 1px #38414A"

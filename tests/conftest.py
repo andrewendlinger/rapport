@@ -21,6 +21,9 @@ def isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(home / ".config"))
     monkeypatch.delenv("RAPPORT_CONFIG", raising=False)
     monkeypatch.delenv("RAPPORT_CONFIG_DIR", raising=False)
+    # no external renderers (draw.io, mmdc/Chrome, Node): with this fake $HOME they'd ask macOS
+    # for a keychain, and they're slow. Tests that want them opt back in (test_diagrams.real_cache).
+    monkeypatch.setenv("RAPPORT_TOOLS", "off")
     config_mod.start_cwd.cache_clear()          # tests chdir: each one starts afresh
     yield home
     os.environ.clear()

@@ -1,0 +1,8 @@
+<figure class="rp-diagram"{% if node.params.width %} style="--dia-w:{{ node.params.width }}%"{% endif %}>
+{% if remote %}<div class="rp-card rp-card-block rp-diagram-remote"><span class="rp-card-host" data-rp-ui>draw.io · in Confluence</span><span class="rp-card-title">{{ node.params.confluence_name }}</span></div>
+{% elif fallback %}<div class="rp-code rp-diagram-source"><pre class="rp-pre"><code>{{ ctx.highlight(fallback, "text") }}</code></pre></div>
+{% else %}<img class="rp-diagram-light" src="{{ light }}" alt="{{ node.params.caption or alt }}"{% if node.params.zoom %} data-rp-zoom{% endif %}>
+<img class="rp-diagram-dark" src="{{ dark }}" alt="{{ node.params.caption or alt }}"{% if node.params.zoom %} data-rp-zoom{% endif %}>
+{% endif %}
+{% if node.params.caption %}<figcaption>{{ node.params.caption }}</figcaption>{% endif %}
+</figure>

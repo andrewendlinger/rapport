@@ -744,3 +744,19 @@ def test_rapport_api_on_a_static_page_rejects_at_once(report, page):
     msg = page.evaluate("Rapport.api('signoff', '/').then(function () { return 'resolved'; }, "
                         "function (e) { return e.message + ' / ' + e.status; })")
     assert msg == "Rapport.api needs the review server; this page is a static file (run rapport serve) / 0"
+
+
+def test_tabs_switch_reveal_and_print(report, page):
+    d = report("::::tabs\n:::tab One\nFirst panel text.\n:::\n:::tab Two\nSecond panel text.\n:::\n::::\n")
+    res = build(d)
+    assert res.ok, res.messages()
+    page.goto(res.config.output_path.as_uri())
+    second = page.get_by_text("Second panel text.")
+    assert page.get_by_text("First panel text.").is_visible() and not second.is_visible()
+    page.get_by_role("tab", name="Two").click()
+    assert second.is_visible() and not page.get_by_text("First panel text.").is_visible()
+    page.get_by_role("tab", name="One").click()
+    page.evaluate("Rapport.reveal([...document.querySelectorAll('p')].find(p => p.textContent.includes('Second')))")
+    assert second.is_visible()
+    page.emulate_media(media="print")
+    assert page.get_by_text("First panel text.").is_visible() and second.is_visible()

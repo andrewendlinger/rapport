@@ -38,3 +38,4 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "rapport_core/parse.py" = ["N803", "N806"]    # the markdown-it rule keeps its camelCase names (startLine…)
+"tests/test_confluence.py" = ["E501"]         # the showcase report and its expected outline are page content

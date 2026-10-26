@@ -1,0 +1,7 @@
+<div class="rp-properties">
+<table>
+<tbody>
+{% for k, v in node.attrs.data.items() %}<tr><th scope="row">{{ k }}</th><td>{{ ctx.inline(v | string) }}</td></tr>
+{% endfor %}</tbody>
+</table>
+</div>

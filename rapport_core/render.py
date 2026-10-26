@@ -30,6 +30,7 @@ from pygments.util import ClassNotFound
 
 from . import __version__
 from . import css as css_mod
+from . import external, palette
 from .parse import Builder, Diag, Document, Node, _close_index, assign_ids, make_markdown, parse
 from .registry import Module, resolve_params
 from .schema import check_value
@@ -253,6 +254,28 @@ class Context:
     def module(self, name: str) -> dict:
         return self._r.config.module(name)
 
+    # -- for modules that render with local tools (diagrams, math) -------------- #
+    def warn(self, message: str) -> None:
+        """A build warning on the current block's line."""
+        self._r.warnings.append(Diag(self._r._line, message))
+
+    def file(self, src: str) -> Path:
+        """A local file the report references, relative to the report folder; watched by
+        `serve`. ValueError (a build error) if it's remote or missing."""
+        return self._r.local_file(src)
+
+    def tool(self, command: str) -> str | None:
+        """Path of a command on PATH (or given as a path), or None if it isn't installed."""
+        return external.tool(command)
+
+    def run(self, argv: list, input: bytes | None = None, timeout: float = 120, env: dict | None = None) -> bytes:
+        """Run a command, return stdout; a failure raises (and becomes a build error)."""
+        return external.run([str(a) for a in argv], input=input, timeout=timeout, env=env)
+
+    def cached(self, key: str, produce) -> bytes:
+        """produce() -> bytes, cached across builds under a hash of key."""
+        return external.cached(key, produce)
+
     @property
     def config(self) -> dict:
         return self._r.config.data
@@ -380,6 +403,15 @@ class Renderer:
                 or "application/octet-stream"
             self._data_uris[path] = f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
         return self._data_uris[path]
+
+    def local_file(self, src: str) -> Path:
+        if not src or css_mod.SCHEME_RE.match(src):
+            raise ValueError(f"{src!r}: give a file in the report folder (reports are self-contained)")
+        path = (self.report_dir / urllib.parse.unquote(src)).resolve()
+        self.asset_paths.add(path)
+        if not path.is_file():
+            raise ValueError(f"file not found: {src} (looked in {path.parent})")
+        return path
 
     def icon(self, value, tint: bool | None = None, where: str | None = None) -> Markup:
         """A symbol (emoji, any text), or an image file inlined. tint draws the image in the
@@ -587,10 +619,18 @@ class Renderer:
     def theme_css(self, theme: Module) -> str:
         overrides = dict(self.config.get("theme.tokens", {}) or {})
         dark_over = overrides.pop("dark", {}) if isinstance(overrides.get("dark"), dict) else {}
-        light = {**theme.tokens, **overrides}
+        # palettes only for the modules on this page; a theme or [theme.tokens] may remap them
+        pals = {p for m in self.registry.ordered(self.used) for p in m.palettes}
+        light = {**palette.tokens(pals), **theme.tokens, **overrides}
         dark = {**theme.dark_tokens, **dark_over}
+        if dark:        # a light-only theme keeps the light palette in dark mode too
+            dark = {**palette.tokens(pals, dark=True), **dark}
         light["width"] = self.config.get("layout.width") or light.get("width") or CORE_TOKENS["width"]
         light.setdefault("body-size", CORE_TOKENS["body-size"])
+        # display values for content rendered twice (diagrams): flip only if the theme has a dark mode
+        light.update({"on-light": "block", "on-dark": "none"})
+        if dark:
+            dark.update({"on-light": "none", "on-dark": "block"})
         decl = lambda d: "".join(f"--rp-{k}:{v};" for k, v in d.items())  # noqa: E731
         css = f":root{{color-scheme:light dark;{decl(light)}}}\n"
         # rem = body-size in every theme, so sizes in rem scale with it

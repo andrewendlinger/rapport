@@ -1,0 +1,40 @@
+name = "mermaid"
+kind = "block"
+summary = "A Mermaid diagram (flowchart, sequence, state, …) from its source, rendered to SVG at build time with mmdc; light and dark variants."
+body = "text"
+
+[params.caption]
+type = "string"
+default = ""
+doc = "Caption below the diagram (also its alt text)."
+
+[params.width]
+type = "int"
+default = 0
+doc = "Maximum width in percent of the text column; 0 = natural size."
+
+[params.zoom]
+type = "bool"
+default = true
+doc = "Click to view full size."
+
+[config.command]
+type = "string"
+default = "mmdc"
+doc = "The Mermaid CLI (brew install mermaid-cli)."
+
+[config.puppeteer_config]
+type = "string"
+default = ""
+path = true
+doc = "Puppeteer config file for mmdc, e.g. to use the installed Chrome instead of a downloaded one."
+
+[config.theme_light]
+type = "string"
+default = "default"
+doc = "Mermaid theme for light mode."
+
+[config.theme_dark]
+type = "string"
+default = "dark"
+doc = "Mermaid theme for dark mode."

@@ -1,0 +1,10 @@
+name = "highlight"
+kind = "inline"
+summary = "Highlighted text from Confluence's highlight palette: :highlight[key point]{color = \"yellow\"}."
+palettes = ["highlight"]
+
+[params.color]
+type = "enum"
+choices = ["gray", "teal", "lime", "yellow", "orange", "magenta", "purple"]
+default = "yellow"
+doc = "Palette name (tokens --rp-hl-<name>)."

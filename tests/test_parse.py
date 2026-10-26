@@ -28,7 +28,7 @@ def test_directive_positional_and_params(report):
     doc = doc_of(d)
     assert not doc.errors
     (n,) = doc.nodes
-    assert n.module == "callout" and n.params == {"tone": "warning", "title": "Heads up"}
+    assert n.module == "callout" and n.params == {"tone": "warning", "title": "Heads up", "icon": "", "color": "light-gray"}
     assert n.lines == (1, 3) and n.children[0].module == "paragraph"
 
 

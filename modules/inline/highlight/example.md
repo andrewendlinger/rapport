@@ -1,0 +1,1 @@
+:highlight[Yellow] · :highlight[Lime]{color = "lime"} · :highlight[Teal]{color = "teal"} · :highlight[Orange]{color = "orange"} · :highlight[Magenta]{color = "magenta"} · :highlight[Purple]{color = "purple"} · :highlight[Gray]{color = "gray"}

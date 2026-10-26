@@ -18,6 +18,7 @@ from . import config as config_mod
 from . import css as css_mod
 from .brief import _param_line, module_entry
 from .build import build
+from . import palette
 from .registry import KINDS, NAME_BOUND, NAME_RE, Module, hidden
 from .render import CORE_TOKENS, Renderer
 from .routes import load_routes
@@ -143,8 +144,8 @@ def do_info(cfg, name: str) -> int:
         for rel, how in rows:
             print(f"  {rel:<{w}}  {how}")
     else:
-        files = [f for f in ("module.toml", "template.html", "style.css", "script.js", "prepare.py", "server.py",
-                             "example.md") if (mod.dir / f).is_file()]
+        files = [f for f in ("module.toml", "template.html", "confluence.html", "style.css", "script.js", "prepare.py",
+                             "server.py", "example.md") if (mod.dir / f).is_file()]
         print("files: " + ", ".join(files))
     if isinstance(mod.manifest.get("upstream"), dict) and (up := upstream(mod)):
         changed = drift(mod)
@@ -255,6 +256,11 @@ doc = "Shown above the block."
 .rp-{name}-title{{font:600 .75rem var(--rp-sans);color:var(--rp-ink-soft);margin:0 0 6px}}
 .rp-{name}>:last-child{{margin-bottom:0}}
 ''',
+        "confluence.html": '''{{# How `rapport export confluence` writes it: Confluence's HTML (see references/confluence.md).
+   cf.macro(...), cf.extension(...), cf.has("macro-pack"), cf.warn(...) help; this keeps the content. #}}
+{{% if node.params.title %}}<p><strong>{{{{ node.params.title }}}}</strong></p>{{% endif %}}
+{{{{ node.body }}}}
+''',
         "example.md": '''::: {name} Example title
 Some **Markdown** inside the block.
 :::
@@ -276,6 +282,9 @@ doc = "Colour."
 ''',
         "style.css": '''.rp-{name}{{font-family:var(--rp-sans)}}
 .rp-{name}-accent{{color:var(--rp-accent)}}
+''',
+        "confluence.html": '''{{# How `rapport export confluence` writes it (see references/confluence.md). #}}
+{{{{ node.body }}}}
 ''',
         "example.md": '''Text with an inline :{name}[thing]{{tone = "accent"}} in it.
 ''',
@@ -664,6 +673,7 @@ def do_check(cfg, name: str | None) -> int:
     mods = [_get(cfg, name)] if name else sorted(reg.modules.values(), key=lambda m: (m.kind, m.name))
     theme = reg.get(cfg.get("theme.name", "default")) or reg.get("default")
     tokens = set(theme.tokens) | set(theme.dark_tokens) | set(CORE_TOKENS) if theme else set()
+    tokens |= palette.all_token_names() | {"on-light", "on-dark"}
     total = 0
     for e in reg.errors:
         print(f"error: {e}")
@@ -693,6 +703,8 @@ def check_module(mod: Module, cfg, tokens: set) -> list[str]:
     if mod.has_css():
         own = set(mod.tokens) | set(mod.dark_tokens) | set(CORE_TOKENS) if mod.kind == "theme" else tokens
         out += check_css(mod, cfg, own)
+    if mod.kind in ("block", "inline", "element") and not mod.file("confluence.html"):
+        out.append("warning: no confluence.html (`rapport export confluence` can't export it)")
     if mod.kind in ("block", "inline") and not mod.example_path:
         out.append("warning: no example.md (brief, gallery and check use it)")
     if mod.example_path and mod.kind in ("block", "inline", "element"):
@@ -727,7 +739,8 @@ def check_css(mod: Module, cfg, tokens: set) -> list[str]:
     if mod.kind != "feature" and px_font_size(code):
         out.append("warning: font-size in px won't scale with body-size; use rem or em")
     local = set(re.findall(r"--rp-([a-z0-9-]+)\s*:", code))
-    unknown = sorted({t for t in TOKEN_RE.findall(code) if t not in tokens | local})
+    optional = set(re.findall(r"var\(--rp-([a-z0-9-]+)\s*,", code))    # with a fallback: themes may set it
+    unknown = sorted({t for t in TOKEN_RE.findall(code) if t not in tokens | local | optional})
     if unknown:
         out.append("warning: unknown theme tokens " + ", ".join(f"--rp-{t}" for t in unknown))
     return out

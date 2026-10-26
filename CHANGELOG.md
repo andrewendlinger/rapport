@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Confluence parity.** A report can become a Confluence page, be edited there, and have those edits brought back into `report.md`, which stays the source. `rapport export confluence` writes the page body from a `confluence.html` per module; `rapport confluence diff|check|prepare|record` track the published page so a re-publish never overwrites other people's edits or comments. rapport never talks to Confluence itself: the agent publishes with its own tools and follows `references/confluence.md`.
+- **Confluence's elements.** Colour palettes, inline marks (status, color, highlight, underline, sub, sup, date, mention), columns, tabs, decisions, properties, cards, align, grid tables and panel tones; mermaid, plantuml, draw.io, LaTeX and math rendered to SVG at build time; `::: html-embed`. The new `atlassian` theme makes a report look like the page it becomes.
+- **`modules check`**: two modules with one name in one folder are an error; tokens used with a fallback are optional.
 - **Idle servers stop themselves.** A review server now stops after 3 hours without a rebuild, a page load or a comment, so servers left behind by finished agent sessions no longer pile up. A tab left open doesn't keep it alive; its comments stay as drafts until `rapport serve` starts it again. Set `[serve] idle_hours` (0 never stops).
 
 ## 0.6.0 (2026-10-27)

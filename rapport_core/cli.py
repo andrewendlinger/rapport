@@ -252,6 +252,18 @@ def cmd_gallery(args) -> int:
     return modules_cmd.gallery(args, load_cfg(args))
 
 
+def cmd_export(args) -> int:
+    from .confluence_cli import export_cmd
+    return export_cmd(args, report_dir_of(args))
+
+
+def cmd_confluence(args) -> int:
+    from .confluence_cli import confluence_cmd
+    if args.page and not args.dir and Path(args.page).expanduser().is_dir():    # `diff --local DIR`
+        args.page, args.dir = None, args.page
+    return confluence_cmd(args, report_dir_of(args))
+
+
 def cmd_writing(args) -> int:
     from .lint import writing_add
     return writing_add(report_dir_of(args), args.rule, args.scope, args.avoid)
@@ -286,6 +298,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--detach", action="store_true", help="run in the background and print the URL")
     p.add_argument("--status", action="store_true", help="show the running server for this report")
     p.add_argument("--stop", action="store_true", help="stop the background server")
+
+    p = add("export", cmd_export, "export the report for another tool: rapport export confluence [dir]", dir_arg=False)
+    p.add_argument("target", choices=["confluence"])
+    p.add_argument("dir", nargs="?", help="report folder (default: current directory)")
+    p.add_argument("-o", "--out", help="write the page body here (default: .rapport/confluence/export.html)")
+    p.add_argument("--json", action="store_true", help="print {title, body_file, warnings, handovers} as JSON")
+
+    p = add("confluence", cmd_confluence, "keep a report and its published Confluence page in sync: "
+            "diff | check | prepare | record", dir_arg=False)
+    p.add_argument("action", choices=["diff", "check", "prepare", "record"])
+    p.add_argument("page", nargs="?", help="the page as getConfluencePage returns it (JSON, HTML body), saved to a file")
+    p.add_argument("dir", nargs="?", help="report folder (default: current directory)")
+    p.add_argument("--local", action="store_true", help="diff: report.md's changes since the last publish instead")
+    p.add_argument("--detach", action="append", default=[], metavar="ID",
+                   help="prepare: let this inline comment come loose (only once the user agrees)")
+    p.add_argument("--force", action="store_true",
+                   help="record: replace the base although the page has changes report.md lacks (or is another page)")
 
     p = sub.add_parser("feedback", help="list open reader feedback (agent loop); subcommands: resolve, reopen, add",
                        description="List open reader feedback, or resolve/reopen/add items.")

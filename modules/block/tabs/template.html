@@ -1,0 +1,6 @@
+<div class="rp-tabs">
+<div class="rp-tabs-bar" role="tablist" data-rp-ui>{% for c in node.children %}<button type="button" role="tab" class="rp-tabs-btn{% if loop.first %} rp-on{% endif %}">{{ c.params.title }}</button>{% endfor %}</div>
+<div class="rp-tabs-panels">
+{{ node.body }}
+</div>
+</div>

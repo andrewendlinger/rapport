@@ -1,0 +1,1 @@
+<ul data-type="decision-list">{% for i in items %}<li data-type="decision-item" data-state="{{ 'DECIDED' if i.decided else 'UNDECIDED' }}">{{ i.html }}</li>{% endfor %}</ul>

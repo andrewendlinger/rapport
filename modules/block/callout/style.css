@@ -1,7 +1,14 @@
-.rp-callout{--c:var(--rp-accent);--c-soft:var(--rp-surface-2);border:1px solid var(--rp-line);border-left:3px solid var(--c);
+/* optional theme tokens: callout-border / callout-bar (widths of the outline and the
+   left bar) and callout-label (display of the tone label when there's no title) */
+.rp-callout{--c:var(--rp-accent);--c-soft:var(--rp-accent-soft);border:var(--rp-callout-border,1px) solid var(--rp-line);
+  border-left:var(--rp-callout-bar,3px) solid var(--c);
   border-radius:var(--rp-radius);background:var(--c-soft);padding:12px 16px;margin:1.3em 0;font-size:.95em}
+.rp-callout-title[data-rp-ui]{display:var(--rp-callout-label,block)}
 .rp-callout>:last-child{margin-bottom:0}
 .rp-callout-title{font:600 calc(10.5rem/17) var(--rp-sans);letter-spacing:.13em;text-transform:uppercase;color:var(--c);margin:0 0 4px}
+.rp-callout-icon{float:left;margin-right:.5em;font-size:1.15em;line-height:1.4}
+.rp-callout.rp-tone-note{--c:var(--rp-violet);--c-soft:var(--rp-violet-soft)}
 .rp-callout.rp-tone-tip,.rp-callout.rp-tone-success{--c:var(--rp-ok);--c-soft:var(--rp-ok-soft)}
 .rp-callout.rp-tone-warning{--c:var(--rp-warn);--c-soft:var(--rp-warn-soft)}
-.rp-callout.rp-tone-danger{--c:var(--rp-danger);--c-soft:var(--rp-danger-soft)}
+.rp-callout.rp-tone-danger,.rp-callout.rp-tone-error{--c:var(--rp-danger);--c-soft:var(--rp-danger-soft)}
+.rp-callout.rp-tone-custom{--c:var(--rp-line);color:var(--rp-ink)}

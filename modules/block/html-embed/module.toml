@@ -1,0 +1,10 @@
+name = "html-embed"
+kind = "block"
+summary = "Static HTML with its own CSS, isolated from the page (shadow DOM). Scripts and event handlers are removed; local images are inlined."
+body = "text"
+
+[params.layout]
+type = "enum"
+choices = ["default", "wide", "full-width"]
+default = "default"
+doc = "Confluence export: the block's width on the page."

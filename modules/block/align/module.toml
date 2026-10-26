@@ -1,0 +1,11 @@
+name = "align"
+kind = "block"
+summary = "Centre- or right-align paragraphs and headings: ::: align center … :::."
+body = "markdown"
+positional = "to"
+
+[params.to]
+type = "enum"
+choices = ["center", "right"]
+default = "center"
+doc = "Alignment."

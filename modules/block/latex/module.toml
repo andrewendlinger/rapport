@@ -1,0 +1,19 @@
+name = "latex"
+kind = "block"
+summary = "A displayed LaTeX formula, rendered to SVG at build time with MathJax (Node; installed once into the cache). Follows the theme's text colour."
+body = "text"
+
+[params.caption]
+type = "string"
+default = ""
+doc = "Caption below the formula."
+
+[config.node]
+type = "string"
+default = "node"
+doc = "Node.js command."
+
+[config.npm]
+type = "string"
+default = "npm"
+doc = "npm command, used once to install MathJax into the rapport cache."

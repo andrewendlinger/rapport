@@ -30,7 +30,7 @@ The preset is chosen first, from whichever layer sets `preset = "…"`, and then
 
 Three levels, lightest first: tokens, your own CSS, a thin override of a module.
 
-**Themes.** `default` is minimal: white ground, the system sans for all text, one blue accent, 16px. `classic` (the default before 0.4) has a cool stone ground, sans headings and serif text at 17px. `paper` is warm and serif throughout. Pick one with `[theme] name`.
+**Themes.** `default` is minimal: white ground, the system sans for all text, one blue accent, 16px. `classic` (the default before 0.4) has a cool stone ground, sans headings and serif text at 17px. `paper` is warm and serif throughout. `atlassian` looks like a Confluence page (Atlassian colours, panel styles, the 760 px column), for reports that will be published there. Pick one with `[theme] name`.
 
 **Tokens** hold the palette, fonts, corner radius, column width and body size. The theme module defines them; `[theme.tokens]` overrides them and `[theme.tokens.dark]` sets dark-mode values:
 
@@ -51,6 +51,8 @@ accent = "#6FD3A8"
 | colour | `bg` `surface` `surface-2` `ink` `ink-soft` `ink-faint` `line` `accent` `accent-soft` `ok` `ok-soft` `warn` `warn-soft` `danger` `danger-soft` `violet` `violet-soft` `shadow` |
 | type | `sans` `serif` `mono` `body-font` `heading-font` `body-size` |
 | shape | `radius`, `width` (the reading column; `[layout] width` overrides it) |
+
+| palettes | `text-<name>` `hl-<name>` `bg-<name>`: Confluence's fixed text, highlight and background colours, added only when a module that uses them is on the page (`color`, `highlight`, `callout`, `grid`). Names are the modules' enum choices, e.g. `text-bold-red`, `hl-yellow`, `bg-light-blue` |
 
 `rapport modules info default` prints each token with its light and dark value. Code colours are Pygments styles: `[modules.code] light_style` and `dark_style`.
 

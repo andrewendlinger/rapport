@@ -13,3 +13,9 @@ doc = "Always-visible summary line."
 type = "bool"
 default = false
 doc = "Start expanded."
+
+[params.width]
+type = "enum"
+choices = ["default", "wide", "full-width"]
+default = "default"
+doc = "Confluence export: how wide the block is on the page (the HTML report keeps the reading column)."

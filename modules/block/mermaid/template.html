@@ -1,0 +1,7 @@
+<figure class="rp-diagram"{% if node.params.width %} style="--dia-w:{{ node.params.width }}%"{% endif %}>
+{% if fallback %}<div class="rp-code rp-diagram-source"><pre class="rp-pre"><code>{{ ctx.highlight(fallback, "text") }}</code></pre></div>
+{% else %}<img class="rp-diagram-light" src="{{ light }}" alt="{{ node.params.caption or alt }}"{% if node.params.zoom %} data-rp-zoom{% endif %}>
+<img class="rp-diagram-dark" src="{{ dark }}" alt="{{ node.params.caption or alt }}"{% if node.params.zoom %} data-rp-zoom{% endif %}>
+{% endif %}
+{% if node.params.caption %}<figcaption>{{ node.params.caption }}</figcaption>{% endif %}
+</figure>

@@ -92,6 +92,8 @@ children = ["pane"]       # block only, optional: allowed child directives
 order = 50                # optional: CSS and script order within its kind (lower first, default 50)
 # extends = "callout"     # optional: build on another module, inheriting what this one doesn't set (below)
 # enabled = false         # optional: off by default; users turn it on with [modules.side-note] enabled = true
+palettes = ["background"] # optional: named colour palettes the CSS uses (text | highlight | background)
+attach = false            # inline only: true lets it follow a letter directly (H:sub[2]O)
 
 [params.title]            # per-use params (::: side-note Title {tone = "warm"})
 type = "string"           # string | int | number | bool | enum | list | table | tables | any
@@ -145,6 +147,9 @@ Jinja2 with autoescape on. The renderer injects `data-rp-id`, `data-rp-module`, 
 | `ctx.asset(path)` | a local file as a `data:` URI (enforces self-containment) |
 | `ctx.icon(value, tint)` | a symbol as text, or an image file inlined; tinted in the text colour when `tint`, or when it's an SVG drawn in `currentColor` |
 | `ctx.href(url)` | a link target, or `""` (with a build error) for `javascript:` and other unsafe links |
+| `ctx.file(src)` | a local file's `Path` (relative to the report; watched by `serve`); raises for remote or missing files |
+| `ctx.tool(command)`, `ctx.run(argv, input=…, env=…)`, `ctx.cached(key, produce)` | find a local program (None if missing, or when `RAPPORT_TOOLS=off`), run it, cache its output across builds (`~/.cache/rapport/render`) |
+| `ctx.warn(message)` | a build warning on the current block's line, e.g. "tool missing, showing the source" |
 | `today`, `generator` | build date, rapport version |
 
 `prepare.py` gets no template variables, only `ctx`; that is why `config` and `meta` also hang off it.
@@ -154,7 +159,7 @@ Layout modules also get `headings` (`level`, `text`, `id`) and `region` (`top`, 
 ## style.css
 
 - Scope everything under `.rp-<name>` (or `.rp-m-<name>`).
-- Use theme tokens only: `var(--rp-ink)`, `--rp-surface`, `--rp-accent`, `--rp-line`, `--rp-radius`, `--rp-sans`, …. Run `rapport modules info default` for the full list. Then every theme, light and dark, applies automatically. `modules check` warns about literal colours and unknown tokens. Custom properties your module defines itself are fine.
+- Use theme tokens only: `var(--rp-ink)`, `--rp-surface`, `--rp-accent`, `--rp-line`, `--rp-radius`, `--rp-sans`, …. Run `rapport modules info default` for the full list. Then every theme, light and dark, applies automatically. `modules check` warns about literal colours and unknown tokens. Custom properties your module defines itself are fine. A token used with a fallback, `var(--rp-callout-bar, 3px)`, is optional: the module looks right without it and a theme may set it to restyle the module (the `atlassian` theme flattens callouts this way).
 - **Cascade layers.** The theme's CSS goes in `@layer rp-theme` and module CSS in `@layer rp-modules`, so a module rule beats any theme rule regardless of specificity. A user's `[theme] css` comes after both, unlayered, and beats them. Don't use `!important`: in a layer it beats the user's CSS, which then can't override your module. `modules check` warns about it (feature modules and a theme's `prefers-reduced-motion` block excepted).
 - **Font sizes in `rem` or `em`**, so they follow the theme's `body-size` (`1rem` is the body size). The built-ins write `calc(13.5rem/17)`: 13.5px at a 17px body size, 12.7px at the default 16px. Feature modules may use px, because their UI shouldn't grow with the report's text. Elsewhere `modules check` warns about px font sizes.
 - **Bundled files.** `url()` paths resolve relative to the module folder, and the files are inlined as `data:` URIs (fonts and images only), so a theme can ship its fonts: `src:url(fonts/Brand.woff2)`. Remote URLs, root-relative paths, `@import` and a `var()` inside `image-set()` fail the build. Inlined files count toward `report.max_inline_mb`.
@@ -242,7 +247,7 @@ def prepare(node, ctx):
 | `page` | `module` is the page's name; `id` is `""`, `params` is `{}` |
 | feature | `module` is its name; `id` is `""`, `params` is `{}` |
 
-Layout, page and feature modules take no params, so their `node` only says who is asking: read the rest from `ctx` (`ctx.meta`, `ctx.module(name)`, `ctx.config`). A load error in prepare.py, or an exception in `prepare`, is a build error naming the module; the template then renders without its variables.
+Layout, page and feature modules take no params, so their `node` only says who is asking: read the rest from `ctx` (`ctx.meta`, `ctx.module(name)`, `ctx.config`). A load error in prepare.py, or an exception in `prepare`, is a build error naming the module (raise `ValueError("…")` for a mistake in report.md: the error lands on that line); the template then renders without its variables.
 
 **Data for `script.js`.** There is no separate hook for it: render it in the template, as JSON in a `<script>` element. `tojson` escapes `<`, `>`, `&` and `'`, so the data can't end the element, and scripts are never part of a feedback quote.
 
@@ -423,7 +428,7 @@ Agents never touch `.rapport/`. `rapport modules state <name> [-C <dir>]` prints
 
 ## Heavier libraries
 
-Output must stay a single self-contained file: never load anything from a CDN. For charts and diagrams, render server-side in `prepare.py`, e.g. emit SVG. There's no supported way yet to bundle a third-party JS library into a module; it will come with the first module that needs one (such as Mermaid).
+Output must stay a single self-contained file: never load anything from a CDN. For charts and diagrams, render at build time in `prepare.py` and emit SVG, as the built-in `mermaid`, `plantuml`, `drawio`, `latex` and `math` modules do: find the program with `ctx.tool`, run it with `ctx.run`, wrap that in `ctx.cached` so rebuilds are instant, and when the program is missing, `ctx.warn` and show the source instead of failing the build. Render twice for light and dark and show the right one with `display:var(--rp-on-light)` / `var(--rp-on-dark)`; those tokens flip only when the theme has a dark mode. `RAPPORT_TOOLS=off` makes every program count as missing (the test suite sets it). There's no supported way yet to bundle a third-party JS library into a module.
 
 ## Checklist
 

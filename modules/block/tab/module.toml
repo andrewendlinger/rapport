@@ -1,0 +1,11 @@
+name = "tab"
+kind = "block"
+summary = "One panel inside tabs; the title is the tab label."
+body = "markdown"
+positional = "title"
+
+[params.title]
+type = "string"
+default = ""
+required = true
+doc = "Tab label."

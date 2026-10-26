@@ -186,3 +186,26 @@ doc = "How often sources are checked for changes (rebuild on save)."
 type = "number"
 default = 3
 doc = "Stop the review server after this many hours without a rebuild, page load or comment; 0 never stops it. An open page's polling doesn't count."
+
+# ── confluence: `rapport export confluence` (see references/confluence.md) ──
+[confluence.apps]
+type = "list"
+items = "string"
+default = []
+doc = "Confluence apps the target site has, which the export may use: \"macro-pack\" (Mermaid, PlantUML, LaTeX, HTML, embedded images) and \"drawio\" (native draw.io embeds). Without them, diagrams fall back to code blocks."
+
+[confluence.toc]
+type = "bool"
+default = true
+doc = "Start the page with Confluence's table-of-contents macro when the report shows a TOC."
+
+[confluence.images]
+type = "enum"
+choices = ["macro-pack", "placeholder"]
+default = "macro-pack"
+doc = "Local images: embedded in a Macro Pack HTML block (needs the app; up to image_max_kb each), or a placeholder panel naming the file for you to upload."
+
+[confluence.image_max_kb]
+type = "number"
+default = 300
+doc = "Largest image embedded through Macro Pack; bigger ones become placeholders."

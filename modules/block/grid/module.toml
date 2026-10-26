@@ -1,0 +1,37 @@
+name = "grid"
+kind = "block"
+summary = "A Markdown pipe table with Confluence's table features: header column, numbered rows, column widths, cell colours, merged cells, vertical alignment. Cells are addressed A1-style (header row = 1)."
+body = "markdown"
+palettes = ["background"]
+
+[params.header_row]
+type = "bool"
+default = true
+doc = "Show the first row as a header row."
+
+[params.header_column]
+type = "bool"
+default = false
+doc = "Show the first column as header cells."
+
+[params.numbered]
+type = "bool"
+default = false
+doc = "Number the rows in an extra first column."
+
+[params.widths]
+type = "list"
+items = "int"
+default = []
+doc = "Column widths in px, one per column (numbering column excluded)."
+
+[params.layout]
+type = "enum"
+choices = ["default", "wide", "full-width"]
+default = "default"
+doc = "Table width: default (text width), wide, or full page width."
+
+[params.cells]
+type = "table"
+default = {}
+doc = "Per-cell settings by A1 address: {B2 = {bg = \"light-blue\", rowspan = 2, colspan = 1, valign = \"middle\", header = true}}. Leave cells a span covers empty; bg names the background palette (--rp-bg-<name>)."

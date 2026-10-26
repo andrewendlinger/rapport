@@ -1,0 +1,4 @@
+.rp-decisions{list-style:none;padding:0;margin:1em 0}
+.rp-decision{display:flex;gap:.5em;align-items:baseline;margin:.3em 0}
+.rp-decision-icon{color:var(--rp-ink-faint)}
+.rp-decided .rp-decision-icon{color:var(--rp-ok)}

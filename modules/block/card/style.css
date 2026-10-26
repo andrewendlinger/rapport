@@ -1,0 +1,6 @@
+.rp-card{display:flex;flex-direction:column;gap:2px;border:1px solid var(--rp-line);border-radius:var(--rp-radius);padding:10px 14px;
+  margin:1.1em 0;color:var(--rp-ink);text-decoration:none;background:var(--rp-surface);box-shadow:var(--rp-shadow)}
+.rp-card:hover{border-color:var(--rp-accent)}
+.rp-card-host{font:600 calc(11rem/17) var(--rp-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--rp-ink-faint)}
+.rp-card-title{font-weight:600;overflow-wrap:anywhere}
+.rp-card-embed{min-height:7em;justify-content:center;align-items:center;text-align:center;background:var(--rp-surface-2)}

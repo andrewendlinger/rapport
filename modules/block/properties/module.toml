@@ -1,0 +1,9 @@
+name = "properties"
+kind = "block"
+summary = "A key/value table (Confluence page properties) from a TOML body; values take inline Markdown and modules."
+body = "toml"
+
+[params.label]
+type = "string"
+default = ""
+doc = "Page-properties label, used when exporting to Confluence (for page-properties reports)."

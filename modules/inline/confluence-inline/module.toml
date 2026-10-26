@@ -1,0 +1,8 @@
+name = "confluence-inline"
+kind = "inline"
+summary = "Inline Confluence content rapport has no module for (an anchor, a custom emoji, a comment marker), kept verbatim: the export writes the html back unchanged; the text in [] is only a label."
+
+[params.html]
+type = "string"
+default = ""
+doc = "The original Confluence HTML, written back on export."

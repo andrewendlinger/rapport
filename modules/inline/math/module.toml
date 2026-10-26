@@ -1,0 +1,14 @@
+name = "math"
+kind = "inline"
+summary = "Inline LaTeX in a sentence: :math[T_2^*], rendered to SVG with MathJax (see latex)."
+attach = true   # may follow a letter directly
+
+[config.node]
+type = "string"
+default = "node"
+doc = "Node.js command."
+
+[config.npm]
+type = "string"
+default = "npm"
+doc = "npm command, used once to install MathJax into the rapport cache."

@@ -1,0 +1,4 @@
+name = "column"
+kind = "block"
+summary = "One column inside a columns layout; holds any Markdown."
+body = "markdown"

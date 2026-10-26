@@ -1,0 +1,3 @@
+name = "date"
+kind = "inline"
+summary = "A date pill from an ISO date: :date[2026-10-23] shows Oct 23, 2026."
