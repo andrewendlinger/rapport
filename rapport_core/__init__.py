@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-__version__ = "0.4.2"
+__version__ = "0.5.0"
 
 ROOT = Path(__file__).resolve().parent.parent
 BUILTIN_MODULES = ROOT / "modules"

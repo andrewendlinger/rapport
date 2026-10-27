@@ -72,6 +72,7 @@ instruction = "Add a source or a link that supports this claim."
 | [Configuration](references/config.md) | config layers, styling, branding, recipes |
 | [Modules](references/modules.md) | writing your own modules and themes |
 | [SKILL.md](SKILL.md) | what the agent follows |
+| [Changelog](CHANGELOG.md) | what changed in each release |
 
 <details>
 <summary><b>Install options</b></summary>
