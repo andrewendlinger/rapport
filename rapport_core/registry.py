@@ -4,6 +4,11 @@ A module is a folder with a module.toml. Search roots are scanned in priority
 order (nearest first); the first module found for a name wins and later ones
 are recorded as shadowed. Files are found by convention: template.html,
 style.css, script.js, prepare.py, server.py, example.md.
+
+A module with `extends = "<name>"` is built on another: on the next module of
+its own name down the roots, or on the nearest module of another name. Its
+manifest goes on top of the base's (tables merge key by key), a file it lacks
+is the base's, and its style.css is added after the base's.
 """
 
 from __future__ import annotations
@@ -27,6 +32,11 @@ WHENS = ("always", "serve", "static")
 UNITS = ("block", "none")
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 RESERVED = {"paths"}
+# the override's alone, never inherited: who it is, what it builds on, what it was made from
+OWN_KEYS = ("name", "extends", "upstream")
+# files that name the module inside (Rapport.module("callout", …), ::: callout): a module
+# with another name doesn't inherit them
+NAME_BOUND = ("script.js", "example.md")
 
 
 class _NoBytecode(importlib.machinery.SourceFileLoader):
@@ -51,14 +61,32 @@ def load_code(path: Path | None, label: str):
         return False, f"{path.name} failed to load: {type(e).__name__}: {e}"
 
 
+def merge_manifest(base: dict, own: dict) -> dict:
+    """The base's manifest with own on top: tables merge key by key at any depth, so one
+    param's default or one token changes alone; anything else (a string, a list) is replaced."""
+    def merge(a: dict, b: dict) -> dict:
+        out = dict(a)
+        for k, v in b.items():
+            out[k] = merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+        return out
+    return merge({k: v for k, v in base.items() if k not in OWN_KEYS}, own)
+
+
+def hidden(rel: str) -> bool:
+    """Not part of a module: __pycache__, dotfiles."""
+    return any(part == "__pycache__" or part.startswith(".") for part in rel.split("/"))
+
+
 @dataclass
 class Module:
     name: str
     kind: str
     dir: Path
-    manifest: dict
+    manifest: dict                  # merged with what it extends
     builtin: bool
     shadows: list[Path] = field(default_factory=list)
+    base: Module | None = None      # what it extends
+    below: Module | None = None     # the next module of its name down the roots: what it overrides
     load_error: str | None = None   # prepare.py exists but failed to load (set by hook())
     server_error: str | None = None  # server.py exists but failed to load (set by server_hook())
     _prepare: object = None
@@ -113,18 +141,49 @@ class Module:
     def dark_tokens(self) -> dict:
         return dict(self.manifest.get("tokens", {}).get("dark", {}))
 
+    @property
+    def origin(self) -> str:
+        return "built-in" if self.builtin else str(self.dir)
+
     # -- files ----------------------------------------------------------------- #
+    def inherits(self, name: str) -> bool:
+        return self.base is not None and (name not in NAME_BOUND or self.base.name == self.name)
+
     def file(self, name: str) -> Path | None:
+        """Its own file, else the one it inherits."""
         p = self.dir / name
-        return p if p.is_file() else None
+        if p.is_file():
+            return p
+        return self.base.file(name) if self.inherits(name) else None
+
+    @property
+    def chain(self) -> list[Module]:
+        """This module, what it extends, what that extends, …"""
+        return [self] + (self.base.chain if self.base else [])
+
+    def own_files(self) -> dict[str, Path]:
+        """The files in its folder, by path there."""
+        found = ((p.relative_to(self.dir).as_posix(), p) for p in sorted(self.dir.rglob("*")) if p.is_file())
+        return {rel: p for rel, p in found if not hidden(rel)}
+
+    def files(self) -> dict[str, Path]:
+        """Every file it is made of, by path in its folder: its own, else the inherited one."""
+        out = {rel: p for rel, p in self.base.files().items() if self.inherits(rel)} if self.base else {}
+        return {**out, **self.own_files()}
 
     @property
     def template_path(self) -> Path | None:
         return self.file("template.html")
 
     @property
-    def css_path(self) -> Path | None:
-        return self.file("style.css")
+    def css_paths(self) -> list[Path]:
+        """Its style.css after each one it inherits, base first: an override's adds rules to its base's."""
+        return [p for m in reversed(self.chain) if (p := m.dir / "style.css").is_file()]
+
+    @property
+    def asset_dirs(self) -> list[Path]:
+        """assets/ folders for its example, base first (copied in that order for check and gallery)."""
+        return [p for m in reversed(self.chain) if (p := m.dir / "assets").is_dir()]
 
     @property
     def js_path(self) -> Path | None:
@@ -170,11 +229,23 @@ class Module:
         return tree
 
 
+@dataclass
+class Found:
+    """A module folder, before what it extends is merged in."""
+    dir: Path
+    manifest_path: Path
+    data: dict
+    builtin: bool
+
+
 class Registry:
     def __init__(self, roots: list[Path]):
         self.roots = [Path(r) for r in roots]
         self.modules: dict[str, Module] = {}
         self.errors: list[str] = []
+        self._found: dict[str, list[Found]] = {}        # name → every folder with it, nearest first
+        self._resolved: dict[tuple[str, int], Module | None] = {}
+        self._looped: set[tuple[str, int]] = set()
         self._discover()
 
     def _discover(self) -> None:
@@ -197,22 +268,82 @@ class Registry:
                     self.errors.append(f"{mf}: cannot read manifest: {e}")
                     continue
                 name = data.get("name", mf.parent.name)
-                problem = self._check_manifest(name, data)
+                problem = self._check_name(name)
                 if problem:
                     self.errors.append(f"{mf}: {problem}")
                     continue
-                if name in self.modules:
-                    self.modules[name].shadows.append(mdir)
-                    continue
-                self.modules[name] = Module(name=name, kind=data["kind"], dir=mdir, manifest=data,
-                                            builtin=builtin)
+                self._found.setdefault(name, []).append(Found(mdir, mf, data, builtin))
+        # every folder is resolved, shadowed ones too: their errors show, and an override finds its base
+        for name, found in self._found.items():
+            mods = [self._resolve(name, i) for i in range(len(found))]
+            for mod, below in zip(mods, mods[1:] + [None]):
+                if mod:
+                    mod.below = below
+            live = [m for m in mods if m]
+            if live:
+                live[0].shadows = [m.dir for m in live[1:]]
+                self.modules[name] = live[0]
+
+    def _resolve(self, name: str, i: int, stack: tuple = ()) -> Module | None:
+        """The i-th module found for name (0: nearest), merged with what it extends;
+        None, with an error, if it can't be used."""
+        key = (name, i)
+        if key in self._resolved:
+            return self._resolved[key]
+        found = self._found[name][i]
+        if key in stack:
+            loop = stack[stack.index(key):]
+            self._looped.update(loop)
+            path = " → ".join(f"{n} ({self._found[n][j].dir})" for n, j in loop)
+            self.errors.append(f"{found.manifest_path}: `extends` goes round in a circle: {path} → {name}")
+            return None
+        mod, problem = self._build(name, i, found, stack + (key,))
+        if problem:
+            self.errors.append(f"{found.manifest_path}: {problem}")
+        self._resolved[key] = mod
+        return mod
+
+    def _build(self, name: str, i: int, found: Found, stack: tuple) -> tuple[Module | None, str | None]:
+        data, base = found.data, None
+        ext = data.get("extends")
+        if ext is not None:
+            if not isinstance(ext, str) or not NAME_RE.match(ext):
+                return None, f"extends must name a module, not {ext!r}"
+            # the same name: the next one down (what this overrides); another: the nearest
+            j = i + 1 if ext == name else 0
+            if j >= len(self._found.get(ext, [])):
+                if ext == name:
+                    return None, f"extends '{name}', but there's no other '{name}' below it to extend"
+                return None, f"extends '{ext}': no such module{did_you_mean(ext, self._found)}"
+            base = self._resolve(ext, j, stack)
+            if base is None:
+                return None, None if (ext, j) in self._looped else \
+                    f"extends '{ext}' ({self._found[ext][j].dir}), which has an error (see above)"
+            kind = data.get("kind", base.kind)
+            if kind != base.kind:
+                return None, (f"kind = \"{kind}\", but '{ext}' ({base.origin}), which it extends, is a {base.kind}; "
+                              "leave kind out")
+            data = merge_manifest(base.manifest, data)
+        problem = self._check_manifest(data)
+        if problem:
+            return None, problem
+        if base and base.name != name and base.file("script.js") and not (found.dir / "script.js").is_file():
+            return None, (f"can't inherit script.js from '{ext}': it registers itself as Rapport.module(\"{ext}\", …), "
+                          f"not as '{name}'. Copy {base.file('script.js')} here and change the name in it "
+                          f"(`rapport modules new {name} --extends {ext}` does that)")
+        return Module(name=name, kind=data["kind"], dir=found.dir, manifest=data, builtin=found.builtin,
+                      base=base), None
 
     @staticmethod
-    def _check_manifest(name: str, data: dict) -> str | None:
+    def _check_name(name) -> str | None:
         if not isinstance(name, str) or not NAME_RE.match(name):
             return f"invalid module name {name!r} (lowercase letters, digits, hyphens)"
         if name in RESERVED:
             return f"'{name}' is reserved"
+        return None
+
+    @staticmethod
+    def _check_manifest(data: dict) -> str | None:
         kind = data.get("kind")
         if kind not in KINDS:
             return f"kind must be one of {', '.join(KINDS)}{did_you_mean(str(kind), KINDS)}"

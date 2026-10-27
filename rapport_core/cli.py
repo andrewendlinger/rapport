@@ -25,13 +25,13 @@ date = "{today}"
 Lead with the conclusions.
 """
 
-VALUE_OPTIONS = {"-C", "--set", "--key", "--kind", "--scope", "--note", "--quote", "--block", "--action"}
+VALUE_OPTIONS = {"-C", "--set", "--key", "--kind", "--scope", "--note", "--quote", "--block", "--action", "--extends"}
 
 # commands whose first positional is an action: `rapport feedback <dir>` means `feedback list <dir>`
 DEFAULT_ACTIONS = {
     "feedback": ("list", {"list", "resolve", "reopen", "add"}),
     "config": ("show", {"show", "validate", "defaults", "paths"}),
-    "modules": ("list", {"list", "info", "new", "check", "state"}),
+    "modules": ("list", {"list", "info", "new", "check", "diff", "state"}),
 }
 
 
@@ -327,13 +327,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = add("modules", cmd_modules, "discover and author modules; `state <name>` reads a module's stored state",
             dir_arg=False)
-    p.add_argument("action", nargs="?", default="list", choices=["list", "info", "new", "check", "state"])
+    p.add_argument("action", nargs="?", default="list", choices=["list", "info", "new", "check", "diff", "state"])
     p.add_argument("name", nargs="?")
     p.add_argument("dir", nargs="?", help="report folder (default: current directory)")
     p.add_argument("--kind", choices=["block", "element", "inline", "layout", "theme", "feature"])
     p.add_argument("--scope", choices=["report", "project", "user"], default="project")
     p.add_argument("--js", action="store_true", help="(new) include a script.js")
     p.add_argument("--server", action="store_true", help="(new) a feature with a server.py: routes and state")
+    p.add_argument("--extends", metavar="BASE", help="(new) a module based on BASE: it inherits what it doesn't change")
+    p.add_argument("--copy", action="store_true",
+                   help="(new <installed name>) copy the whole module instead of a thin override that extends it")
     p.add_argument("--json", action="store_true", help="(state) the raw JSON, not the module's description")
 
     p = add("gallery", cmd_gallery, "render every module's example into one servable report")

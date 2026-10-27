@@ -303,10 +303,10 @@ def test_modules_state_prints_what_describe_says(capsys, report):
 
 
 def test_an_override_of_feedback_owns_its_routes(capsys, report):
-    """`modules new feedback` copies the built-in, server.py included. The copy imports
+    """`modules new feedback --copy` copies the built-in, server.py included. The copy imports
     rapport_core as the original does (the entry point puts the repo on sys.path)."""
     d = report(TEXT)
-    assert run(capsys, "modules", "new", "feedback", "--scope", "user", "-C", str(d))[0] == 0
+    assert run(capsys, "modules", "new", "feedback", "--copy", "--scope", "user", "-C", str(d))[0] == 0
     copy = user_paths().modules_dir / "feedback"
     src = copy / "server.py"
     src.write_text(src.read_text(encoding="utf-8") + '\n\nbuiltin_routes = routes\n\n\ndef routes(r):\n'

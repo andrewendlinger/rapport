@@ -108,7 +108,7 @@ sans = "Inter, system-ui, sans-serif"
 
 Each weight adds about 20 to 100 KB to every report.html and counts toward `report.max_inline_mb`. Ship only the weights you use.
 
-**Structural changes** need a fork. For new markup or a different template, `rapport modules new callout --scope project` copies the module into your project, and the copy replaces the built-in. Later fixes to the built-in don't reach it. `rapport modules new brand --kind theme` starts a theme from a copy of `default`. Its style.css can url() files in its own folder, such as fonts.
+**Structural changes** need an override. For new markup or a different template, `rapport modules new callout --scope project` makes a thin override in your project that extends the built-in. Copy in only the file you change, say its template; the rest keeps getting the built-in's fixes. `--copy` takes the whole module instead, and `rapport modules check` says when the built-in changes under it. `rapport modules new brand --kind theme` starts a theme that extends `default`: set only the tokens you change. Its style.css is added after `default`'s and can url() files in its own folder, such as fonts. See "Overriding and extending" in `references/modules.md`.
 
 ## Recipes
 

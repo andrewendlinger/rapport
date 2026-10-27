@@ -1,6 +1,6 @@
 # Writing a rapport module
 
-Everything on a rapport page is a module. A module is **a folder with a `module.toml`**: no registration, no core changes. Drop the folder into a search root and it exists. Give it the same name as a built-in and it replaces that built-in.
+Everything on a rapport page is a module. A module is **a folder with a `module.toml`**: no registration, no core changes. Drop the folder into a search root and it exists. Give it the same name as a built-in and it takes the built-in's place; with `extends` it changes only what you write and inherits the rest (see [Overriding and extending](#overriding-and-extending)).
 
 ```
 side-note/
@@ -14,7 +14,7 @@ side-note/
   assets/         optional; files the example references (copied for check/gallery)
 ```
 
-Start from a scaffold: `rapport modules new <name> --kind block --scope project`. Add `--server` for a feature with routes and stored state (see [server.py](#serverpy)). Run `rapport modules new <existing-name>` to copy an installed module as an override.
+Start from a scaffold: `rapport modules new <name> --kind block --scope project`. Add `--server` for a feature with routes and stored state (see [server.py](#serverpy)). To change an installed module, `rapport modules new <existing-name>` makes a thin override that extends it: you copy in only the files you change.
 
 ## Kinds
 
@@ -38,6 +38,36 @@ Start from a scaffold: `rapport modules new <name> --kind block --scope project`
 
 Each root is scanned two levels deep: `root/<name>/module.toml`, or `root/<pack>/<name>/module.toml`. So a module pack is just a folder or git repo you add to `paths`.
 
+## Overriding and extending
+
+Lightest first:
+
+| to | run | you own |
+|---|---|---|
+| change a default, add a param, change the template or a few rules of an installed module | `rapport modules new callout`: a thin override | only the files you copy in; the rest follows rapport's updates |
+| make a new module from an existing one (a warning box from `callout`) | `rapport modules new warn-box --extends callout`; a new theme (`--kind theme`) extends `default` | the same |
+| rewrite a module wholesale | `rapport modules new callout --copy` | every file; `modules check` says when the original changes |
+| make something else | `rapport modules new side-note --kind block` | everything |
+
+A module extends another with `extends = "<name>"` in its module.toml:
+
+- **Same name** (`name = "callout"`, `extends = "callout"`): it builds on the next `callout` down the search roots, the one it overrides. A report's override can build on the project's, which builds on the built-in.
+- **Another name** (`name = "warn-box"`, `extends = "callout"`): a new module built on the nearest `callout`.
+- Its `kind` is the base's: leave it out. An `extends` that names no module, goes round in a circle, or gives another `kind` is an error, and the module isn't used.
+
+What it inherits:
+
+- **module.toml**: the base's, with yours on top. Tables merge key by key, at any depth: `[params.tone]` with only `default = "tip"` changes that default and keeps the type, choices and doc. A new `[params.icon]` adds a param; a theme's `[tokens] accent = "…"` changes one token. Strings and lists replace the base's (`choices` is the whole list). A param can't be removed. `name`, `extends` and `[upstream]` are the module's own.
+- **Files it doesn't have**: `template.html`, `script.js`, `prepare.py`, `server.py`, `example.md` and `assets/` are the base's. `prepare.py` and `server.py` run from the base's folder. To change one, copy it in: from then on that file is yours.
+- **`style.css` adds to the base's** rather than replacing it. Both go in the `rp-modules` layer, the base's first, so a rule of yours with the base's selector wins. Write only the rules you change. Each `url()` resolves in the folder of the file it's in.
+- **State and routes go by name**: an override keeps its base's state (`.rapport/modules/<name>.json`, feedback's `feedback.json`) and `/api/m/<name>/`, so an override of `feedback` keeps the reader's comments. A module under another name has its own.
+- **Under another name**, `script.js` and `example.md` aren't inherited, because they name the module inside: `Rapport.module("callout", …)`, `::: callout`. `modules new <name> --extends <base>` copies both in and renames them (also `Rapport.api` and `Rapport.config` calls and `"<base>:…"` events). A module with another name whose base has a `script.js` and that has none of its own is an error.
+- Element modules render the Markdown element they're named after, so extend them only under their own name.
+
+`rapport modules info <name>` shows the chain (`callout (project) extends callout (built-in)`) and where each file comes from. `rapport modules list` marks extending modules.
+
+**Drift.** `modules new` records the base in `[upstream]`: the rapport version and a hash of each file. `rapport modules check` warns when the base has changed a file this module has its own copy of. For a `--copy` that is any file; for an override, a file it replaced (not `style.css`, which adds). `rapport modules diff <name>` prints a unified diff of the module's files against the base's, and after such a change the `[upstream]` lines to record once you have merged it. A copy made by an older rapport has no `[upstream]`; `modules diff` still compares it with what it overrides.
+
 ## module.toml
 
 ```toml
@@ -48,6 +78,7 @@ body = "markdown"         # block only: markdown | text | toml | none
 positional = "title"      # block only: text after the name fills this param
 children = ["pane"]       # block only, optional: allowed child directives
 order = 50                # optional: CSS and script order within its kind (lower first, default 50)
+# extends = "callout"     # optional: build on another module, inheriting what this one doesn't set (below)
 # enabled = false         # optional: off by default; users turn it on with [modules.side-note] enabled = true
 
 [params.title]            # per-use params (::: side-note Title {tone = "warm"})
@@ -196,7 +227,7 @@ It may also define `check(config) -> list[str]`, which validates the module's `[
 
 A module can extend the review server: a sign-off button, a poll, a checklist whose ticks persist. Its `server.py` registers routes. `rapport serve` answers them under `/api/m/<name>/`, keeps the module's state, and tells the page when that state changes. `rapport modules new <name> --server` scaffolds a working example.
 
-The built-in reader feedback is one such module: `modules/feature/feedback/server.py` (with its `script.js`) is the reference implementation, and an override of `feedback` replaces both halves.
+The built-in reader feedback is one such module: `modules/feature/feedback/server.py` (with its `script.js`) is the reference implementation. An override of `feedback` inherits both halves and replaces whichever it copies in.
 
 ```toml
 # rapport-modules/signoff/module.toml

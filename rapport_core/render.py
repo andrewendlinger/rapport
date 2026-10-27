@@ -553,8 +553,13 @@ class Renderer:
         return out
 
     def module_css(self, mod: Module) -> str:
-        return self.inline_css(mod.css_path.read_text(encoding="utf-8-sig"), mod.dir,
-                               f"module '{mod.name}' style.css", "put the rules in style.css")
+        """Its style.css after the ones it inherits, in one layer: same selector, the override's wins.
+        Each url()s files beside it, so an inherited one still finds its own."""
+        parts = []
+        for p in mod.css_paths:
+            where = f"module '{mod.name}' style.css" + ("" if p.parent == mod.dir else f" (inherited, in {p.parent})")
+            parts.append(self.inline_css(p.read_text(encoding="utf-8-sig"), p.parent, where, "put the rules in style.css"))
+        return "\n".join(parts)
 
     def theme_css(self, theme: Module) -> str:
         overrides = dict(self.config.get("theme.tokens", {}) or {})
@@ -639,9 +644,9 @@ class Renderer:
             self.errors.append(Diag(None, f"theme.name: no theme module '{theme_name}'"))
             theme = self.registry.get("default")
         used_mods = self.registry.ordered(self.used)
-        theme_parts = [self.theme_css(theme)] + ([self.module_css(theme)] if theme.css_path else [])
+        theme_parts = [self.theme_css(theme)] + ([self.module_css(theme)] if theme.css_paths else [])
         mod_parts = [f"/* {mod.name} */\n" + self.module_css(mod)
-                     for mod in used_mods if mod.css_path and mod.kind != "theme"]
+                     for mod in used_mods if mod.css_paths and mod.kind != "theme"]
         if "code" in self.used:
             code_cfg = self.config.module("code")
             mod_parts.append(pygments_css(code_cfg.get("light_style", "friendly"),

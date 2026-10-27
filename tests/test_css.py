@@ -328,12 +328,12 @@ def test_check_warns_about_px_font_sizes_except_in_feature_ui(capsys, report, is
         assert main(["modules", "new", name, "--kind", kind, "-C", str(d)]) == 0
         capsys.readouterr()
         assert main(["modules", "check", name, "-C", str(d)]) == 0
-        assert f"{name:<14} ok" in capsys.readouterr().out    # scaffolds and theme copies use rem
+        assert f"{name:<14} ok" in capsys.readouterr().out    # scaffolds and the theme they extend use rem
     mods = isolated_home / "proj/rapport-modules"
 
     def check(name, css):
-        p = mods / name / "style.css"
-        p.write_text(p.read_text() + css)
+        p = mods / name / "style.css"          # a new theme extends default: its style.css starts empty
+        p.write_text((p.read_text() if p.exists() else "") + css)
         main(["modules", "check", name, "-C", str(d)])
         return capsys.readouterr().out
     warning = "warning: font-size in px won't scale with body-size; use rem or em"

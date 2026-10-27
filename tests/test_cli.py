@@ -57,12 +57,12 @@ def test_modules_new_check_and_use(capsys, report, isolated_home):
     assert "### side-note  (custom:" in out
 
 
-def test_modules_new_copies_existing_as_override(capsys, report, isolated_home):
+def test_modules_new_on_an_installed_name_extends_it(capsys, report, isolated_home):
     d = report("x\n")
     code, out = run(capsys, "modules", "new", "callout", "--scope", "report", "-C", str(d))
-    assert code == 0 and (d / "rapport-modules/callout/style.css").exists()
+    assert code == 0 and [p.name for p in (d / "rapport-modules/callout").iterdir()] == ["module.toml"]
     code, out = run(capsys, "modules", "list", "-C", str(d))
-    assert "overrides built-in" in out
+    assert "[custom, extends callout (built-in)]" in out
 
 
 def test_all_builtin_modules_check_clean(capsys, report):
