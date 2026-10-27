@@ -1135,7 +1135,6 @@ Rapport.module("feedback", {
     document.addEventListener("toggle", placeSoon, true);
     if (window.ResizeObserver) new ResizeObserver(placeSoon).observe(MAIN);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeSoon);
-    Rapport.feedback = { reload: load, items: function () { return items; } };
     load().then(function () { restoreGeneral(); restoreDraft(); });
   }
 });

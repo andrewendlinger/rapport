@@ -46,7 +46,7 @@ summary = "A margin-style aside for tangents."   # one line; shown in `rapport b
 body = "markdown"         # block only: markdown | text | toml | none
 positional = "title"      # block only: text after the name fills this param
 children = ["pane"]       # block only, optional: allowed child directives
-order = 50                # optional: CSS/JS order within its kind
+order = 50                # optional: CSS and script order within its kind (lower first, default 50)
 # enabled = false         # optional: off by default; users turn it on with [modules.side-note] enabled = true
 
 [params.title]            # per-use params (::: side-note Title {tone = "warm"})
@@ -93,13 +93,17 @@ Jinja2 with autoescape on. The renderer injects `data-rp-id`, `data-rp-module`, 
 | `node.html` | element modules: markdown-it's own rendering of the element |
 | `node.id`, `node.lines`, `node.heading_path` | anchor id, source lines, enclosing headings |
 | `cfg` | this module's resolved `[modules.<name>]` table |
-| `meta` | report metadata (title, version, …) |
+| `config`, `ctx.config` | the whole resolved config, all layers merged |
+| `ctx.module(name)` | another module's resolved `[modules.<name>]` table |
+| `meta`, `ctx.meta` | report metadata (title, version, …) |
 | `ctx.markdown(text)`, `ctx.inline(text)` | render more Markdown |
 | `ctx.highlight(code, lang, hl)` | Pygments → line spans (what `code` uses) |
 | `ctx.asset(path)` | a local file as a `data:` URI (enforces self-containment) |
 | `ctx.icon(value, tint)` | a symbol as text, or an image file inlined; tinted in the text colour when `tint`, or when it's an SVG drawn in `currentColor` |
 | `ctx.href(url)` | a link target, or `""` (with a build error) for `javascript:` and other unsafe links |
 | `today`, `generator` | build date, rapport version |
+
+`prepare.py` gets no template variables, only `ctx`; that is why `config` and `meta` also hang off it.
 
 Layout modules also get `headings` (`level`, `text`, `id`) and `region`. The `page` module gets `content`, `regions`, `css`, `scripts`, `features`, `data_json`, `lang`, `theme_mode`.
 
@@ -125,11 +129,52 @@ Rapport.module("side-note", {
 - **`reveal`** is how feedback and links reach content hidden inside your module. `<details>` ancestors open automatically.
 - **`data-rp-ui`**: mark chrome with this attribute: buttons, and any text that isn't in report.md (a label made up from a param default, a tone name). It's then never part of a feedback quote, so the agent can find every quote in the source. Buttons marked this way are hidden when printing. Text the author wrote, such as a title, should stay quotable.
 - **`data-rp-label="…"`**: names a part of your module (a pane, a tab) for feedback; see above.
-- **Kernel helpers:**
-  - `Rapport.on(evt, fn)` / `Rapport.emit(evt, payload)`
-  - `Rapport.config(name)`
-  - `Rapport.busy(fn)`: return true while the reader is mid-task, and live reload waits
-  - `Rapport.reveal(el)`
+
+### The client kernel
+
+The first script on the page is the kernel, `Rapport`; the module scripts follow in `kind`, `order`, name order. Once they have all loaded, the kernel starts each module in that order (its `init`, then its `mount` for every element), and then emits `ready`.
+
+| callback | called | `ctx` |
+|---|---|---|
+| `init(ctx)` | once per page, if the module is on it | `{config, data}` |
+| `mount(el, ctx)` | for every element the module rendered | `{config, params, data}` |
+| `reveal(el, target)` | when something must become visible inside `el` | none |
+
+`ctx.config` is the module's resolved `[modules.<name>]` table, manifest defaults included. `ctx.params` is the use's validated params, read from the `data-rp-params` attribute the renderer writes on the root of a scripted module that has params; it is `{}` if the module has none, as inline and layout modules never do. `ctx.data` is the page data.
+
+| API | does |
+|---|---|
+| `Rapport.module(name, def)` | registers a module; `def` holds `init`, `mount`, `reveal` (all optional) |
+| `Rapport.on(evt, fn)` | calls `fn(payload)` on every `evt`; a throwing listener is logged, not fatal |
+| `Rapport.emit(evt, payload)` | fires `evt`. Name your own `<module>:<what>`, like `side-note:opened` |
+| `Rapport.config(name)` | a module's resolved config, or `{}` if it has no script.js or isn't on the page |
+| `Rapport.params(el)` | the params of a rendered element |
+| `Rapport.data` | the page data |
+| `Rapport.busy(fn)` | registers a predicate that returns true while the reader is mid-task (a comment being typed, text selected); live reload waits while any does |
+| `Rapport.busy()` | whether any predicate says so now |
+| `Rapport.reveal(el)` | makes `el` visible: opens `<details>` ancestors and calls the `reveal` of every module around it; returns `el` |
+| `Rapport.reload()` | reloads the page and returns to the same scroll position; emits `before-reload` first |
+
+`Rapport.start()` is called by the page template once all scripts are in. It is internal: don't call it.
+
+| event | emitted by | payload |
+|---|---|---|
+| `ready` | the kernel, after every module's `init` and `mount` | none |
+| `before-reload` | `Rapport.reload()` | none; save unsent input (to `sessionStorage`) here |
+| `server:down` | live-reload, when the server stops answering | none |
+| `server:up` | live-reload, when it answers again after being down | none |
+| `feedback:changed` | live-reload, when the feedback changed (a comment added or resolved, here or from the CLI) | the `/api/meta` response: `{build_id, errors, version, feedback_rev, dir}` |
+
+Only served pages (`rapport serve`) emit the last three.
+
+Page data (`Rapport.data`, `ctx.data`) is built at render time:
+
+| key | holds |
+|---|---|
+| `report` | `{title, version, served, source}`: `served` is true on a `rapport serve` page, `source` is the report file name |
+| `modules` | `{name: resolved config}` for each module on the page that has a script.js |
+| `present` | the names of all modules used on the page, sorted |
+| `serve` | served pages only: `{token, api, build_id}`: the session token (sent as `X-Rapport-Token`), the API base path and the id of this build |
 
 ## prepare.py
 

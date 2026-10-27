@@ -185,3 +185,16 @@ def test_a_containers_own_errors_are_on_its_opening_line(report, isolated_home):
     write(mdir / "template.html", "<p>{{ node.body }}</p><p>{{ 1 // 0 }}</p>")
     res = build(report("Intro.\n\n::: two\nfirst child\n\nsecond child\n:::\n"), strict=True)
     assert [e.line for e in res.errors if "failed to render" in e.message] == [3], res.messages()
+
+
+def test_order_orders_scripts_too(report, isolated_home):
+    # alphabetical order is "a-late" < "z-early"; their `order` values reverse it
+    for name, order in (("a-late", 90), ("z-early", 10)):
+        mdir = isolated_home / f"proj/reports/r/rapport-modules/{name}"
+        write(mdir / "module.toml", f'kind = "feature"\nsummary = "s"\norder = {order}\n')
+        write(mdir / "script.js", f'Rapport.module("{name}", {{}});\n')
+    res = build(report("x\n"))
+    assert res.ok, res.messages()
+    scripts = re.findall(r"<script>/\* ([\w-]+) \*/", res.html)
+    assert scripts[0] == "runtime"                                    # the kernel stays first
+    assert scripts.index("z-early") < scripts.index("a-late")

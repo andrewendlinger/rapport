@@ -2,11 +2,13 @@
      init(ctx)        once, if the module is on the page
      mount(el, ctx)   for every element rendered by the module
      reveal(el, target)  make `target` (inside el) visible: open, switch tab…
-   Page data (report info + each scripted module's config) comes from #rp-data. */
+   Page data (report info + each scripted module's config) comes from #rp-data.
+   The whole API, events included, is documented in references/modules.md. */
 (function () {
   "use strict";
   var defs = {}, order = [], listeners = {}, busyChecks = [];
   var data = {};
+  var SCROLL_KEY = "rp-scroll:" + location.pathname;
   try { data = JSON.parse(document.getElementById("rp-data").textContent); } catch (e) { /* none */ }
 
   function params(el) {
@@ -30,6 +32,13 @@
       if (fn) { busyChecks.push(fn); return; }
       return busyChecks.some(function (f) { try { return !!f(); } catch (e) { return false; } });
     },
+    /* reload() reloads the page and comes back to the same scroll position.
+       "before-reload" listeners run first: save drafts there. */
+    reload: function () {
+      try { sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ y: window.scrollY })); } catch (e) { /* ok */ }
+      R.emit("before-reload");
+      location.reload();
+    },
     reveal: function (target) {
       for (var el = target; el && el !== document.body; el = el.parentElement) {
         if (el.tagName === "DETAILS" && !el.open) el.open = true;
@@ -49,6 +58,10 @@
           });
         }
       });
+      try {
+        var saved = JSON.parse(sessionStorage.getItem(SCROLL_KEY) || "null");
+        if (saved) { sessionStorage.removeItem(SCROLL_KEY); window.scrollTo(0, saved.y || 0); }
+      } catch (e) { /* none */ }
       R.emit("ready");
     }
   };

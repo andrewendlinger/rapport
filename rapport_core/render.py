@@ -31,7 +31,7 @@ from pygments.util import ClassNotFound
 from . import __version__
 from . import css as css_mod
 from .parse import Builder, Diag, Document, Node, _close_index, assign_ids, make_markdown, parse
-from .registry import KIND_ORDER, Module, resolve_params
+from .registry import Module, resolve_params
 from .util import is_image_file, json_block
 
 # leading whitespace and HTML comments are skipped: anchors go on the first real tag
@@ -648,7 +648,7 @@ class Renderer:
                                           code_cfg.get("dark_style", "github-dark")))
         css = css_mod.style_safe("\n".join([css_mod.layered(theme_parts, mod_parts)] + self.user_css()))
         js_mods = [m for m in used_mods if m.js_path]
-        js_mods.sort(key=lambda m: (0 if m.name == "runtime" else 1, KIND_ORDER[m.kind], m.name))
+        js_mods.sort(key=lambda m: m.name != "runtime")      # the kernel first; the rest keep (kind, order, name)
         scripts = "\n".join(
             f"<script>/* {m.name} */\n{_script_safe(m.js_path.read_text(encoding='utf-8'))}\n</script>"
             for m in js_mods)

@@ -3,6 +3,8 @@
 ## Unreleased
 
 - **`install.sh --help`** prints just the usage text; it no longer ends with the script's `set -eu` line.
+- **`order` orders scripts too.** A module's `order` in `module.toml` now decides its `<script>` position within its kind, as documented. It used to affect only the CSS.
+- **The module script API is documented.** `references/modules.md` now lists what a module's `script.js` can rely on: the `Rapport` functions (including the new `Rapport.reload()`, which keeps the scroll position), the events, the page data and the `init`/`mount` context. The template table also covers `config`, `ctx.module()`, `ctx.config` and `ctx.meta`.
 
 ## 0.5.0 (2026-10-27)
 

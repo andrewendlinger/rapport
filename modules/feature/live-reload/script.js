@@ -7,19 +7,6 @@ Rapport.module("live-reload", {
     var api = serve.api || "/api";
     var buildId = serve.build_id;
     var rev = null, pill = null, errBox = null, errKey = "", dismissed = "";
-    var KEY = "rp-scroll:" + location.pathname;
-
-    try {
-      var saved = JSON.parse(sessionStorage.getItem(KEY) || "null");
-      if (saved) { sessionStorage.removeItem(KEY); window.scrollTo(0, saved.y || 0); }
-    } catch (e) { /* none */ }
-
-    function reload() {
-      try { sessionStorage.setItem(KEY, JSON.stringify({ y: window.scrollY })); } catch (e) { /* ok */ }
-      Rapport.emit("before-reload");
-      location.reload();
-    }
-    Rapport.reload = reload;
 
     function showPill() {
       if (pill) return;
@@ -31,7 +18,7 @@ Rapport.module("live-reload", {
       var b = document.createElement("button");
       b.type = "button";
       b.textContent = "Reload";
-      b.addEventListener("click", reload);
+      b.addEventListener("click", Rapport.reload);
       pill.appendChild(b);
       document.body.appendChild(pill);
     }
@@ -63,7 +50,7 @@ Rapport.module("live-reload", {
       fetch(api + "/meta", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (m) {
         if (down) { down = false; Rapport.emit("server:up"); }
         if (buildId != null && m.build_id !== buildId) {
-          if (Rapport.busy()) showPill(); else return reload();
+          if (Rapport.busy()) showPill(); else return Rapport.reload();
         }
         if (rev !== null && m.feedback_rev !== rev) Rapport.emit("feedback:changed", m);
         rev = m.feedback_rev;

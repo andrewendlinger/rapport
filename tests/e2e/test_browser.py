@@ -254,6 +254,19 @@ def test_idle_page_reloads_on_rebuild(served, page):
     page.wait_for_selector("text=An edited paragraph", timeout=8000)
 
 
+def test_kernel_reload_emits_first_and_keeps_scroll(served, page):
+    filler = "\n\n".join("Filler paragraph number %d with enough words to take up a line." % i for i in range(60))
+    d, app, url = served(f"## Part one\n\n{filler}\n\n## Part two\n\n{filler}\n")
+    open_page(page, url)
+    page.evaluate("""history.scrollRestoration = 'manual';       // so only the kernel can put the scroll back
+      Rapport.on('before-reload', () => sessionStorage.setItem('rp-test-before', String(window.scrollY)));
+      window.__old = true; window.scrollTo(0, 1200)""")
+    page.wait_for_function("window.scrollY === 1200")             # the page may scroll smoothly
+    page.evaluate("Rapport.reload()")
+    page.wait_for_function("window.__old === undefined && window.scrollY === 1200")
+    assert page.evaluate("sessionStorage.getItem('rp-test-before')") == "1200"
+
+
 def test_bar_mode(served, page):
     d, app, url = served(sets=['modules.feedback.on_select="bar"'])
     open_page(page, url)
