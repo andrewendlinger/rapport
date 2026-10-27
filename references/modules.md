@@ -155,7 +155,7 @@ The first script on the page is the kernel, `Rapport`; the module scripts follow
 | `Rapport.busy()` | whether any predicate says so now |
 | `Rapport.reveal(el)` | makes `el` visible: opens `<details>` ancestors and calls the `reveal` of every module around it; returns `el` |
 | `Rapport.reload()` | reloads the page and returns to the same scroll position; emits `before-reload` first |
-| `Rapport.api(module, path, opts)` | calls a route of the module's `server.py` and returns a Promise of the parsed answer. `opts.body` is sent as JSON; `opts.method` defaults to POST with a body, else GET. It rejects with an `Error` holding the server's message and `.status` (0: no answer, or a static page). A 403 on a write means the session token is stale: the page reloads |
+| `Rapport.api(module, path, opts)` | calls a route of the module's `server.py` and returns a Promise of the parsed answer. `opts.body` is sent as JSON; `opts.method` defaults to POST with a body, else GET. It rejects with an `Error` holding the server's message and `.status` (0: no answer, or a static page). A 403 on a write means the session token is stale: the kernel emits `session:stale` and reloads the page 0.7 s later, so drafts saved in `before-reload` survive |
 
 `Rapport.start()` is called by the page template once all scripts are in. It is internal: don't call it.
 
@@ -163,10 +163,11 @@ The first script on the page is the kernel, `Rapport`; the module scripts follow
 |---|---|---|
 | `ready` | the kernel, after every module's `init` and `mount` | none |
 | `before-reload` | `Rapport.reload()` | none; save unsent input (to `sessionStorage`) here |
+| `session:stale` | `Rapport.api()`, when a write got 403: the page reloads 0.7 s later | none; tell the reader why (feedback shows a toast) |
 | `server:down` | live-reload, when the server stops answering | none |
 | `server:up` | live-reload, when it answers again after being down | none |
-| `feedback:changed` | live-reload, when the feedback changed (a comment added or resolved, here or from the CLI) | the `/api/meta` response: `{build_id, errors, version, feedback_rev, revs, dir}` |
-| `<module>:changed` | live-reload, when the stored state of a module with a `server.py` changed (here, in another tab, or from another process) | the `/api/meta` response |
+| `<module>:changed` | live-reload, when the stored state of a module with a `server.py` changed (here, in another tab, or from another process) | the `/api/meta` response: `{build_id, errors, version, revs, dir}` |
+| `feedback:changed` | the same, for the feedback module: a comment added or resolved, here or from the CLI | the `/api/meta` response |
 
 Only served pages (`rapport serve`) emit the `server:` and `:changed` events.
 
@@ -194,6 +195,8 @@ It may also define `check(config) -> list[str]`, which validates the module's `[
 ## server.py
 
 A module can extend the review server: a sign-off button, a poll, a checklist whose ticks persist. Its `server.py` registers routes. `rapport serve` answers them under `/api/m/<name>/`, keeps the module's state, and tells the page when that state changes. `rapport modules new <name> --server` scaffolds a working example.
+
+The built-in reader feedback is one such module: `modules/feature/feedback/server.py` (with its `script.js`) is the reference implementation, and an override of `feedback` replaces both halves.
 
 ```toml
 # rapport-modules/signoff/module.toml
@@ -289,7 +292,7 @@ An unknown module or route also answers 404, and a state file that isn't valid J
 
 ### State
 
-`req.store` is one JSON object per module, kept in `.rapport/modules/<name>.json`.
+`req.store` is one JSON object per module, kept in `.rapport/modules/<name>.json` (feedback's, older, in `.rapport/feedback.json`).
 
 - `req.store.read()` returns it, or `{}` before the first write.
 - `with req.store.edit() as state:` locks it against other requests and processes, and saves it when the block ends. Change `state` in place. An exception inside the block (a `Refused`, say) saves nothing. Don't nest edits.

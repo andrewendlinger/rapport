@@ -51,15 +51,15 @@ def test_writes_need_token_and_host(server):
     d, app, url = server
     para = next(k for k, v in app.blocks.items() if v["module"] == "paragraph")
     payload = {"target": {"kind": "text", "blocks": [para], "quote": "A paragraph"}, "actions": ["verbose"]}
-    assert req(url + "api/feedback", "POST", payload)[0] == 403
+    assert req(url + "api/m/feedback/", "POST", payload)[0] == 403
     assert req(url + "api/meta", host="evil.example:80")[0] == 403
-    code, item = req(url + "api/feedback", "POST", payload, app.token)
+    code, item = req(url + "api/m/feedback/", "POST", payload, app.token)
     assert code == 200 and item["id"] == "FB-1" and item["target"]["lines"] == [3, 3]
-    code, item = req(url + "api/feedback/FB-1", "PATCH", {"comment": "shorter"}, app.token)
+    code, item = req(url + "api/m/feedback/FB-1", "PATCH", {"comment": "shorter"}, app.token)
     assert code == 200 and item["comment"] == "shorter"
-    assert req(url + "api/feedback", "POST", {"target": {"kind": "report"}}, app.token)[0] == 400
-    assert req(url + "api/feedback/FB-1", "DELETE", None, app.token)[0] == 200
-    code, body = req(url + "api/feedback")
+    assert req(url + "api/m/feedback/", "POST", {"target": {"kind": "report"}}, app.token)[0] == 400
+    assert req(url + "api/m/feedback/FB-1", "DELETE", None, app.token)[0] == 200
+    code, body = req(url + "api/m/feedback/")
     assert code == 200 and body["items"] == [] and sorted(body) == ["changes", "items"]
 
 
@@ -67,15 +67,46 @@ def test_feedback_answer_carries_the_changes_of_the_last_round(server):
     d, app, url = server
     para = next(k for k, v in app.blocks.items() if v["module"] == "paragraph")
     payload = {"target": {"kind": "text", "blocks": [para], "quote": "A paragraph"}, "actions": ["verbose"]}
-    code, item = req(url + "api/feedback", "POST", payload, app.token)
+    code, item = req(url + "api/m/feedback/", "POST", payload, app.token)
     assert code == 200 and item["round"] == 1
-    assert req(url + "api/feedback")[1]["changes"] is None
+    assert req(url + "api/m/feedback/")[1]["changes"] is None
     (d / "report.md").write_text("## Summary\n\nShorter.\n", encoding="utf-8")
     app.rebuild()
     Store(d).resolve([item["id"]], "cut it")
-    ch = req(url + "api/feedback")[1]["changes"]
+    ch = req(url + "api/m/feedback/")[1]["changes"]
     assert [c["items"] for c in ch["changed"]] == [[item["id"]]]
     assert app.blocks[ch["changed"][0]["id"]]["src"] == "Shorter."
+
+
+def test_feedback_is_a_module_and_keeps_its_file(server):
+    d, app, url = server
+    with pytest.raises(urllib.error.HTTPError, match="404"):                    # moved to /api/m/feedback/
+        urllib.request.urlopen(url + "api/feedback", timeout=5)
+    meta = req(url + "api/meta")[1]
+    assert "feedback_rev" not in meta and meta["revs"]["feedback"] == "0"
+    code, item = req(url + "api/m/feedback/", "POST", {"target": {"kind": "report"}, "comment": "c"}, app.token)
+    first = req(url + "api/meta")[1]["revs"]["feedback"]
+    assert code == 200 and first == str((d / ".rapport" / "feedback.json").stat().st_mtime_ns)
+    Store(d).resolve([item["id"]], "done")                                      # the agent, from the CLI
+    assert req(url + "api/meta")[1]["revs"]["feedback"] != first
+
+
+def test_files_named_by_path_settings_are_watched(report):
+    from conftest import write
+    d = report("x\n", {"reports/r/rapport-modules/notes/module.toml":
+                       'name = "notes"\nkind = "feature"\nsummary = "Notes."\n\n[config.data]\ntype = "string"\n'
+                       'default = ""\npath = true\ndoc = "A file the module reads."\n'})
+    write(d / "rapport.toml", '[modules.notes]\ndata = "notes.txt"\n\n'
+                              '[[modules.feedback.actions]]\nid = "cite"\nlabel = "Cite"\ninstruction_file = "cite.md"\n')
+    write(d / "notes.txt", "one\n")
+    write(d / "cite.md", "Add a source.\n")
+    httpd, app, url, cfg = make_server(d, port=0, pinned=True)
+    httpd.server_close()
+    assert not app.errors and {d.resolve() / "notes.txt", d.resolve() / "cite.md"} <= set(app.files)
+    for name in ("cite.md", "notes.txt"):
+        before = app.build_id
+        write(d / name, "changed, and longer\n")
+        assert app.watcher.tick() and app.build_id == before + 1, name
 
 
 def test_rebuilds_on_change(server):
@@ -136,20 +167,20 @@ def test_input_validation(server):
     import http.client
     d, app, url = server
     para = next(k for k, v in app.blocks.items() if v["module"] == "paragraph")
-    assert req(url + "api/feedback", "POST", {"target": "x", "comment": "c"}, app.token)[0] == 400
+    assert req(url + "api/m/feedback/", "POST", {"target": "x", "comment": "c"}, app.token)[0] == 400
     host, port = url.split("//")[1].rstrip("/").split(":")
     conn = http.client.HTTPConnection(host, int(port), timeout=5)
-    conn.putrequest("POST", "/api/feedback")
+    conn.putrequest("POST", "/api/m/feedback/")
     conn.putheader("Content-Length", "abc")
     conn.putheader("X-Rapport-Token", app.token)
     conn.endheaders()
     assert conn.getresponse().status == 400
     conn.close()
     payload = {"target": {"kind": "text", "blocks": [para], "quote": "A paragraph"}, "actions": ["verbose"]}
-    assert req(url + "api/feedback", "POST", payload, app.token)[0] == 200
-    assert req(url + "api/feedback/FB-1", "PATCH", {"comment": "", "actions": []}, app.token)[0] == 400
-    assert req(url + "api/feedback/FB-99", "PATCH", {"comment": "x"}, app.token)[0] == 404
-    assert req(url + "api/feedback/FB-99", "DELETE", None, app.token)[0] == 404
+    assert req(url + "api/m/feedback/", "POST", payload, app.token)[0] == 200
+    assert req(url + "api/m/feedback/FB-1", "PATCH", {"comment": "", "actions": []}, app.token)[0] == 400
+    assert req(url + "api/m/feedback/FB-99", "PATCH", {"comment": "x"}, app.token)[0] == 404
+    assert req(url + "api/m/feedback/FB-99", "DELETE", None, app.token)[0] == 404
 
 
 def test_stop_never_signals_an_unconfirmed_pid(report):
@@ -231,7 +262,7 @@ def _main_thread_sleep(monkeypatch, fake):
 def test_a_broken_feedback_file_gets_an_error_answer(server):
     d, app, url = server
     (d / ".rapport" / "feedback.json").write_text("{not json", encoding="utf-8")
-    code, body = req(url + "api/feedback")
+    code, body = req(url + "api/m/feedback/")
     assert code == 500 and "is not valid JSON" in body["error"]
 
 

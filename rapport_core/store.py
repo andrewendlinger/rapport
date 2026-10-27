@@ -1,6 +1,6 @@
-"""JSON files in the state folder that the server and the CLI both write:
-feedback.json, and each module's own state (modules/<name>.json, for modules
-with a server.py).
+"""JSON files in the state folder that the server and the CLI both write: each
+module's own state (modules/<name>.json, for modules with a server.py), and
+feedback.json, the feedback module's.
 
 One discipline for all of them: a write holds a thread lock (the server's
 request threads) and an flock on a side lock file (other processes: the CLI,
@@ -23,6 +23,9 @@ except ImportError:  # pragma: no cover - non-POSIX
     fcntl = None
 
 MODULE_STATE_DIR = "modules"
+# state kept where it was before modules had their own: reports, the managed .gitignore
+# (commit_feedback) and its git notices all know feedback.json by that name
+LEGACY = {"feedback": ("feedback.json", "feedback.lock")}
 _LOCKS: dict[Path, threading.Lock] = {}
 _LOCKS_GUARD = threading.Lock()
 _HELD = threading.local()
@@ -105,5 +108,7 @@ class StateFile:
 
 
 def module_store(report_dir: Path, name: str, readonly: bool = False) -> StateFile:
-    """A module's own state: .rapport/modules/<name>.json (names are [a-z0-9-], safe as file names)."""
-    return StateFile(report_dir, f"{MODULE_STATE_DIR}/{name}.json", f"{MODULE_STATE_DIR}/{name}.lock", readonly)
+    """A module's own state: .rapport/modules/<name>.json (names are [a-z0-9-], safe as file names);
+    feedback's is .rapport/feedback.json."""
+    file, lock = LEGACY.get(name) or (f"{MODULE_STATE_DIR}/{name}.json", f"{MODULE_STATE_DIR}/{name}.lock")
+    return StateFile(report_dir, file, lock, readonly)

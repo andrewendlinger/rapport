@@ -1,10 +1,11 @@
-"""Reader feedback: the store (feedback.json in the state folder, .rapport/) and
-the agent-facing CLI.
+"""Reader feedback: the store (feedback.json in the state folder, .rapport/),
+validation, and the agent-facing CLI.
 
-Items are written by the review server (browser) and by `rapport feedback add`;
-the agent reads them with `rapport feedback`, which re-locates every item in
-the *current* report.md (exact → whitespace-insensitive → fuzzy) and joins it
-with the configured instruction for its action(s).
+Items are written by the review server (the feedback module's server.py, for
+the browser) and by `rapport feedback add`; the agent reads them with `rapport
+feedback`, which re-locates every item in the *current* report.md (exact →
+whitespace-insensitive → fuzzy) and joins it with the configured instruction
+for its action(s).
 """
 
 from __future__ import annotations
@@ -16,11 +17,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .changes import round_for
-from .store import StateFile
+from .store import module_store
 from .util import NotFound, RapportError, bump_version, collapse_ws, read_state
 
-FEEDBACK_FILE = "feedback.json"
-LOCK_FILE = "feedback.lock"
 MAX_COMMENT = 10_000
 MAX_QUOTE = 5_000
 
@@ -31,11 +30,12 @@ def now() -> str:
 
 # ── store ─────────────────────────────────────────────────────────────────── #
 class Store:
-    """The feedback items, on a StateFile: the server and the CLI never interleave writes."""
+    """The feedback items, on the feedback module's StateFile (the req.store of its
+    server.py): the server and the CLI never interleave writes."""
 
     def __init__(self, report_dir: Path):
         self.report_dir = Path(report_dir).resolve()
-        self.file = StateFile(self.report_dir, FEEDBACK_FILE, LOCK_FILE)
+        self.file = module_store(self.report_dir, "feedback")
         self.path = self.file.path
 
     def locked(self):
@@ -49,9 +49,6 @@ class Store:
 
     def save(self, data: dict) -> None:
         self.file.save(data)
-
-    def rev(self) -> int:
-        return self.file.rev()
 
     def items(self) -> list[dict]:
         return self.load()["items"]

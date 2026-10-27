@@ -11,6 +11,7 @@ import pytest
 
 from conftest import write
 from rapport_core.cli import main
+from rapport_core.config import user_paths
 from rapport_core.serve import make_server
 from rapport_core.store import Corrupt, module_store
 from test_server import req
@@ -163,9 +164,9 @@ def test_unknown_disabled_and_static_modules_answer_404(served):
     code, body = req(url + "api/m/notes/items", "PUT", {}, app.token)
     assert code == 404 and "has no route PUT /items (that path takes POST)" in body["error"]
     d, app, url = served(sets=["modules.notes.enabled=false"], name="off")
-    assert req(url + "api/m/notes/")[0] == 404 and req(url + "api/meta")[1]["revs"] == {}
+    assert req(url + "api/m/notes/")[0] == 404 and req(url + "api/meta")[1]["revs"].keys() == {"feedback"}
     d, app, url = served(files=module_files("static", when="static"), name="static")
-    assert req(url + "api/m/notes/")[0] == 404 and req(url + "api/meta")[1]["revs"] == {}
+    assert req(url + "api/m/notes/")[0] == 404 and req(url + "api/meta")[1]["revs"].keys() == {"feedback"}
 
 
 def test_bodies_are_checked_before_the_handler(served):
@@ -201,7 +202,7 @@ def test_handler_errors_answer_500_with_a_traceback_in_the_log(served, capsys):
 def test_state_revisions_show_in_meta_including_writes_from_outside(served):
     d, app, url = served()
     revs = lambda: req(url + "api/meta")[1]["revs"]      # noqa: E731
-    assert revs() == {"notes": "0"}
+    assert revs() == {"feedback": "0", "notes": "0"}
     req(url + "api/m/notes/items", "POST", {"text": "from the page"}, app.token)
     first = revs()["notes"]
     assert first == str(module_store(d, "notes").rev()) != "0"
@@ -299,6 +300,31 @@ def test_modules_state_prints_what_describe_says(capsys, report):
     assert code == 2 and "'callout' has no server.py, so it keeps no state" in err
     code, out, err = run(capsys, "modules", "state", "note", "-C", str(d))
     assert code == 2 and "did you mean 'notes'" in err
+
+
+def test_an_override_of_feedback_owns_its_routes(capsys, report):
+    """`modules new feedback` copies the built-in, server.py included. The copy imports
+    rapport_core as the original does (the entry point puts the repo on sys.path)."""
+    d = report(TEXT)
+    assert run(capsys, "modules", "new", "feedback", "--scope", "user", "-C", str(d))[0] == 0
+    copy = user_paths().modules_dir / "feedback"
+    src = copy / "server.py"
+    src.write_text(src.read_text(encoding="utf-8") + '\n\nbuiltin_routes = routes\n\n\ndef routes(r):\n'
+                   '    builtin_routes(r)\n    r.get("/mine", lambda req: {"override": True})\n', encoding="utf-8")
+    out = subprocess.run([sys.executable, str(ROOT / "scripts" / "rapport.py"), "modules", "info", "feedback",
+                          "-C", str(d)], capture_output=True, text=True, cwd=d, timeout=60)
+    assert out.returncode == 0 and "GET    /mine" in out.stdout and "PATCH  /{id}" in out.stdout, out.stderr
+    httpd, app, url, cfg = make_server(d, port=0, pinned=True)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        assert not app.errors and app.cfg.registry.get("feedback").dir == copy.resolve()
+        assert req(url + "api/m/feedback/mine") == (200, {"override": True})
+        code, item = req(url + "api/m/feedback/", "POST", {"target": {"kind": "report"}, "comment": "c"}, app.token)
+        assert code == 200 and item["id"] == "FB-1"
+        assert [i["id"] for i in req(url + "api/m/feedback/")[1]["items"]] == ["FB-1"]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
 
 
 BROKEN = {

@@ -10,9 +10,6 @@ Rapport.module("feedback", {
   init: function (ctx) {
     "use strict";
     var cfg = ctx.config || {};
-    var serve = ctx.data.serve || {};
-    var API = serve.api || "/api";
-    var TOKEN = serve.token || "";
     var MODE = cfg.on_select === "bar" ? "bar" : "window";
     var AUTOFOCUS = cfg.autofocus !== false;      // cursor goes into the comment box on select
     var ENTER_SAVES = cfg.enter_saves !== false;  // Enter saves; Shift/Cmd/Ctrl+Enter is a new line
@@ -183,36 +180,28 @@ Rapport.module("feedback", {
                suffix: t.suffix || "", region: t.region || "" };
     }
 
-    /* ── server ─────────────────────────────────────────── */
+    /* ── server: our routes (server.py), through Rapport.api ── */
     function api(method, path, body) {
-      return fetch(API + path, {
-        method: method, cache: "no-store",
-        headers: { "Content-Type": "application/json", "X-Rapport-Token": TOKEN },
-        body: body ? JSON.stringify(body) : undefined
-      }).then(function (r) {
-        return r.json().catch(function () { return {}; }).then(function (data) {
-          if (r.status === 403) {
-            saveDraft();
-            toast("Session changed — reloading…");
-            setTimeout(function () { location.reload(); }, 700);
-            throw { kind: "auth", message: "reloading" };
-          }
-          if (!r.ok) throw { kind: "http", message: data.error || ("HTTP " + r.status) };
-          banner(false);
-          return data;
-        });
-      }, function () {
-        banner(true);
-        throw { kind: "net", message: "Can't reach the review server. Your text is kept — try again." };
+      return Rapport.api("feedback", path, { method: method, body: body }).then(function (data) {
+        banner(false);
+        return data;
+      }, function (e) {
+        if (e.status === 0) {
+          banner(true);
+          e.message = "Can't reach the review server. Your text is kept — try again.";
+        } else if (e.status === 403) {
+          e.message = "reloading";      // the kernel reloads the page: see session:stale below
+        }
+        throw e;
       });
     }
     function load() {
-      return api("GET", "/feedback").then(function (d) {
+      return api("GET", "/").then(function (d) {
         items = d.items || [];
         changes = d.changes || null;
         items.forEach(anchor);
         paint();
-      }).catch(function (e) { if (e.kind === "http") toast(e.message); });   // api() shows the offline banner
+      }).catch(function (e) { if (e.status && e.status !== 403) toast(e.message); });   // api() shows the offline banner
     }
 
     /* ── anchoring items to the current page ─────────────── */
@@ -661,14 +650,14 @@ Rapport.module("feedback", {
     function saveNew(t, actions, comment) {
       if (!validate(actions, comment)) return;
       saveBtn.disabled = true;
-      api("POST", "/feedback", { target: payloadTarget(t), actions: actions, comment: comment }).then(function (item) {
+      api("POST", "/", { target: payloadTarget(t), actions: actions, comment: comment }).then(function (item) {
         clearDraft();
         closeWin(true);
         var sel = window.getSelection();
         if (sel) sel.removeAllRanges();
         var what = actions.length ? actions.map(label).join(" + ") : "Comment";
         if (item.duplicate) toast("Already flagged · " + item.id);
-        else toast(what + " saved · " + item.id, function () { api("DELETE", "/feedback/" + item.id).then(load); });
+        else toast(what + " saved · " + item.id, function () { api("DELETE", "/" + item.id).then(load); });
         load();
       }).catch(function (e) { showErr(e.message); saveDraft(); refreshWin(); });
     }
@@ -676,7 +665,7 @@ Rapport.module("feedback", {
       var comment = ta.value.trim();
       if (!validate(st.selected, comment)) return;
       var it = st.item;
-      api("PATCH", "/feedback/" + it.id, { actions: st.selected, comment: comment }).then(function () {
+      api("PATCH", "/" + it.id, { actions: st.selected, comment: comment }).then(function () {
         closeWin(true);
         toast(it.id + " updated");
         load();
@@ -704,7 +693,7 @@ Rapport.module("feedback", {
     delBtn.addEventListener("click", function () {
       var it = st.item;
       if (!it) return;
-      api("DELETE", "/feedback/" + it.id).then(function () { closeWin(true); toast(it.id + " deleted"); load(); })
+      api("DELETE", "/" + it.id).then(function () { closeWin(true); toast(it.id + " deleted"); load(); })
         .catch(function (e) { showErr(e.message); });
     });
     ta.addEventListener("input", function () { showErr(""); saveDraft(); refreshWin(); });
@@ -1063,7 +1052,7 @@ Rapport.module("feedback", {
     gbtn.addEventListener("click", function () {
       var c = gta.value.trim();
       if (!c) { gta.focus(); return; }
-      api("POST", "/feedback", { target: { kind: "report" }, actions: [], comment: c }).then(function (item) {
+      api("POST", "/", { target: { kind: "report" }, actions: [], comment: c }).then(function (item) {
         gta.value = "";
         saveGeneral();
         toast("Comment saved · " + item.id);
@@ -1128,6 +1117,7 @@ Rapport.module("feedback", {
       return !!(sel && !sel.isCollapsed && sel.rangeCount && SCOPE.contains(sel.getRangeAt(0).commonAncestorContainer));
     });
     Rapport.on("feedback:changed", load);
+    Rapport.on("session:stale", function () { toast("Session changed — reloading…"); });
     Rapport.on("server:down", function () { banner(true); });
     Rapport.on("server:up", function () { banner(false); });
     Rapport.on("before-reload", function () { saveDraft(); saveGeneral(); });

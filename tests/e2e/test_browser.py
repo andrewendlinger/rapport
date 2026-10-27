@@ -389,6 +389,42 @@ def test_stale_token_reloads(served, page):
     select(page, "A second paragraph")
     with page.expect_navigation(timeout=5000):
         page.click(".rp-fb-win .rp-fb-chip[data-a=verbose]")
+        page.wait_for_selector(".rp-fb-toast:has-text('Session changed — reloading…')")   # said before it reloads
+
+
+def test_feedback_from_elsewhere_shows_up_once(served, page):
+    d, app, url = served()
+    open_page(page, url)
+    page.evaluate("window.__changed = 0; Rapport.on('feedback:changed', function () { window.__changed++; })")
+    Store(d).add({"target": {"kind": "report"}, "actions": [], "comment": "from the CLI"})
+    page.wait_for_function("document.querySelector('.rp-fb-chipbtn .rp-n').textContent === '1'", timeout=5000)
+    page.wait_for_timeout(1500)                                     # another poll or so: no second event
+    assert page.evaluate("window.__changed") == 1
+
+
+def test_a_page_open_across_a_restart_reloads(report, page):
+    """The new server may run another rapport, with other routes: the page must reload,
+    though nothing in the report changed."""
+    d = report(REPORT, {"reports/r/assets/demo.gif": GIF})
+    httpd, app, url, cfg = make_server(d, port=0, pinned=True)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    port = httpd.server_address[1]
+    try:
+        open_page(page, url)
+        page.evaluate("window.__before = true")
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    page.wait_for_selector(".rp-fb-banner:not([hidden])")          # the page saw the server go
+    try:
+        with page.expect_navigation(timeout=8000):
+            httpd, app, url, cfg = make_server(d, port=port, pinned=True)
+            threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        page.wait_for_selector(".rp-fb-chipbtn")
+        assert page.evaluate("window.__before") is None
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
 
 
 # ── regressions from the review ────────────────────────────────────────────── #

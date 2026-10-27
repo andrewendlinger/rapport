@@ -7,7 +7,7 @@
 (function () {
   "use strict";
   var defs = {}, order = [], listeners = {}, busyChecks = [];
-  var data = {};
+  var data = {}, stale = false;
   var SCROLL_KEY = "rp-scroll:" + location.pathname;
   try { data = JSON.parse(document.getElementById("rp-data").textContent); } catch (e) { /* none */ }
 
@@ -42,7 +42,8 @@
     /* api(module, path, opts) calls a route of the module's server.py (served pages only).
        opts.method defaults to POST when opts.body is given, else GET. Resolves with the
        parsed answer; rejects with an Error carrying the server's message and .status
-       (0: no answer). A 403 on a write means the session token went stale: reload. */
+       (0: no answer). A 403 on a write means the session token went stale: emit
+       "session:stale" once (a module can tell the reader) and reload 0.7 s later. */
     api: function (module, path, opts) {
       opts = opts || {};
       path = path || "/";
@@ -59,7 +60,11 @@
       }).then(function (r) {
         return r.json().catch(function () { return null; }).then(function (res) {
           if (r.ok) return res;
-          if (r.status === 403 && method !== "GET") setTimeout(R.reload, 0);
+          if (r.status === 403 && method !== "GET" && !stale) {
+            stale = true;
+            R.emit("session:stale");
+            setTimeout(R.reload, 700);
+          }
           throw fail((res && res.error) || "HTTP " + r.status, r.status);
         });
       }, function () {

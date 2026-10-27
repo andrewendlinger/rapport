@@ -1,13 +1,14 @@
 """The review server: serves the report with the serve-only modules (feedback,
-live reload), rebuilds when sources change, stores reader feedback, and
-answers the routes of modules that have a server.py (/api/m/<module>/…, see
-routes.py).
+live reload), rebuilds when sources change, and answers the routes of modules
+that have a server.py (/api/m/<module>/…, see routes.py). Reader feedback is
+one of them: modules/feature/feedback/server.py.
 
 Security: binds 127.0.0.1 by default, checks the Host header on every request
-(DNS rebinding), and requires a per-report token on every write (CSRF), module
-routes included. The token persists in server.json in the state folder
-(.rapport/, git-ignored), so a page left open across a restart keeps working;
-a page holding a stale token gets 403 and reloads itself.
+(DNS rebinding), and requires a token on every write (CSRF): all writes are
+module routes. The token persists in server.json in the state folder
+(.rapport/, git-ignored), so a page left open across a restart keeps working
+(it reloads on the new server's first build id, or offers to if the reader is
+busy); a page holding a stale token gets 403 and reloads itself.
 """
 
 from __future__ import annotations
@@ -31,8 +32,6 @@ from pathlib import Path
 from . import ROOT
 from . import config as config_mod
 from .build import build
-from .changes import changes
-from .feedback import Store, check_content, make_item, update_fields
 from .routes import Request, mount
 from .store import Corrupt, module_store
 from .util import STATE_FILE, NotFound, RapportError, atomic_write, ensure_state_dir, read_state, state_dir, unique
@@ -61,6 +60,29 @@ def fallback_files(report_dir: Path) -> list[Path]:
     return [report_dir / "report.md"] + config_files(report_dir)
 
 
+def module_paths(cfg) -> list[Path]:
+    """Files named in the settings of enabled modules where the schema says path = true, as a
+    setting or as a field of a `tables` setting (feedback's actions[].instruction_file): a module
+    may read them. path = "icon" images are inlined, so they are among the build's assets."""
+    def paths(value) -> list[Path]:     # config made them absolute; a default it didn't is skipped
+        return [Path(v) for v in (value if isinstance(value, list) else [value])
+                if isinstance(v, str) and v and Path(v).is_absolute()]
+    out = []
+    for name in cfg.registry.names():
+        if not cfg.enabled(name):
+            continue
+        values = cfg.module(name)
+        for key, spec in cfg.registry.get(name).schema_tree.items():
+            value = values.get(key)
+            if spec.get("path") is True:
+                out += paths(value)
+            elif spec.get("type") == "tables" and isinstance(spec.get("fields"), dict) and isinstance(value, list):
+                for field, fspec in spec["fields"].items():
+                    if isinstance(fspec, dict) and fspec.get("path") is True:
+                        out += [p for item in value if isinstance(item, dict) for p in paths(item.get(field))]
+    return out
+
+
 def watched_files(report_dir: Path, cfg, assets=()) -> list[Path]:
     """Everything a rebuild depends on. Missing files are listed too (they
     show up as changed once created), and so are the module folders, whose
@@ -81,9 +103,7 @@ def watched_files(report_dir: Path, cfg, assets=()) -> list[Path]:
     for layer in cfg.layers:
         if layer.path and layer.path.suffix == ".toml":
             files.append(layer.path)
-    for a in cfg.module("feedback").get("actions") or []:
-        if isinstance(a, dict) and a.get("instruction_file"):
-            files.append(Path(a["instruction_file"]))
+    files += module_paths(cfg)
     # the build's own output must never trigger a build
     output = cfg.output_path.resolve()
     return unique(f for f in map(Path, files)
@@ -133,10 +153,11 @@ class App:
         self.report_dir = report_dir
         self.sets = sets
         self.token = token
-        self.store = Store(report_dir)
         self.lock = threading.Lock()
         self.html = b""
-        self.build_id = 0
+        # ids count on from this process's start time, not from 0: a page left open across a
+        # restart (perhaps onto another rapport, with other routes) sees a new id and reloads
+        self.build_id = time.time_ns() // 1_000_000
         self.errors: list[str] = []
         self.warnings: list[str] = []
         self.cfg = None
@@ -198,13 +219,6 @@ class App:
             except Exception:  # noqa: BLE001
                 traceback.print_exc()
 
-    def feedback(self) -> dict:
-        """The items, plus what changed since the last feedback round (the page's change bars)."""
-        items = self.store.items()
-        with self.lock:
-            blocks = self.blocks
-        return {"items": items, "changes": changes(self.report_dir, blocks, items) if blocks else None}
-
     def meta(self) -> dict:
         """What the page polls. revs: each served module's state revision, its file's mtime_ns
         (so a write from the CLI or another process counts too) as a string: a JS number would
@@ -212,7 +226,6 @@ class App:
         with self.lock:
             return {"build_id": self.build_id, "errors": self.errors,
                     "version": read_state(self.report_dir).get("version", 1),
-                    "feedback_rev": self.store.rev(),
                     "revs": {name: str(module_store(self.report_dir, name).rev()) for name in self.routes},
                     "dir": str(self.report_dir)}
 
@@ -289,8 +302,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, body, "text/html; charset=utf-8")
         elif path == "/api/meta":
             self._json(self.app.meta())
-        elif path == "/api/feedback":
-            self._answer(self.app.feedback)
         else:
             self._send(404, b"not found", "text/plain")
 
@@ -308,10 +319,6 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self._json({"error": f"server error: {e}"}, 500)
-
-    def _mutate(self, fn) -> None:
-        if self._host_ok() and self._token_ok():
-            self._answer(fn)
 
     def _module_route(self, method: str) -> None:
         """/api/m/<module>/<path>: a route from that module's server.py. Host, token and body
@@ -340,60 +347,24 @@ class Handler(BaseHTTPRequestHandler):
             return route.fn(req)
         self._answer(call)
 
-    def do_POST(self) -> None:  # noqa: N802
+    def _write(self, method: str) -> None:
+        """Every write goes to a module route (the feedback module's included)."""
         if self.path.startswith(MODULE_API):
-            self._module_route("POST")
-            return
-        if self.path.split("?")[0] != "/api/feedback":
-            self._send(404, b"not found", "text/plain")
-            return
-
-        def create():
-            payload = self._body()
-            with self.app.lock:
-                cfg, blocks = self.app.cfg, self.app.blocks
-            if cfg is None:
-                raise RapportError("the report has not built yet")
-            version = read_state(self.app.report_dir).get("version", 1)
-            return self.app.store.add(make_item(payload, cfg, blocks, version), blocks)
-        self._mutate(create)
-
-    def _item_id(self) -> str:
-        parts = self.path.split("?")[0].rstrip("/").split("/")
-        if len(parts) != 4 or parts[1:3] != ["api", "feedback"]:
-            raise NotFound("not found")
-        return parts[3]
-
-    def do_PUT(self) -> None:  # noqa: N802
-        if self.path.startswith(MODULE_API):
-            self._module_route("PUT")
+            self._module_route(method)
         else:
             self._send(404, b"not found", "text/plain")
 
-    def do_PATCH(self) -> None:  # noqa: N802
-        if self.path.startswith(MODULE_API):
-            self._module_route("PATCH")
-            return
+    def do_POST(self) -> None:  # noqa: N802
+        self._write("POST")
 
-        def patch():
-            cfg = self.app.cfg
-            if cfg is None:
-                raise RapportError("the report has not built yet")
-            item_id = self._item_id()
-            fields = update_fields(self._body(), cfg)
-            return self.app.store.update(item_id, fields, validate=lambda it: check_content(
-                it.get("actions") or [], it.get("comment") or "", cfg))
-        self._mutate(patch)
+    def do_PUT(self) -> None:  # noqa: N802
+        self._write("PUT")
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        self._write("PATCH")
 
     def do_DELETE(self) -> None:  # noqa: N802
-        if self.path.startswith(MODULE_API):
-            self._module_route("DELETE")
-            return
-
-        def delete():
-            self.app.store.delete(self._item_id())
-            return {"ok": True}
-        self._mutate(delete)
+        self._write("DELETE")
 
 
 # ── server lifecycle ─────────────────────────────────────────────────────────── #
