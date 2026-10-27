@@ -182,7 +182,7 @@ rapport modules new tabs --kind block --scope project
 rapport modules check tabs
 ```
 
-A module is a folder: `module.toml` for its options, `template.html` for its markup, and optionally `style.css`, `script.js` and an `example.md`. There's no registration. Once `modules check` passes, `::: tabs` works and your agent finds it in `rapport brief`. A folder with a built-in module's name replaces the built-in.
+A module is a folder: `module.toml` for its options, `template.html` for its markup, and optionally `style.css`, `script.js` and an `example.md`. There's no registration. Once `modules check` passes, `::: tabs` works and your agent finds it in `rapport brief`. To change a built-in, `rapport modules new callout` makes a thin override: copy in only the files you change, and the rest keeps getting rapport's fixes.
 
 ::: collapse Module kinds
 | Kind | What it is | How it's used |
