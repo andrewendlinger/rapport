@@ -16,6 +16,7 @@
 - **Extra page regions.** `[layout.regions]` adds regions beyond `top`, `side` and `bottom` (`banner = ["notice"]`). A `page` override places one as `{{ regions.banner }}`; the build warns about a region the page doesn't place.
 - **The names core relies on are documented** in `references/modules.md` (`runtime`, `page`, `default`, the element names, `code`, `feedback`), so an override knows what it must keep.
 - **SKILL.md rewritten.** Applying feedback has its own section, and it covers `serve --detach`, notes for the change bars, thin overrides, `--server` modules and `modules state`; what `brief` and `--help` already say is gone. The user-config and review-state sections of `references/config.md` moved to `references/state.md`.
+- **A guide for changing rapport.** `AGENTS.md` (which `CLAUDE.md` imports) maps the code, lists the rules a change must keep and gives the test, lint and release steps. `pyproject.toml` adds the dev tooling: `uv run pytest` runs the unit tests, `uv run --group e2e pytest tests/e2e` the browser tests, `uvx ruff check` the linter. `install.sh --venv` now reuses a `.venv` that `uv run` made instead of failing.
 
 ## 0.5.0 (2026-10-27)
 

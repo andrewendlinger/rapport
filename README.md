@@ -73,6 +73,7 @@ instruction = "Add a source or a link that supports this claim."
 | [Modules](references/modules.md) | writing your own modules and themes |
 | [State and user config](references/state.md) | the `.rapport/` folder, committing feedback, moving your config |
 | [SKILL.md](SKILL.md) | what the agent follows |
+| [AGENTS.md](AGENTS.md) | for an agent (or a person) changing rapport itself |
 | [Changelog](CHANGELOG.md) | what changed in each release |
 
 <details>
@@ -109,11 +110,12 @@ A double-clicked `report.html` is the clean report: no feedback UI, no highlight
 <summary><b>Repository layout</b></summary>
 
 ```
-SKILL.md             what agents follow
+SKILL.md             what agents follow to use rapport
+AGENTS.md            what agents follow to change it (CLAUDE.md imports it)
 bin/rapport          CLI wrapper (.venv → uv run → python3)
 scripts/rapport.py   entry point with inline (PEP 723) dependencies
 rapport_core/        cli · config · schema · registry · parse · render · css · build · changes
-                     serve · feedback · lint · brief · modules_cmd · util
+                     serve · routes · store · feedback · lint · brief · modules_cmd · util
 config/schema.toml   core settings: types, defaults, docs, merge rules
 modules/             every built-in module: layout, theme, element, block, inline, feature
 presets/             named bundles of settings
@@ -121,14 +123,19 @@ references/          authoring.md · config.md · modules.md · state.md
 examples/primer/     the tutorial report
 docs/                README screenshots
 tests/               pytest suite; tests/e2e drives a real browser
+pyproject.toml       dev tooling only: pytest and ruff settings, `uv run`
 ```
 
 </details>
 
 ## Development
 
+To change rapport itself, or to point your agent at this repo to do it, start with [AGENTS.md](AGENTS.md): the map, the rules, the release steps.
+
 ```sh
-uv run --with pytest --with-requirements requirements.txt pytest tests
-# browser tests (Playwright; needs a Chromium: `uvx playwright install chromium`, or set RP_CHROME)
-uv run --with pytest --with playwright --with-requirements requirements.txt pytest tests/e2e
+uv run pytest                          # unit tests; the first run builds .venv/
+uv run --group e2e pytest tests/e2e    # browser tests (Playwright; needs a Chromium: `uvx playwright install chromium`, or set RP_CHROME)
+uvx ruff check                         # lint
 ```
+
+`uv run` keeps a `.venv/` here with the dependencies, which `bin/rapport` then prefers. `pyproject.toml` is for these tools only: rapport is not a pip package.

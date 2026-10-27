@@ -110,7 +110,7 @@ fi
 if [ $VENV -eq 1 ]; then
   if command -v uv >/dev/null 2>&1; then
     echo "venv  $REPO/.venv (uv)"
-    run uv venv --quiet "$REPO/.venv"
+    [ -x "$REPO/.venv/bin/python" ] || run uv venv --quiet "$REPO/.venv"   # `uv run` may have made it
     run uv pip install --quiet --python "$REPO/.venv/bin/python" -r "$REPO/requirements.txt"
   else
     echo "venv  $REPO/.venv (python3 -m venv)"

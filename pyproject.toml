@@ -1,0 +1,40 @@
+# Dev tooling only: rapport is an Agent Skill, not a pip package, and nothing builds or installs this
+# project. `uv run pytest` and `uvx ruff check` read it; scripts/rapport.py has its own dependency
+# header, which bin/rapport uses at runtime. A test keeps the dependency lists below in step.
+[project]
+name = "rapport"
+version = "0.0.0"                   # a placeholder: nothing is built. The real version is rapport_core.__version__
+requires-python = ">=3.11"
+dependencies = [
+    "markdown-it-py>=3.0",
+    "mdit-py-plugins>=0.4",
+    "jinja2>=3.1",
+    "pygments>=2.17",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = ["pytest"]                    # `uv run` installs this group by default
+e2e = ["playwright"]                # opt in: `uv run --group e2e pytest tests/e2e`
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["e2e"]             # the browser suite is slow; name it to run it: pytest tests/e2e
+
+[tool.ruff]
+line-length = 140                   # the code keeps to about 120; 140 only stops a runaway line
+target-version = "py311"
+
+[tool.ruff.lint]
+# E/W: pycodestyle (E402, E731 and friends), F: pyflakes, B: bugbear, N: naming, BLE: a blind
+# `except` needs a noqa with its reason. Import sorting and pyupgrade are not enforced.
+select = ["E", "F", "W", "B", "BLE", "N"]
+ignore = [
+    "B905",                         # zip() without strict=: the lengths match by construction
+    "N818",                         # Refused, NotFound, Corrupt: names modules use as req.Refused
+]
+
+[tool.ruff.lint.per-file-ignores]
+"rapport_core/parse.py" = ["N803", "N806"]    # the markdown-it rule keeps its camelCase names (startLine…)

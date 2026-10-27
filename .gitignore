@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 .venv/
+# not committed: users resolve fresh dependencies from the script header, so the tests should too
+uv.lock
 .pytest_cache/
 .DS_Store
 /rapport-gallery/
