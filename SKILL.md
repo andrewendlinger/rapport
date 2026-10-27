@@ -1,82 +1,59 @@
 ---
 name: rapport
-description: Write reports as self-contained, modular HTML pages that the reader reviews in the browser. They highlight a passage to comment on it or flag it (Delete, AI slop, Too verbose, Unclear…), and you apply the feedback. Use when the user asks for a report, write-up, analysis, summary document, or "HTML report"; when they say "apply/revise the rapport feedback" or "I left comments"; when a folder has a report.md with a .rapport/ directory; or when they want to change report style/behaviour (rapport.toml) or add a report module (side-by-side code, collapsible sections, gifs, …).
+description: Write a report as a self-contained HTML page with rapport, and revise it from the reader's in-browser feedback: they select text to comment or flag it (Delete, AI slop, Too verbose, Unclear…). Use when the user asks for a report, write-up, analysis, summary or "HTML report"; says "apply/revise the rapport feedback" or "I left comments"; has a folder with report.md and .rapport/; wants report style or behaviour changed (rapport.toml); or wants a new report module (side-by-side code, collapsible sections, gifs…).
 ---
 
 # rapport
 
-A report is a folder: `report.md` (Markdown + modules, written by you) builds into a self-contained `report.html`. Every part of the page is a **module**: the page shell, header, TOC, theme, each Markdown element, every `:::` block, and the feedback UI. Behaviour and style come from layered **TOML config**.
+A report is a folder: `report.md` (Markdown plus `:::` modules, written by you) builds into one self-contained `report.html`. The reader reviews the served page and leaves comments; you apply them.
 
-The point is the loop. The reader opens the served report, selects text, and comments or clicks a quick action. Everything autosaves to the server. You pick it up with `rapport feedback` and revise.
+**The CLI** is `bin/rapport` in this folder, written `rapport` below. Call it by absolute path each time (shell variables don't survive between your calls), or as plain `rapport` if `command -v rapport` finds it. It needs `uv`, a `.venv` here, or `python3` with `requirements.txt` installed. Every command takes `-C <report-dir>` (default: the current directory) and `--help`.
 
-**CLI:** `RAPPORT=<this skill's folder>/bin/rapport`, i.e. the `bin/rapport` next to this SKILL.md. It runs with `uv` (inline dependencies) or the folder's `.venv`; no other setup is needed. Every command takes `-C <report-dir>` (the default is the current directory).
+## Writing a report
 
-## Workflow
+1. **Scaffold.** `rapport init <dir> --title "…"`; suggest `reports/<slug>/` in the repo unless the user names a place. Images and gifs go in `<dir>/assets/`. Replace the placeholder line "Lead with the conclusions."
+2. **Read the brief.** `rapport brief -C <dir>`, in full: this user's writing rules, the syntax, and every installed module with params and an example. Copy the examples; don't guess syntax.
+3. **Write `report.md`** (syntax: `references/authoring.md`). What breaks builds:
+   - Params are **one single-line TOML inline table at the end of the `:::` line**: `::: callout Heads up {tone = "warning"}`.
+   - Nest containers by giving the outer one more colons (`::::`).
+   - No raw HTML (it shows as literal text). No remote images: download them into `assets/`. Inlined files total at most `report.max_inline_mb` (8), so shrink big gifs.
+4. **Lint.** `rapport lint -C <dir>` until it prints `lint: clean`; problems point at `report.md:LINE`. Lint never writes `report.html`.
+5. **Serve.** `rapport serve --detach -C <dir>` prints the URL. Plain `serve` blocks until Ctrl-C. Re-running prints the URL again. `--stop` ends it; `--no-open` skips opening the browser. If it reports a sandbox, give the user the command it prints.
+6. **Hand over the served URL**, not `report.html`, and tell the user: select text to comment or flag it, the panel is bottom-right, then say "apply the rapport feedback". A double-clicked `report.html` is a clean read-only copy with no feedback UI: send that one around.
 
-1. **Scaffold.** Run `$RAPPORT init <dir> --title "…"`, suggesting `reports/<slug>/` in the repo unless the user names a place. Put images and gifs in `<dir>/assets/`.
-2. **Read the brief.** Run `$RAPPORT brief -C <dir>` and read it in full before writing. It holds this user's writing rules (audience, tone, rules, phrases to avoid), the exact syntax, and every installed module with its params and an example. Follow it; it reflects their config and the rules they've taught you.
-3. **Write `report.md`.** Plain Markdown, plus modules from the brief:
-   - `::: callout Heads up {tone = "warning"}` … `:::`
-   - `::: collapse Details` … `:::` for long or secondary material
-   - `::: compare {labels = ["Before", "After"]}` with two code fences for side-by-side code
-   - `![caption](assets/demo.gif)` for images and gifs
-   - code fences with params: ```` ```python {title = "app.py", hl = [3]} ````
+## Applying feedback
 
-   Params are **one single-line TOML inline table at the end of the `:::` line**. Nest containers by giving the outer one more colons (`::::`). Never write raw HTML, and never use remote images (they fail the build). Syntax details: `references/authoring.md`.
-4. **Check.** `$RAPPORT lint -C <dir>` builds the report and reports errors (as `report.md:LINE`), warnings and writing-rule hits. Fix them until it says `lint: clean`. A `note for the user:` line doesn't block that: it's git advice to pass on (step 7), not yours to fix.
-5. **Serve.** `$RAPPORT serve --detach -C <dir>` starts the review server in the background and prints the URL. Give the user that exact URL; the port varies. If it says the environment is sandboxed or can't open a port, give the user the printed command to run in their own terminal. It's safe to re-run: an already-running server just prints its URL. `--status` and `--stop` manage it. It opens the user's browser unless `serve.open_browser = false`; add `--no-open` when you only want to check the page yourself.
-6. **Apply feedback** when the user says they've reviewed (or "apply the feedback", "revise"):
-   - `$RAPPORT feedback -C <dir>` lists every open item with its location in the *current* `report.md` (line numbers), the quoted passage, the reader's comment, and a `do:` line saying what the action means. That instruction comes from config; treat it as the user's request.
-   - Make a **surgical edit per item** in `report.md` (never regenerate the whole file). After each edit, check that nearby text, the summary, and any cross-references still agree.
-   - Items marked `moved` or `fuzzy` are still valid; trust the shown lines. For `STALE` items, find the passage by its quote, or tell the user it's gone. `in “After”` names the part of a block the comment is about (e.g. one pane of a comparison).
-   - Then `$RAPPORT feedback resolve FB-1 --note "<one line: what you changed for it>" -C <dir>`. Resolve each item with its own note; group ids in one call only when one change covers them all. The open page live-reloads, bumps the version, and shows each note on its item.
-   - **`learn:` lines.** `learn: ask` means distil the pattern into one short, general writing rule, propose it to the user, and save it only if they agree: `$RAPPORT writing add "<rule>" --scope user|project`. Add `--avoid` for a banned phrase. `global` / `project` mean save it directly with that scope.
-   - Tell the user what changed, briefly, and the new version.
-   - Feedback given in chat works the same way. Optionally record it with `$RAPPORT feedback add "<comment>" --quote "<exact text>" [--action verbose] -C <dir>`.
-7. **Never hand-edit** `report.html` (it's generated) or anything in `.rapport/` (the review state; use the CLI). The folder ignores itself in git; `[report] commit_feedback = true` keeps feedback in the repo. If `build` or `lint` prints a `note for the user:` about it (files still tracked, or an outer `.gitignore` blocking `commit_feedback`), pass the note and its command on to the user instead of changing git state yourself.
+For "apply the feedback", "I left comments", "revise": start here, skip the steps above.
 
-## Changing behaviour or style
+1. Run `rapport feedback -C <dir>` **once** (or `--json`) and work from that list. Don't list again before resolving: edited items then show as `STALE`, `moved` or `fuzzy`. Reading an item:
+   - Lines are in the *current* `report.md`; trust them for `moved` and `fuzzy`. For `STALE`, find the passage by its quote or tell the user it's gone. "The quoted words are no longer in that passage" means it was edited already.
+   - `do:` is the user's instruction for the action they chose. A comment-only item has no `do:`: the comment is the request.
+   - `whole report` items have no lines. `[whole image]` (table, code…) is about that block. `title block (front matter)` is the `+++` block.
+2. **Edit only what the items ask.** After a round the page puts a margin bar on every block changed since it began, and hovering shows the reader your note. A drive-by rewrite is a bar nobody can explain. If an edit needs a matching change elsewhere (summary, cross-reference, a number), make it and say so in the note.
+3. **Resolve each item you addressed:** `rapport feedback resolve FB-1 --note "<what you changed>" -C <dir>`. Write the note for the reader, specific ("Cut to two sentences; kept the p99 figure"). One call per item; several ids only when one change covers them, and all must be open or the call fails. Leave an item you didn't act on open, and say why.
+4. **`learn:` lines** give a `writing add` command (scope `user` or `project`). If it says to ask, distil one short, general rule, propose it, and save it only if the user agrees; otherwise run it. Add `-C <dir>`: `--scope project` writes beside the nearest `rapport.toml` (else the git root, else the report folder). `--avoid` is for a banned phrase.
+5. Tell the user briefly what changed, and the new version.
 
-Config is TOML, merged nearest-wins in this order:
-1. built-in defaults
-2. preset
-3. the user config: `~/.config/rapport/config.toml` unless `RAPPORT_CONFIG` or `RAPPORT_CONFIG_DIR` moves it, so run `$RAPPORT config paths` to find it before editing it
-4. learned rules
-5. every `rapport.toml` from `$HOME` down to the report folder
-6. the report's `+++` front matter
-7. `--set key=value`
+Feedback given in chat gets the same treatment. To record it: `rapport feedback add "<comment>" --quote "<exact text>" [--action verbose]`, or `--block <id>` for an image, table or code block (ids: the `blocks` keys in `.rapport/blocks.json`, written by `build` and `serve`). With neither it's about the whole report.
 
-Module settings live at `[modules.<name>]`. Every module, and every feedback action, can be switched off with `enabled = false`. Feedback actions are `[[modules.feedback.actions]]` entries, merged by `id`; each has a label, icon, key, tone, and `instruction`.
+## Rules
 
-Before editing, check where a value comes from with `$RAPPORT config show --origin -C <dir>` (add `--key theme` to narrow it). For the full annotated reference run `$RAPPORT config defaults`. Prefer the project `rapport.toml` for project conventions and front matter for one report. Recipes: `references/config.md`.
+- Never hand-edit `report.html` (generated) or `.rapport/` (review state). To read what readers did in a module with state (a sign-off, a poll): `rapport modules state <name> [--json]`.
+- A `note for the user:` line from `build` or `lint` is git advice, not a failure. Pass on the note and its command; don't change git state yourself.
 
-Style, lightest first: theme tokens (`[theme.tokens]`: palette, fonts, body size (scales all text), width; `$RAPPORT modules info default` lists them), then the user's own CSS (`[theme] css = ["brand.css"]`, which wins over rapport's CSS and can bundle fonts), and only for structural changes a forked module (`modules new <name>`). Details: "Styling" in `references/config.md`.
+## Changing style or behaviour
 
-A logo, a title icon, or header and footer entries with icons (emoji or image files) are settings of the `header` and `footer` modules: `logo`, `icon`, `[[modules.footer.entries]]`. See the recipe in `references/config.md`.
+Config is TOML in layers, weakest to strongest: defaults, preset, user config, each `rapport.toml` from `$HOME` down to the report folder (with its `rapport-learned.toml`), the report's `+++` front matter, `--set key=value`. Project conventions go in the project's `rapport.toml`, one-offs in front matter; `rapport config paths -C <dir>` lists the files read (moving the user config, committing feedback: `references/state.md`).
 
-## Adding a module
+- `rapport config show --origin [--key theme] -C <dir>` says which file set a value; `config validate` catches typos. `config defaults` lists core keys only: a module's keys come from `modules info <name>` and are set at `[modules.<name>]`. `enabled = false` switches a module off (not `runtime`).
+- Style, lightest first: theme tokens (`[theme.tokens]`; `modules info default` lists them), then the user's CSS (`[theme] css = ["brand.css"]`, which beats rapport's), then a thin override for structure.
+- Recipes (logos, icons, header and footer entries, feedback actions): `references/config.md`.
 
-When the user wants something the catalog lacks (tabs, a chart, a timeline, a file tree…):
+## Adding or changing a module
 
-1. Run `$RAPPORT modules new <name> --kind block --scope project -C <dir>`. Scopes are `report`, `project` (a `rapport-modules/` folder next to the nearest `rapport.toml` or git root), or `user`. Using an existing module's name copies it as an override.
-2. Edit its `module.toml` (params schema), `template.html` (Jinja, single root element), `style.css` (only `var(--rp-*)` tokens), optionally `script.js`, and `example.md`.
-3. Run `$RAPPORT modules check <name> -C <dir>` until it passes. `$RAPPORT gallery` renders every module.
-4. The new module now appears in `brief` automatically.
+- **Change an installed module:** `rapport modules new <installed-name> -C <dir>` makes a thin override that `extends` it. Copy in only the files you change; the rest keeps following rapport. Your `style.css` is *added* after the base's. `modules info <name>` shows where each file comes from. `--copy` takes the whole module.
+- **New module:** `rapport modules new <name> --kind block|inline|layout|theme|feature`, or `--extends <base>` to build on one. Add `--server` for state or requests while serving (sign-offs, polls, checklists). `--scope project` (default) puts it in `rapport-modules/` beside the nearest `rapport.toml` or git root.
+- Run `rapport modules check <name>`. A fresh scaffold passes at once, so "done" also means: summary and `example.md` written, the module used in `report.md`, `lint` clean. After a rapport upgrade `check` warns when a file you copied changed upstream; `modules diff <name>` shows how.
+- `rapport gallery --out <tmp dir>` renders every module's example (without `--out`, into `./rapport-gallery` in the current directory).
 
-The contract is in `references/modules.md`; read it before writing a module.
-
-## Command reference
-
-| Command | What it does |
-|---|---|
-| `init <dir>` | scaffold a report folder |
-| `brief` | writing rules, syntax, and the module catalog |
-| `build [--watch]` | build `report.html` |
-| `lint` | errors plus writing-rule checks |
-| `serve [--detach\|--status\|--stop] [--port N]` | the review server |
-| `feedback [--all\|--json]` | list open reader feedback |
-| `feedback resolve\|reopen\|add` | manage feedback items |
-| `writing add "<rule>" [--avoid] [--scope user\|project]` | save a learned writing rule |
-| `config show [--origin] [--key K]\|validate\|defaults\|paths` | inspect configuration; `paths` shows which files are read |
-| `modules list\|info <name>\|new <name>\|check [name]` | discover and author modules |
-| `gallery [--out DIR]` | render every module's example |
+Read `references/modules.md` before writing a module.

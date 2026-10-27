@@ -71,6 +71,7 @@ instruction = "Add a source or a link that supports this claim."
 | [Writing reports](references/authoring.md) | `report.md` syntax: front matter, modules, images |
 | [Configuration](references/config.md) | config layers, styling, branding, recipes |
 | [Modules](references/modules.md) | writing your own modules and themes |
+| [State and user config](references/state.md) | the `.rapport/` folder, committing feedback, moving your config |
 | [SKILL.md](SKILL.md) | what the agent follows |
 | [Changelog](CHANGELOG.md) | what changed in each release |
 
@@ -116,7 +117,7 @@ rapport_core/        cli · config · schema · registry · parse · render · c
 config/schema.toml   core settings: types, defaults, docs, merge rules
 modules/             every built-in module: layout, theme, element, block, inline, feature
 presets/             named bundles of settings
-references/          authoring.md · config.md · modules.md
+references/          authoring.md · config.md · modules.md · state.md
 examples/primer/     the tutorial report
 docs/                README screenshots
 tests/               pytest suite; tests/e2e drives a real browser

@@ -15,6 +15,7 @@
 - **A `css(ctx)` hook.** A module's `prepare.py` can return CSS computed at build time. It goes right after the module's `style.css` in the same cascade layer, with its `url()` files inlined. The `code` module now supplies its Pygments rules this way instead of core special-casing it: the built page has the same rules, now beside `code`'s own CSS rather than at the end of the layer, and an override of `code` inherits them.
 - **Extra page regions.** `[layout.regions]` adds regions beyond `top`, `side` and `bottom` (`banner = ["notice"]`). A `page` override places one as `{{ regions.banner }}`; the build warns about a region the page doesn't place.
 - **The names core relies on are documented** in `references/modules.md` (`runtime`, `page`, `default`, the element names, `code`, `feedback`), so an override knows what it must keep.
+- **SKILL.md rewritten.** Applying feedback has its own section, and it covers `serve --detach`, notes for the change bars, thin overrides, `--server` modules and `modules state`; what `brief` and `--help` already say is gone. The user-config and review-state sections of `references/config.md` moved to `references/state.md`.
 
 ## 0.5.0 (2026-10-27)
 
