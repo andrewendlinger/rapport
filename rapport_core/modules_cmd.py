@@ -1,10 +1,11 @@
-"""`rapport modules list|info|new|check` and `rapport gallery`."""
+"""`rapport modules list|info|new|check|state` and `rapport gallery`."""
 
 from __future__ import annotations
 
 import json
 import re
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 
@@ -17,6 +18,8 @@ from .brief import _param_line, module_entry
 from .build import build
 from .registry import KINDS, NAME_RE, Module
 from .render import CORE_TOKENS, Renderer
+from .routes import load_routes
+from .store import module_store
 from .util import RapportError, did_you_mean
 
 # opaque literal colours; translucent rgba()/hsla() overlays and shadows are fine
@@ -41,6 +44,8 @@ def cli(args, cfg) -> int:
         return do_new(cfg, args)
     if action == "check":
         return do_check(cfg, args.name)
+    if action == "state":
+        return do_state(cfg, _need_name(args), args.json)
     raise RapportError(f"unknown action {action}")
 
 
@@ -75,6 +80,8 @@ def do_list(cfg, kind=None) -> int:
                     Path(s).is_relative_to(BUILTIN_MODULES.resolve()) for s in m.shadows) else ""))
             if m.has_code:
                 flags.append("runs prepare.py")
+            if m.has_server:
+                flags.append("runs server.py")
             if not cfg.enabled(m.name):
                 flags.append("disabled")
             if m.when != "always" and m.kind == "feature":
@@ -109,9 +116,11 @@ def do_info(cfg, name: str) -> int:
         for k, v in current.items():
             src = cfg.origin(f"modules.{mod.name}.{k}", v)
             print(f"  {k} = {json.dumps(v, ensure_ascii=False)[:160]}    # {src}")
-    files = [f for f in ("module.toml", "template.html", "style.css", "script.js", "prepare.py", "example.md")
-             if (mod.dir / f).is_file()]
+    files = [f for f in ("module.toml", "template.html", "style.css", "script.js", "prepare.py", "server.py",
+                         "example.md") if (mod.dir / f).is_file()]
     print("files: " + ", ".join(files))
+    if mod.has_server:
+        print_routes(mod)
     if mod.shadows:
         print("overrides: " + ", ".join(map(str, mod.shadows)))
     if mod.example_path:
@@ -119,6 +128,39 @@ def do_info(cfg, name: str) -> int:
         for line in mod.example_path.read_text(encoding="utf-8").rstrip().split("\n"):
             print("    " + line)
     return 0
+
+
+def print_routes(mod: Module) -> None:
+    try:
+        router = load_routes(mod)
+    except RapportError as e:
+        print(f"routes: error: {e}")
+        return
+    print(f"routes (under /api/m/{mod.name}, `rapport serve` only):")
+    for r in router.routes:
+        print(f"  {r.method:<6} {r.path:<20} {getattr(r.fn, '__name__', '?')}()")
+    print(f"state: `rapport modules state {mod.name}` reads it")
+
+
+# ── state ───────────────────────────────────────────────────────────────────── #
+def do_state(cfg, name: str, as_json: bool) -> int:
+    """A module's stored state, for the agent: what its describe(state, config) says, else the JSON."""
+    mod = _get(cfg, name)
+    if not mod.has_server:
+        raise RapportError(f"'{name}' has no server.py, so it keeps no state")
+    state = module_store(cfg.report_dir, name).read()
+    describe = None if as_json else mod.server_hook("describe")    # --json never runs the module's code
+    problem = None if as_json else mod.server_error
+    if describe:
+        try:
+            print(str(describe(state, cfg.module(name))).rstrip())
+            return 0
+        except Exception as e:  # noqa: BLE001 - a module's own code: report it, still show the state
+            problem = f"describe() in server.py failed: {type(e).__name__}: {e}"
+    if problem:
+        print(f"warning: module '{name}' {problem}; here is the raw state", file=sys.stderr)
+    print(json.dumps(state, indent=2, ensure_ascii=False))
+    return 1 if problem else 0
 
 
 # ── new ─────────────────────────────────────────────────────────────────────── #
@@ -227,6 +269,95 @@ Rapport.module("{name}", {{
 }
 
 
+# `modules new <name> --server`: a feature with routes; a small working sign-off box
+SERVER_SCAFFOLD = {
+    "module.toml": '''name = "{name}"
+kind = "feature"
+summary = "Reviewers sign off at the end of the report."
+# serve: only in `rapport serve`, where server.py's routes answer
+when = "serve"
+''',
+    "server.py": '''"""{name}: routes under /api/m/{name}/ while `rapport serve` runs; script.js calls
+them with Rapport.api("{name}", path, opts). Contract: "server.py" in references/modules.md.
+Handlers may run in several threads at once: keep state in req.store, not in globals."""
+
+import time
+
+
+def routes(r):
+    r.get("/", show)
+    r.post("/", sign)                   # body: {{"name": "Ada"}}
+    r.delete("/{{who}}", unsign)          # the path param arrives as req.params["who"]
+
+
+def show(req):
+    return {{"signed": req.store.read().get("signed", [])}}
+
+
+def sign(req):
+    who = str(req.body.get("name") or "").strip()[:80]
+    if not who:
+        raise req.Refused("type your name first")           # → 400; the page shows the message
+    with req.store.edit() as state:                        # locked; saved when the block ends
+        signed = [s for s in state.get("signed", []) if s["name"] != who]
+        state["signed"] = signed + [{{"name": who, "version": req.version, "at": time.strftime("%Y-%m-%d %H:%M")}}]
+    return {{"signed": state["signed"]}}
+
+
+def unsign(req):
+    who = req.params["who"]
+    with req.store.edit() as state:
+        signed = state.get("signed", [])
+        if not any(s["name"] == who for s in signed):
+            raise req.NotFound(f"{{who}} has not signed off")   # → 404; nothing is saved
+        state["signed"] = [s for s in signed if s["name"] != who]
+    return {{"signed": state["signed"]}}
+
+
+def describe(state, config):
+    """What `rapport modules state {name}` prints for the agent."""
+    signed = state.get("signed", [])
+    if not signed:
+        return "Nobody has signed off yet."
+    return "\\n".join(f"{{s['name']}} signed off on v{{s['version']}} at {{s['at']}}" for s in signed)
+''',
+    "script.js": '''/* {name}: a sign-off line at the end of the report. Rapport.api("{name}", path, opts)
+   calls server.py; "{name}:changed" fires when its state changes (this tab, another, the CLI). */
+Rapport.module("{name}", {{
+  init: function () {{
+    var box = document.createElement("section");
+    box.className = "rp-{name}";
+    box.setAttribute("data-rp-ui", "");           // chrome: never part of a feedback quote
+    box.innerHTML = '<p></p><input type="text" placeholder="Your name" aria-label="Your name">' +
+      '<button type="button">Sign off</button>';
+    var line = box.querySelector("p"), input = box.querySelector("input");
+    (document.querySelector(".rp-content") || document.body).appendChild(box);
+
+    function show(res) {{
+      line.textContent = res.signed.length ? "Signed off: " + res.signed.map(function (s) {{
+        return s.name + " (v" + s.version + ")";
+      }}).join(", ") : "Nobody has signed off yet.";
+    }}
+    function fail(err) {{ line.textContent = err.message; }}    // the server's message
+    function load() {{ Rapport.api("{name}", "/").then(show, fail); }}
+
+    box.querySelector("button").addEventListener("click", function () {{
+      Rapport.api("{name}", "/", {{ body: {{ name: input.value }} }}).then(show, fail);
+    }});
+    Rapport.on("{name}:changed", load);
+    load();
+  }}
+}});
+''',
+    "style.css": '''/* {name}: theme tokens only (var(--rp-*)), so every theme applies */
+.rp-{name}{{margin:2.5em 0 1em;padding:12px 16px;border:1px solid var(--rp-line);border-radius:var(--rp-radius);
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;font:14px var(--rp-sans)}}
+.rp-{name} p{{flex:1 1 100%;margin:0;color:var(--rp-ink-soft)}}
+@media print{{.rp-{name}{{display:none}}}}
+''',
+}
+
+
 def scope_dir(args, cfg) -> Path:
     if args.scope == "user":
         d = config_mod.user_paths().modules_dir
@@ -248,13 +379,18 @@ def do_new(cfg, args) -> int:
     existing = cfg.registry.get(name)
     if existing is not None:
         # same name as an installed module: copy it as the starting point (an override)
+        if args.server:
+            raise RapportError(f"'{name}' is already installed; --server only scaffolds new modules (pick another name)")
         if args.kind and args.kind != existing.kind:
             raise RapportError(f"'{name}' is already a {existing.kind} module; pick another name to make a {args.kind}")
         shutil.copytree(existing.dir, dest)
         print(f"copied {origin(existing)} '{name}' to {dest}; this copy now overrides it (nearest wins)")
         _next_steps(name, existing.kind, dest)
         return 0
-    kind = args.kind or "block"
+    kind = args.kind or ("feature" if args.server else "block")
+    if args.server and kind != "feature":
+        raise RapportError(f"--server scaffolds a feature module; to give a {kind} module routes, add a "
+                           "server.py to it by hand (\"server.py\" in references/modules.md)")
     if kind == "element":
         elements = [m.name for m in cfg.registry.by_kind("element")]
         raise RapportError("element modules override a Markdown element; create one by copying, e.g. "
@@ -268,7 +404,7 @@ def do_new(cfg, args) -> int:
         print(f"created theme {dest} (a copy of 'default': change the tokens)")
         _next_steps(name, kind, dest)
         return 0
-    files = SCAFFOLD[kind]
+    files = SERVER_SCAFFOLD if args.server else SCAFFOLD[kind]
     dest.mkdir(parents=True)
     for fname, text in files.items():
         (dest / fname).write_text(text.format(name=name), encoding="utf-8")
@@ -277,12 +413,12 @@ def do_new(cfg, args) -> int:
             f'/* {name}: mount(el, ctx) runs for every element this module renders.\n'
             f'   ctx.params = its params, ctx.config = [modules.{name}]. */\n'
             f'Rapport.module("{name}", {{\n  mount: function (el, ctx) {{\n  }}\n}});\n', encoding="utf-8")
-    print(f"created {kind} module {dest}")
-    _next_steps(name, kind, dest)
+    print(f"created {kind} module {dest}" + (" with server routes" if args.server else ""))
+    _next_steps(name, kind, dest, args.server)
     return 0
 
 
-def _next_steps(name: str, kind: str, dest: Path) -> None:
+def _next_steps(name: str, kind: str, dest: Path, server: bool = False) -> None:
     use = {
         "block": f"use it in report.md:  ::: {name} Title {{key = \"value\"}} … :::",
         "inline": f"use it in report.md:  :{name}[text]",
@@ -291,6 +427,8 @@ def _next_steps(name: str, kind: str, dest: Path) -> None:
         "theme": f"select it:  [theme] name = \"{name}\"",
         "feature": "it is on by default; switch off with [modules." + name + "] enabled = false",
     }[kind]
+    if server:
+        use += f"\n      `rapport serve` answers its routes at /api/m/{name}/; `rapport modules state {name}` reads its state"
     print(f"next: edit {dest}/*, then `rapport modules check {name}`\n      {use}\n"
           "      contract: references/modules.md in the rapport skill")
 
@@ -334,7 +472,20 @@ def check_module(mod: Module, cfg, tokens: set) -> list[str]:
         out.append("warning: no example.md (brief, gallery and check use it)")
     if mod.example_path and mod.kind in ("block", "inline", "element"):
         out += render_example(mod, cfg)
+    if mod.has_server:
+        out += check_server(mod)
     return out
+
+
+def check_server(mod: Module) -> list[str]:
+    """Load server.py and run its routes(r) against a registrar that only records them."""
+    try:
+        router = load_routes(mod)
+    except RapportError as e:
+        return [f"error: {e}"]
+    if mod.when == "static":
+        return ['warning: server.py is never used: modules with when = "static" get no routes']
+    return [] if router.routes else ["warning: routes(r) registers no routes"]
 
 
 def check_css(mod: Module, cfg, tokens: set) -> list[str]:

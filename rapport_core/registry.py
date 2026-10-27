@@ -3,12 +3,13 @@
 A module is a folder with a module.toml. Search roots are scanned in priority
 order (nearest first); the first module found for a name wins and later ones
 are recorded as shadowed. Files are found by convention: template.html,
-style.css, script.js, prepare.py, example.md.
+style.css, script.js, prepare.py, server.py, example.md.
 """
 
 from __future__ import annotations
 
 import functools
+import importlib.machinery
 import importlib.util
 import re
 import tomllib
@@ -28,6 +29,28 @@ NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 RESERVED = {"paths"}
 
 
+class _NoBytecode(importlib.machinery.SourceFileLoader):
+    """Loads a module's Python without writing __pycache__ into its folder: the
+    watcher would take the new folder for an edit and rebuild a second time."""
+
+    def set_data(self, path, data, *, _mode=0o666):
+        pass
+
+
+def load_code(path: Path | None, label: str):
+    """(module, None) for a Python file; (False, why) if it fails to load; (False, None) without one."""
+    if path is None:
+        return False, None
+    name = f"rapport_{label}"
+    try:
+        spec = importlib.util.spec_from_file_location(name, path, loader=_NoBytecode(name, str(path)))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod, None
+    except Exception as e:  # noqa: BLE001 - a module's own code: report it, don't crash
+        return False, f"{path.name} failed to load: {type(e).__name__}: {e}"
+
+
 @dataclass
 class Module:
     name: str
@@ -37,7 +60,9 @@ class Module:
     builtin: bool
     shadows: list[Path] = field(default_factory=list)
     load_error: str | None = None   # prepare.py exists but failed to load (set by hook())
+    server_error: str | None = None  # server.py exists but failed to load (set by server_hook())
     _prepare: object = None
+    _server: object = None
 
     # -- manifest accessors -------------------------------------------------- #
     @property
@@ -113,21 +138,23 @@ class Module:
     def has_code(self) -> bool:
         return self.file("prepare.py") is not None
 
+    @property
+    def has_server(self) -> bool:
+        return self.file("server.py") is not None
+
     def hook(self, name: str):
         """A function from prepare.py: prepare(node, ctx) -> dict, check(config) -> [warnings].
         prepare.py is loaded once; if that fails, load_error says why and there are no hooks."""
         if self._prepare is None:
-            path = self.file("prepare.py")
-            self._prepare = False
-            if path:
-                try:
-                    spec = importlib.util.spec_from_file_location(f"rapport_mod_{self.name.replace('-', '_')}", path)
-                    mod = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(mod)
-                    self._prepare = mod
-                except Exception as e:  # noqa: BLE001 - a module's own code: report it, don't crash
-                    self.load_error = f"prepare.py failed to load: {type(e).__name__}: {e}"
+            self._prepare, self.load_error = load_code(self.file("prepare.py"), f"mod_{self.name.replace('-', '_')}")
         return getattr(self._prepare, name, None) if self._prepare else None
+
+    def server_hook(self, name: str):
+        """A function from server.py: routes(r), describe(state, config). Loaded once,
+        like prepare.py; if that fails, server_error says why and there are no hooks."""
+        if self._server is None:
+            self._server, self.server_error = load_code(self.file("server.py"), f"srv_{self.name.replace('-', '_')}")
+        return getattr(self._server, name, None) if self._server else None
 
     def prepare_fn(self):
         """The module's prepare(node, ctx) -> dict hook, if it has one."""

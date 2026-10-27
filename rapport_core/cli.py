@@ -31,7 +31,7 @@ VALUE_OPTIONS = {"-C", "--set", "--key", "--kind", "--scope", "--note", "--quote
 DEFAULT_ACTIONS = {
     "feedback": ("list", {"list", "resolve", "reopen", "add"}),
     "config": ("show", {"show", "validate", "defaults", "paths"}),
-    "modules": ("list", {"list", "info", "new", "check"}),
+    "modules": ("list", {"list", "info", "new", "check", "state"}),
 }
 
 
@@ -325,13 +325,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="(show, paths) machine-readable output")
     p.add_argument("--key", help="only keys starting with this prefix")
 
-    p = add("modules", cmd_modules, "discover and author modules", dir_arg=False)
-    p.add_argument("action", nargs="?", default="list", choices=["list", "info", "new", "check"])
+    p = add("modules", cmd_modules, "discover and author modules; `state <name>` reads a module's stored state",
+            dir_arg=False)
+    p.add_argument("action", nargs="?", default="list", choices=["list", "info", "new", "check", "state"])
     p.add_argument("name", nargs="?")
     p.add_argument("dir", nargs="?", help="report folder (default: current directory)")
     p.add_argument("--kind", choices=["block", "element", "inline", "layout", "theme", "feature"])
     p.add_argument("--scope", choices=["report", "project", "user"], default="project")
     p.add_argument("--js", action="store_true", help="(new) include a script.js")
+    p.add_argument("--server", action="store_true", help="(new) a feature with a server.py: routes and state")
+    p.add_argument("--json", action="store_true", help="(state) the raw JSON, not the module's description")
 
     p = add("gallery", cmd_gallery, "render every module's example into one servable report")
     p.add_argument("--out", default="rapport-gallery", help="output folder (default: ./rapport-gallery)")

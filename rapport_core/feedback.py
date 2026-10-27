@@ -9,31 +9,20 @@ with the configured instruction for its action(s).
 
 from __future__ import annotations
 
-import contextlib
 import difflib
 import json
 import re
-import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .changes import round_for
-from .util import RapportError, atomic_write, bump_version, collapse_ws, ensure_state_dir, read_state, state_dir
-
-try:
-    import fcntl
-except ImportError:  # pragma: no cover - non-POSIX
-    fcntl = None
-
-class NotFound(RapportError):
-    """No such feedback item (the server answers 404)."""
-
+from .store import StateFile
+from .util import NotFound, RapportError, bump_version, collapse_ws, read_state
 
 FEEDBACK_FILE = "feedback.json"
 LOCK_FILE = "feedback.lock"
 MAX_COMMENT = 10_000
 MAX_QUOTE = 5_000
-_THREAD_LOCK = threading.Lock()
 
 
 def now() -> str:
@@ -42,44 +31,27 @@ def now() -> str:
 
 # ── store ─────────────────────────────────────────────────────────────────── #
 class Store:
+    """The feedback items, on a StateFile: the server and the CLI never interleave writes."""
+
     def __init__(self, report_dir: Path):
         self.report_dir = Path(report_dir).resolve()
-        self.dir = state_dir(self.report_dir)
-        self.path = self.dir / FEEDBACK_FILE
+        self.file = StateFile(self.report_dir, FEEDBACK_FILE, LOCK_FILE)
+        self.path = self.file.path
 
-    @contextlib.contextmanager
     def locked(self):
-        """Thread lock + an flock on a side file, so the server and the CLI
-        (agent resolving while the reader comments) never interleave writes."""
-        with _THREAD_LOCK:
-            with open(ensure_state_dir(self.report_dir) / LOCK_FILE, "a+") as fh:
-                if fcntl:
-                    fcntl.flock(fh, fcntl.LOCK_EX)
-                try:
-                    yield
-                finally:
-                    if fcntl:
-                        fcntl.flock(fh, fcntl.LOCK_UN)
+        return self.file.locked()
 
     def load(self) -> dict:
-        try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
-        except FileNotFoundError:
-            return {"format": 1, "next": 1, "items": []}
-        except ValueError as e:
-            raise RapportError(f"{self.path} is not valid JSON ({e}); fix or move it") from None
+        data = self.file.read({"format": 1, "next": 1, "items": []})
         data.setdefault("items", [])
         data.setdefault("next", 1 + max([_num(i.get("id")) for i in data["items"]] or [0]))
         return data
 
     def save(self, data: dict) -> None:
-        atomic_write(self.path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+        self.file.save(data)
 
     def rev(self) -> int:
-        try:
-            return self.path.stat().st_mtime_ns
-        except FileNotFoundError:
-            return 0
+        return self.file.rev()
 
     def items(self) -> list[dict]:
         return self.load()["items"]

@@ -9,11 +9,12 @@ side-note/
   style.css       optional; scoped .rp-<name> classes, theme tokens only
   script.js       optional; Rapport.module("<name>", { init, mount, reveal })
   prepare.py      optional; prepare(node, ctx) -> extra template variables; check(config) -> warnings
+  server.py       optional; routes(r) for the review server, describe(state, config) for the agent
   example.md      canonical usage, used by `brief`, `gallery` and `modules check`
   assets/         optional; files the example references (copied for check/gallery)
 ```
 
-Start from a scaffold: `rapport modules new <name> --kind block --scope project`. Run `rapport modules new <existing-name>` to copy an installed module as an override.
+Start from a scaffold: `rapport modules new <name> --kind block --scope project`. Add `--server` for a feature with routes and stored state (see [server.py](#serverpy)). Run `rapport modules new <existing-name>` to copy an installed module as an override.
 
 ## Kinds
 
@@ -154,6 +155,7 @@ The first script on the page is the kernel, `Rapport`; the module scripts follow
 | `Rapport.busy()` | whether any predicate says so now |
 | `Rapport.reveal(el)` | makes `el` visible: opens `<details>` ancestors and calls the `reveal` of every module around it; returns `el` |
 | `Rapport.reload()` | reloads the page and returns to the same scroll position; emits `before-reload` first |
+| `Rapport.api(module, path, opts)` | calls a route of the module's `server.py` and returns a Promise of the parsed answer. `opts.body` is sent as JSON; `opts.method` defaults to POST with a body, else GET. It rejects with an `Error` holding the server's message and `.status` (0: no answer, or a static page). A 403 on a write means the session token is stale: the page reloads |
 
 `Rapport.start()` is called by the page template once all scripts are in. It is internal: don't call it.
 
@@ -163,9 +165,10 @@ The first script on the page is the kernel, `Rapport`; the module scripts follow
 | `before-reload` | `Rapport.reload()` | none; save unsent input (to `sessionStorage`) here |
 | `server:down` | live-reload, when the server stops answering | none |
 | `server:up` | live-reload, when it answers again after being down | none |
-| `feedback:changed` | live-reload, when the feedback changed (a comment added or resolved, here or from the CLI) | the `/api/meta` response: `{build_id, errors, version, feedback_rev, dir}` |
+| `feedback:changed` | live-reload, when the feedback changed (a comment added or resolved, here or from the CLI) | the `/api/meta` response: `{build_id, errors, version, feedback_rev, revs, dir}` |
+| `<module>:changed` | live-reload, when the stored state of a module with a `server.py` changed (here, in another tab, or from another process) | the `/api/meta` response |
 
-Only served pages (`rapport serve`) emit the last three.
+Only served pages (`rapport serve`) emit the `server:` and `:changed` events.
 
 Page data (`Rapport.data`, `ctx.data`) is built at render time:
 
@@ -188,12 +191,140 @@ It may also define `check(config) -> list[str]`, which validates the module's `[
 
 `prepare.py` runs as Python code, so it carries the same trust as the folder it lives in. `rapport modules list` marks modules that have one.
 
+## server.py
+
+A module can extend the review server: a sign-off button, a poll, a checklist whose ticks persist. Its `server.py` registers routes. `rapport serve` answers them under `/api/m/<name>/`, keeps the module's state, and tells the page when that state changes. `rapport modules new <name> --server` scaffolds a working example.
+
+```toml
+# rapport-modules/signoff/module.toml
+name = "signoff"
+kind = "feature"
+summary = "Reviewers sign off at the end of the report."
+when = "serve"            # routes only exist in `rapport serve`
+```
+
+```python
+# rapport-modules/signoff/server.py
+def routes(r):
+    r.get("/", show)
+    r.post("/", sign)                 # body: {"name": "Ada"}
+    r.delete("/{who}", unsign)        # /api/m/signoff/Ada → req.params["who"] == "Ada"
+
+
+def show(req):
+    return {"signed": req.store.read().get("signed", [])}
+
+
+def sign(req):
+    who = str(req.body.get("name") or "").strip()
+    if not who:
+        raise req.Refused("type your name first")      # → 400; the page gets the message
+    with req.store.edit() as state:                   # locked; saved when the block ends
+        state.setdefault("signed", []).append({"name": who, "version": req.version})
+    return {"signed": state["signed"]}
+
+
+def unsign(req):
+    with req.store.edit() as state:
+        signed = state.get("signed", [])
+        if not any(s["name"] == req.params["who"] for s in signed):
+            raise req.NotFound(f"{req.params['who']} has not signed off")    # → 404; nothing is saved
+        state["signed"] = [s for s in signed if s["name"] != req.params["who"]]
+    return {"signed": state["signed"]}
+
+
+def describe(state, config):
+    """What `rapport modules state signoff` prints."""
+    return "\n".join(f"{s['name']} signed off on v{s['version']}" for s in state.get("signed", [])) or "nobody yet"
+```
+
+```js
+// rapport-modules/signoff/script.js
+Rapport.module("signoff", {
+  init: function () {
+    var box = document.createElement("p");
+    box.setAttribute("data-rp-ui", "");               // chrome: never quoted in feedback
+    box.innerHTML = '<span></span> <button type="button">Sign off</button>';
+    document.querySelector(".rp-content").appendChild(box);
+    var text = box.querySelector("span");
+    function show(res) { text.textContent = res.signed.map(function (s) { return s.name; }).join(", ") || "Nobody yet."; }
+    function fail(err) { text.textContent = err.message; }        // the server's message
+    function load() { Rapport.api("signoff", "/").then(show, fail); }
+    box.querySelector("button").addEventListener("click", function () {
+      var name = window.prompt("Your name");
+      if (name) Rapport.api("signoff", "/", { body: { name: name } }).then(show, fail);
+    });
+    Rapport.on("signoff:changed", load);              // changed here, in another tab, or by another process
+    load();
+  }
+});
+```
+
+### Routes
+
+`routes(r)` registers handlers with `r.get`, `r.post`, `r.put`, `r.patch` and `r.delete(path, fn)`. A path starts with `/`. A `{name}` segment is a path parameter: one segment, lowercase name. Literal segments win over parameters, so `/items/new` matches before `/items/{id}`. Registering a method and path twice, a bad segment, or a handler that isn't a function is an error.
+
+A handler takes one argument, the request, and returns the answer: anything JSON can hold (`None` is `null`). The server calls handlers from several threads at once, and reloads `server.py` on every rebuild, so keep state in `req.store`, never in module globals.
+
+| `req.` | holds |
+|---|---|
+| `body` | the JSON body: always an object, `{}` for GET |
+| `params` | the path parameters, URL-decoded strings |
+| `query` | the query string: `?since=3` gives `{"since": "3"}` |
+| `store` | this module's state, below |
+| `config` | this module's resolved `[modules.<name>]` table |
+| `version` | the report version now (`rapport feedback resolve` bumps it) |
+| `report_dir` | the report folder, a `Path` |
+| `blocks` | the block index of the last successful build: `{id: {module, lines, src, heading_path, section, text}}` |
+| `full_config` | that build's whole resolved config: `.get("report.source")`, `.module(name)` |
+| `method` | `GET`, `POST`, `PUT`, `PATCH` or `DELETE` |
+
+| a handler raises | the page gets |
+|---|---|
+| `req.Refused("…")` | 400 `{"error": "…"}`: the input was wrong |
+| `req.NotFound("…")` | 404 `{"error": "…"}` |
+| anything else | 500 `{"error": "server error: …"}`; the traceback goes to the server log (the terminal, or `.rapport/server.log` with `--detach`) |
+
+An unknown module or route also answers 404, and a state file that isn't valid JSON answers 500.
+
+### State
+
+`req.store` is one JSON object per module, kept in `.rapport/modules/<name>.json`.
+
+- `req.store.read()` returns it, or `{}` before the first write.
+- `with req.store.edit() as state:` locks it against other requests and processes, and saves it when the block ends. Change `state` in place. An exception inside the block (a `Refused`, say) saves nothing. Don't nest edits.
+- A GET handler can't edit: GET needs no token, so any web page could call it. Change state in POST, PUT, PATCH or DELETE.
+- A block module has one store, not one per use. If a block can appear twice, key its state by a param (an `id`).
+
+The state folder ignores itself in git; `[report] commit_feedback = true` lets module state through along with the feedback.
+
+Each poll of `/api/meta` carries `revs`: every served module's state revision, the state file's modification time as a string. When one moves, live-reload emits `<name>:changed` with the `/api/meta` response. A write from another process counts too, so listen to the event and fetch again.
+
+On the page, `Rapport.api(module, path, opts)` calls a route (see the [kernel table](#the-client-kernel)). Encode path parameters with `encodeURIComponent`. A static file has no server: `Rapport.api` rejects at once there, so give the module `when = "serve"` or a static fallback.
+
+### What core enforces
+
+Before a handler runs, the server has:
+
+- checked the `Host` header (no DNS rebinding);
+- required the page's session token (`X-Rapport-Token`) for every method but GET, so another site can't post to it;
+- refused a body that isn't a JSON object, or is over 1 MB;
+- answered 404 for a module that is switched off, is `when = "static"`, or has no `server.py`.
+
+Routes come from the last successful build. An edit to `server.py` applies on the next rebuild. A `server.py` that fails to load, or whose `routes(r)` fails, is a build error: in the server log and on the page, never a crash.
+
+`server.py` runs as Python code, with the same trust as `prepare.py` and the folder it lives in. `rapport modules list` marks modules that have one, `modules info` lists their routes, and `modules check` loads the file and runs `routes(r)`.
+
+### Reading the state as the agent
+
+Agents never touch `.rapport/`. `rapport modules state <name> [-C <dir>]` prints the module's state: the text `describe(state, config)` returns, or the JSON if `server.py` has no `describe`. `--json` always prints the JSON and runs no module code. The CLI can't write module state.
+
 ## Heavier libraries
 
 Output must stay a single self-contained file: never load anything from a CDN. For charts and diagrams, render server-side in `prepare.py`, e.g. emit SVG. There's no supported way yet to bundle a third-party JS library into a module; it will come with the first module that needs one (such as Mermaid).
 
 ## Checklist
 
-- `rapport modules check <name>` passes: manifest valid, template parses, example renders with exactly one root element, style.css uses tokens, `rem`/`em` font sizes and no `!important`, and its `url()` files exist.
+- `rapport modules check <name>` passes: manifest valid, template parses, example renders with exactly one root element, style.css uses tokens, `rem`/`em` font sizes and no `!important`, its `url()` files exist, and `server.py` loads and registers its routes.
 - `example.md` shows realistic use; the brief prints it to every agent.
 - `summary` says what the module is *for*, in one line.

@@ -39,6 +39,33 @@
       R.emit("before-reload");
       location.reload();
     },
+    /* api(module, path, opts) calls a route of the module's server.py (served pages only).
+       opts.method defaults to POST when opts.body is given, else GET. Resolves with the
+       parsed answer; rejects with an Error carrying the server's message and .status
+       (0: no answer). A 403 on a write means the session token went stale: reload. */
+    api: function (module, path, opts) {
+      opts = opts || {};
+      path = path || "/";
+      function fail(message, status) { var e = new Error(message); e.status = status; return e; }
+      if (!data.serve) {
+        return Promise.reject(fail("Rapport.api needs the review server; this page is a static file (run rapport serve)", 0));
+      }
+      var method = (opts.method || (opts.body === undefined ? "GET" : "POST")).toUpperCase();
+      var url = (data.serve.api || "/api") + "/m/" + module + (path.charAt(0) === "/" ? "" : "/") + path;
+      return fetch(url, {
+        method: method, cache: "no-store",
+        headers: { "Content-Type": "application/json", "X-Rapport-Token": data.serve.token || "" },
+        body: opts.body === undefined ? undefined : JSON.stringify(opts.body)
+      }).then(function (r) {
+        return r.json().catch(function () { return null; }).then(function (res) {
+          if (r.ok) return res;
+          if (r.status === 403 && method !== "GET") setTimeout(R.reload, 0);
+          throw fail((res && res.error) || "HTTP " + r.status, r.status);
+        });
+      }, function () {
+        throw fail("can't reach the review server", 0);
+      });
+    },
     reveal: function (target) {
       for (var el = target; el && el !== document.body; el = el.parentElement) {
         if (el.tagName === "DETAILS" && !el.open) el.open = true;

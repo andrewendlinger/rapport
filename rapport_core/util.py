@@ -20,6 +20,14 @@ class RapportError(Exception):
     """A user-facing error: printed without a traceback."""
 
 
+class Refused(RapportError):
+    """The server turns a request down (HTTP 400): bad input, not a bug."""
+
+
+class NotFound(RapportError):
+    """No such thing (HTTP 404)."""
+
+
 def json_block(obj, **kw) -> str:
     """json.dumps safe to embed in a <script> element: every '<' becomes \\u003c, since
     an HTML parser ends the element at the first literal '</script' (and '<!--' changes
@@ -77,15 +85,17 @@ GITIGNORE_MARK = "# managed by rapport"
 
 
 def state_dir(report_dir: Path) -> Path:
-    """A report's review state (feedback, version, block index, server info).
+    """A report's review state (feedback, version, block index, server info, module state).
     The only place that knows the folder's name."""
     return Path(report_dir) / STATE_DIR
 
 
 def state_gitignore(commit_feedback: bool = False) -> str:
     """The managed .gitignore. Its first line must keep starting with GITIGNORE_MARK:
-    that's how ensure_state_dir knows it may rewrite it (older headers included)."""
-    keep = "!.gitignore\n!feedback.json\n!state.json\n!rounds.json\n" if commit_feedback else ""
+    that's how ensure_state_dir knows it may rewrite it (older headers included).
+    Module state (modules/<name>.json) is reader input like feedback, so it goes along; locks never do."""
+    keep = ("!.gitignore\n!feedback.json\n!state.json\n!rounds.json\n!modules/\n!modules/*.json\n"
+            if commit_feedback else "")
     how = ("[report] commit_feedback = true lets feedback through" if commit_feedback
            else "set [report] commit_feedback = true to commit feedback")
     return f"{GITIGNORE_MARK}: {how}; edits are overwritten\n*\n{keep}"

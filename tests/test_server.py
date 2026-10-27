@@ -59,7 +59,8 @@ def test_writes_need_token_and_host(server):
     assert code == 200 and item["comment"] == "shorter"
     assert req(url + "api/feedback", "POST", {"target": {"kind": "report"}}, app.token)[0] == 400
     assert req(url + "api/feedback/FB-1", "DELETE", None, app.token)[0] == 200
-    assert req(url + "api/feedback")[1]["items"] == []
+    code, body = req(url + "api/feedback")
+    assert code == 200 and body["items"] == [] and sorted(body) == ["changes", "items"]
 
 
 def test_feedback_answer_carries_the_changes_of_the_last_round(server):

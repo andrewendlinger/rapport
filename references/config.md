@@ -262,7 +262,8 @@ A report's review state lives in `.rapport/` next to report.md:
 | `state.json` | report version and resolve notes |
 | `blocks.json` | block index, rewritten by `build` and each `serve` rebuild (`lint` and `feedback add` build without writing it) |
 | `rounds.json` | the blocks as they were when each feedback round began, for the change bars |
-| `server.json`, `server.log`, `feedback.lock` | review server (URL, pid, local token) and locking |
+| `modules/<name>.json` | the state of a module with a `server.py` (a sign-off, a poll); `rapport modules state <name>` reads it |
+| `server.json`, `server.log`, `feedback.lock`, `modules/<name>.lock` | review server (URL, pid, local token) and locking |
 
 The folder ignores itself: rapport keeps a `.gitignore` in it containing `*`, so `git add -A` skips it and a rebuild never dirties the tree. It's working data for one checkout: the block index churns, server.json holds a local token, and feedback is a conversation about a draft. The `.gitignore` starts with `# managed by rapport` and the build rewrites it to match the config. Replace that first line and rapport treats the file as yours and leaves it alone.
 
@@ -273,7 +274,7 @@ To commit feedback and version history with the report:
 commit_feedback = true
 ```
 
-The `.gitignore` then lets `feedback.json`, `state.json`, `rounds.json` and itself through (so clones keep the rule and the change bars); everything else stays ignored. An outer `.gitignore` that ignores `.rapport/` still wins; `build` and `lint` say so in a note for the user, with the `git check-ignore -v` command that shows which file does it.
+The `.gitignore` then lets `feedback.json`, `state.json`, `rounds.json`, module state (`modules/*.json`) and itself through (so clones keep the rule and the change bars); everything else stays ignored. An outer `.gitignore` that ignores `.rapport/` still wins; `build` and `lint` say so in a note for the user, with the `git check-ignore -v` command that shows which file does it.
 
-- `git clean -fd` skips ignored files, so it keeps `.rapport/`; `git clean -fdx` and `-fdX` delete it, unresolved feedback included. With `commit_feedback = true`, `feedback.json`, `state.json`, `rounds.json` and the `.gitignore` aren't ignored: until they're committed they're untracked, and `git clean -fd` deletes them.
+- `git clean -fd` skips ignored files, so it keeps `.rapport/`; `git clean -fdx` and `-fdX` delete it, unresolved feedback included. With `commit_feedback = true`, `feedback.json`, `state.json`, `rounds.json`, module state and the `.gitignore` aren't ignored: until they're committed they're untracked, and `git clean -fd` deletes them.
 - Files committed before the folder ignored itself stay tracked. `build` and `lint` print a note for the user with the exact command, e.g. `git rm --cached reports/q3/.rapport/blocks.json reports/q3/.rapport/feedback.json`; it doesn't fail `lint`, since changing git state is the user's call. Once that's committed, collaborators' tracked copies are deleted on their next pull (they're recoverable from git history).

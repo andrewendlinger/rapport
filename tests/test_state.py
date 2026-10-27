@@ -11,6 +11,7 @@ from rapport_core import serve
 from rapport_core.build import build
 from rapport_core.cli import main
 from rapport_core.feedback import Store
+from rapport_core.store import module_store
 from rapport_core.util import RapportError, bump_version, state_dir, state_gitignore
 
 needs_git = pytest.mark.skipif(not shutil.which("git"), reason="git not installed")
@@ -44,7 +45,8 @@ def test_gitignore_follows_commit_feedback(report):
     assert gitignore(d) == state_gitignore()
     assert gitignore(d).startswith("# managed by rapport: ") and gitignore(d).splitlines()[1:] == ["*"]
     build(d, COMMIT)
-    assert gitignore(d).splitlines()[1:] == ["*", "!.gitignore", "!feedback.json", "!state.json", "!rounds.json"]
+    assert gitignore(d).splitlines()[1:] == ["*", "!.gitignore", "!feedback.json", "!state.json", "!rounds.json",
+                                             "!modules/", "!modules/*.json"]
     build(d)
     assert gitignore(d) == state_gitignore()
 
@@ -106,12 +108,14 @@ def test_state_folder_stays_out_of_git_status(report, repo):
     build(d)
     Store(d).add(COMMENT)
     bump_version(d, "note")
+    with module_store(d, "signoff").edit() as state:
+        state["signed"] = ["Ada"]
     assert ".rapport" not in git(repo, "status", "--porcelain", "-uall")
     build(d, COMMIT)
     status = git(repo, "status", "--porcelain", "-uall")
-    for f in (".gitignore", "feedback.json", "state.json"):
+    for f in (".gitignore", "feedback.json", "state.json", "modules/signoff.json"):
         assert f"reports/r/.rapport/{f}" in status
-    assert "blocks.json" not in status and "feedback.lock" not in status
+    assert "blocks.json" not in status and ".lock" not in status
 
 
 @needs_git

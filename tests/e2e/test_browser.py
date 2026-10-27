@@ -671,3 +671,40 @@ def test_change_bars_follow_config_and_a_closed_section(served, page):
     summary = page.evaluate("document.querySelector('.rp-collapse summary').getBoundingClientRect().toJSON()")
     box = page.query_selector(".rp-fb-change").bounding_box()       # the block is hidden: its summary carries it
     assert abs(box["y"] - summary["top"]) < 2 and abs(box["height"] - summary["height"]) < 2
+
+
+# ── modules with a server.py ───────────────────────────────────────────────── #
+def test_a_module_calls_its_routes_and_follows_its_state(served, page):
+    """The `modules new --server` scaffold in a real page: Rapport.api, the server's
+    messages, <module>:changed for a write made outside the page, a stale token."""
+    from rapport_core.cli import main
+    from rapport_core.store import module_store
+    assert main(["modules", "new", "signoff", "--server", "--scope", "user"]) == 0
+    d, app, url = served()
+    open_page(page, url)
+    line = ".rp-signoff p"
+    page.wait_for_selector(f"{line}:has-text('Nobody has signed off yet.')")
+    page.click(".rp-signoff button")                                    # no name: the server refuses
+    page.wait_for_selector(f"{line}:has-text('type your name first')")
+    page.fill(".rp-signoff input", "Ada")
+    page.click(".rp-signoff button")
+    page.wait_for_selector(f"{line}:has-text('Signed off: Ada (v1)')")
+    assert [s["name"] for s in module_store(d, "signoff").read()["signed"]] == ["Ada"]
+    page.evaluate("Rapport.on('signoff:changed', function (m) { window.__meta = m; })")
+    with module_store(d, "signoff").edit() as state:                     # as another process would
+        state["signed"].append({"name": "Bob", "version": 1, "at": "now"})
+    page.wait_for_selector(f"{line}:has-text('Signed off: Ada (v1), Bob (v1)')", timeout=5000)
+    assert page.evaluate("window.__meta.revs.signoff") == str(module_store(d, "signoff").rev())
+    app.token = "rotated"
+    with page.expect_navigation(timeout=5000):
+        page.click(".rp-signoff button")
+
+
+def test_rapport_api_on_a_static_page_rejects_at_once(report, page):
+    d = report(REPORT, {"reports/r/assets/demo.gif": GIF})
+    build(d)
+    page.goto((d / "report.html").as_uri())
+    page.wait_for_selector(".rp-content")
+    msg = page.evaluate("Rapport.api('signoff', '/').then(function () { return 'resolved'; }, "
+                        "function (e) { return e.message + ' / ' + e.status; })")
+    assert msg == "Rapport.api needs the review server; this page is a static file (run rapport serve) / 0"

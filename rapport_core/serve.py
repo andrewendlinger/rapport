@@ -1,11 +1,13 @@
 """The review server: serves the report with the serve-only modules (feedback,
-live reload), rebuilds when sources change, and stores reader feedback.
+live reload), rebuilds when sources change, stores reader feedback, and
+answers the routes of modules that have a server.py (/api/m/<module>/…, see
+routes.py).
 
 Security: binds 127.0.0.1 by default, checks the Host header on every request
-(DNS rebinding), and requires a per-report token on every write (CSRF). The
-token persists in server.json in the state folder (.rapport/, git-ignored), so
-a page left open across a restart keeps working; a page holding a stale token
-gets 403 and reloads itself.
+(DNS rebinding), and requires a per-report token on every write (CSRF), module
+routes included. The token persists in server.json in the state folder
+(.rapport/, git-ignored), so a page left open across a restart keeps working;
+a page holding a stale token gets 403 and reloads itself.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ import sys
 import threading
 import time
 import traceback
+import urllib.parse
 import urllib.request
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,12 +32,15 @@ from . import ROOT
 from . import config as config_mod
 from .build import build
 from .changes import changes
-from .feedback import NotFound, Store, check_content, make_item, update_fields
-from .util import STATE_FILE, RapportError, atomic_write, ensure_state_dir, read_state, state_dir, unique
+from .feedback import Store, check_content, make_item, update_fields
+from .routes import Request, mount
+from .store import Corrupt, module_store
+from .util import STATE_FILE, NotFound, RapportError, atomic_write, ensure_state_dir, read_state, state_dir, unique
 
 SERVER_FILE = "server.json"
 LOG_FILE = "server.log"
 PORT_TRIES = 10
+MODULE_API = "/api/m/"
 
 
 # ── watching ──────────────────────────────────────────────────────────────── #
@@ -135,6 +141,7 @@ class App:
         self.warnings: list[str] = []
         self.cfg = None
         self.blocks: dict = {}
+        self.routes: dict = {}              # module name → its Router, from the last successful build
         self.files: list[Path] = []
         self.watcher = Watcher(self._rebuild_files, fallback_files(report_dir))
         self.allowed_hosts: set[str] = set()
@@ -143,13 +150,15 @@ class App:
         try:
             res = build(self.report_dir, self.sets,
                         serve_data={"serve": {"token": self.token, "api": "/api", "build_id": self.build_id + 1}})
+            routes, route_errors = mount(res.config)       # runs each server.py: outside the lock
             with self.lock:
                 self.build_id += 1
                 self.html = res.served_html.encode("utf-8")
-                self.errors = [f"{d.format(res.config.get('report.source'))}" for d in res.errors]
+                self.errors = [f"{d.format(res.config.get('report.source'))}" for d in res.errors] + route_errors
                 old, self.warnings = self.warnings, res.warnings + res.notes()
                 self.cfg = res.config
                 self.blocks = res.blocks
+                self.routes = routes
                 self.files = watched_files(self.report_dir, res.config, res.assets)
             stamp = time.strftime("%H:%M:%S")
             msg = f"[{stamp}] built v{read_state(self.report_dir).get('version', 1)}"
@@ -191,16 +200,21 @@ class App:
 
     def feedback(self) -> dict:
         """The items, plus what changed since the last feedback round (the page's change bars)."""
-        rev, items = self.store.rev(), self.store.items()
+        items = self.store.items()
         with self.lock:
             blocks = self.blocks
-        return {"items": items, "rev": rev, "changes": changes(self.report_dir, blocks, items) if blocks else None}
+        return {"items": items, "changes": changes(self.report_dir, blocks, items) if blocks else None}
 
     def meta(self) -> dict:
+        """What the page polls. revs: each served module's state revision, its file's mtime_ns
+        (so a write from the CLI or another process counts too) as a string: a JS number would
+        round it. The page emits <module>:changed when one moves."""
         with self.lock:
             return {"build_id": self.build_id, "errors": self.errors,
                     "version": read_state(self.report_dir).get("version", 1),
-                    "feedback_rev": self.store.rev(), "dir": str(self.report_dir)}
+                    "feedback_rev": self.store.rev(),
+                    "revs": {name: str(module_store(self.report_dir, name).rev()) for name in self.routes},
+                    "dir": str(self.report_dir)}
 
 
 def _error_page(message: str) -> str:
@@ -263,6 +277,9 @@ class Handler(BaseHTTPRequestHandler):
         return data
 
     def do_GET(self) -> None:  # noqa: N802
+        if self.path.startswith(MODULE_API):
+            self._module_route("GET")
+            return
         if not self._host_ok():
             return
         path = self.path.split("?")[0]
@@ -272,19 +289,22 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, body, "text/html; charset=utf-8")
         elif path == "/api/meta":
             self._json(self.app.meta())
-        elif path == "/api/feedback":      # fails only on a broken feedback.json: the server's problem
-            self._answer(self.app.feedback, 500)
+        elif path == "/api/feedback":
+            self._answer(self.app.feedback)
         else:
             self._send(404, b"not found", "text/plain")
 
-    def _answer(self, fn, refused: int = 400) -> None:
-        """fn()'s result as JSON; its errors as {"error": …}, a RapportError with status `refused`."""
+    def _answer(self, fn) -> None:
+        """fn()'s result as JSON; its errors as {"error": …}: 404 for NotFound, 400 for any other
+        RapportError (refused input), 500 for a broken state file or a bug (traceback to the log)."""
         try:
             self._json(fn())
         except NotFound as e:
             self._json({"error": str(e)}, 404)
+        except Corrupt as e:
+            self._json({"error": str(e)}, 500)
         except RapportError as e:
-            self._json({"error": str(e)}, refused)
+            self._json({"error": str(e)}, 400)
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self._json({"error": f"server error: {e}"}, 500)
@@ -293,7 +313,37 @@ class Handler(BaseHTTPRequestHandler):
         if self._host_ok() and self._token_ok():
             self._answer(fn)
 
+    def _module_route(self, method: str) -> None:
+        """/api/m/<module>/<path>: a route from that module's server.py. Host, token and body
+        are checked here, before the module's code sees anything."""
+        if not self._host_ok() or (method != "GET" and not self._token_ok()):
+            return
+        path, _, query = self.path.partition("?")
+        name, _, rest = path[len(MODULE_API):].partition("/")
+        with self.app.lock:
+            router, cfg, blocks = self.app.routes.get(name), self.app.cfg, self.app.blocks
+        if router is None:
+            self._json({"error": f"no module '{name}' answers here (a module needs a server.py "
+                                 "and must be switched on)"}, 404)
+            return
+        route, params, others = router.match(method, rest)
+        if route is None:
+            takes = f" (that path takes {', '.join(others)})" if others else ""
+            self._json({"error": f"module '{name}' has no route {method} /{rest.strip('/')}{takes}"}, 404)
+            return
+
+        def call():
+            req = Request(method=method, body=self._body() if method != "GET" else {}, params=params,
+                          query={k: v[-1] for k, v in urllib.parse.parse_qs(query).items()},
+                          store=module_store(self.app.report_dir, name, readonly=method == "GET"),
+                          config=cfg.module(name), full_config=cfg, blocks=blocks, report_dir=self.app.report_dir)
+            return route.fn(req)
+        self._answer(call)
+
     def do_POST(self) -> None:  # noqa: N802
+        if self.path.startswith(MODULE_API):
+            self._module_route("POST")
+            return
         if self.path.split("?")[0] != "/api/feedback":
             self._send(404, b"not found", "text/plain")
             return
@@ -314,7 +364,17 @@ class Handler(BaseHTTPRequestHandler):
             raise NotFound("not found")
         return parts[3]
 
+    def do_PUT(self) -> None:  # noqa: N802
+        if self.path.startswith(MODULE_API):
+            self._module_route("PUT")
+        else:
+            self._send(404, b"not found", "text/plain")
+
     def do_PATCH(self) -> None:  # noqa: N802
+        if self.path.startswith(MODULE_API):
+            self._module_route("PATCH")
+            return
+
         def patch():
             cfg = self.app.cfg
             if cfg is None:
@@ -326,6 +386,10 @@ class Handler(BaseHTTPRequestHandler):
         self._mutate(patch)
 
     def do_DELETE(self) -> None:  # noqa: N802
+        if self.path.startswith(MODULE_API):
+            self._module_route("DELETE")
+            return
+
         def delete():
             self.app.store.delete(self._item_id())
             return {"ok": True}

@@ -1,12 +1,13 @@
 /* live-reload: poll the server; reload when the report was rebuilt, unless the
    reader is busy (Rapport.busy(): a comment is being typed, text is selected),
-   in which case offer a pill instead. Also relays feedback changes and build errors. */
+   in which case offer a pill instead. Also relays build errors and state changes:
+   feedback:changed, and <module>:changed for each module with a server.py. */
 Rapport.module("live-reload", {
   init: function (ctx) {
     var serve = ctx.data.serve || {};
     var api = serve.api || "/api";
     var buildId = serve.build_id;
-    var rev = null, pill = null, errBox = null, errKey = "", dismissed = "";
+    var rev = null, revs = null, pill = null, errBox = null, errKey = "", dismissed = "";
 
     function showPill() {
       if (pill) return;
@@ -54,6 +55,11 @@ Rapport.module("live-reload", {
         }
         if (rev !== null && m.feedback_rev !== rev) Rapport.emit("feedback:changed", m);
         rev = m.feedback_rev;
+        var seen = revs;
+        revs = m.revs || {};
+        Object.keys(revs).forEach(function (name) {
+          if (seen && name in seen && seen[name] !== revs[name]) Rapport.emit(name + ":changed", m);
+        });
         showErrors(m.errors);
       }).catch(function () {
         if (!down) { down = true; Rapport.emit("server:down"); }

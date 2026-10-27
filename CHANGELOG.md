@@ -5,6 +5,9 @@
 - **`install.sh --help`** prints just the usage text; it no longer ends with the script's `set -eu` line.
 - **`order` orders scripts too.** A module's `order` in `module.toml` now decides its `<script>` position within its kind, as documented. It used to affect only the CSS.
 - **The module script API is documented.** `references/modules.md` now lists what a module's `script.js` can rely on: the `Rapport` functions (including the new `Rapport.reload()`, which keeps the scroll position), the events, the page data and the `init`/`mount` context. The template table also covers `config`, `ctx.module()`, `ctx.config` and `ctx.meta`.
+- **Modules can extend the review server.** A `server.py` in a module folder registers routes, which `rapport serve` answers under `/api/m/<module>/`, and keeps the module's state in `.rapport/modules/<name>.json`. The page calls them with `Rapport.api()` and hears about changes as `<module>:changed`, even when another process made them. The server checks the host, the session token and the body before any module code runs. So a sign-off button, a poll or a persistent checklist no longer needs a fork. `rapport modules new <name> --server` scaffolds a working sign-off box; `modules check` loads `server.py` and `modules info` lists its routes. The contract is "server.py" in `references/modules.md`.
+- **`rapport modules state <name>`** prints a module's stored state for the agent: the module's own summary if its `server.py` has a `describe()`, else the JSON (`--json` forces it). With `commit_feedback = true`, module state is committed along with the feedback.
+- **One rebuild per edit.** Loading a module's `prepare.py` no longer writes `__pycache__` into the module folder, which made the review server rebuild, and the page reload, twice after each edit.
 
 ## 0.5.0 (2026-10-27)
 
