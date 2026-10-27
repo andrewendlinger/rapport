@@ -30,7 +30,7 @@ from pygments.util import ClassNotFound
 
 from . import __version__
 from . import css as css_mod
-from .parse import Builder, Diag, Document, Node, _close_index, assign_ids, inline_text, make_markdown, parse
+from .parse import Builder, Diag, Document, Node, _close_index, assign_ids, make_markdown, parse
 from .registry import KIND_ORDER, Module, resolve_params
 from .util import is_image_file, json_block
 
@@ -98,6 +98,40 @@ def count_roots(fragment: str) -> int:
     c.feed(fragment)
     c.close()
     return c.roots
+
+
+class _TextOf(HTMLParser):
+    """The text a reader sees in a fragment, as the feedback script indexes it:
+    no UI chrome (data-rp-ui), scripts or styles; whitespace collapsed."""
+    HIDDEN = {"script", "style", "noscript", "template"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.stack: list[tuple[str, bool]] = []
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in VOID_TAGS:
+            return
+        hidden = (self.stack and self.stack[-1][1]) or tag in self.HIDDEN or any(k == "data-rp-ui" for k, _ in attrs)
+        self.stack.append((tag, bool(hidden)))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.stack) - 1, -1, -1):
+            if self.stack[i][0] == tag:
+                del self.stack[i:]
+                return
+
+    def handle_data(self, data):
+        if not (self.stack and self.stack[-1][1]):
+            self.parts.append(data)
+
+
+def text_of(fragment: str) -> str:
+    t = _TextOf()
+    t.feed(fragment)
+    t.close()
+    return re.sub(r"\s+", " ", "".join(t.parts)).strip()
 
 
 def _script_safe(js: str) -> str:
@@ -474,8 +508,10 @@ class Renderer:
             attrs["data-rp-ui"] = ""
         out = inject_root(out, attrs, [f"rp-m-{mod.name}", "rp-block"])
         self.blocks[node.id] = {"module": mod.name, "lines": list(node.lines), "src": node.src,
-                                "heading_path": node.heading_path, "section": node.section,
-                                "text": inline_text(node.inline) if node.inline is not None else ""}
+                                "heading_path": node.heading_path, "section": node.section, "text": text_of(out)}
+        kids = [c.id for c in node.children if c.id in self.blocks]
+        if kids:
+            self.blocks[node.id]["children"] = kids
         return Markup(out)
 
     def _child_view(self, node: Node) -> View:
@@ -585,7 +621,7 @@ class Renderer:
                     attrs["data-rp-lines"] = f"{fm[0]}-{fm[1]}"
                     self.blocks[name] = {"module": name, "lines": list(fm),
                                          "src": "\n".join(self._source_lines[fm[0] - 1:fm[1]]) if fm[0] else "",
-                                         "heading_path": [], "section": "", "text": ""}
+                                         "heading_path": [], "section": "", "text": text_of(out)}
                 parts.append(inject_root(out, attrs, [f"rp-m-{name}"]))
             regions[region] = Markup("\n".join(parts))
 

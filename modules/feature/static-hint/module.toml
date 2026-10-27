@@ -1,7 +1,8 @@
 name = "static-hint"
 kind = "feature"
-summary = "On a double-clicked report.html (no server): a dismissible chip with the command that enables commenting."
+summary = "On a double-clicked report.html (no server): a dismissible chip with the command that enables commenting. Off by default, so the built file is a clean report."
 when = "static"
+enabled = false
 
 [config.command]
 type = "string"

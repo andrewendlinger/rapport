@@ -97,8 +97,9 @@ The CLI declares its dependencies (markdown-it-py, mdit-py-plugins, Jinja2, Pygm
 - **Existing feedback** stays highlighted in its action's colour (Delete is struck through), with counts in the margin. Click a highlight to edit or delete it.
 - **The panel** (bottom right) lists everything with filters, takes comments on the whole report, and shows the agent's note on each resolved item.
 - **Live reload** never interrupts a comment: you get an "updated" pill instead, and drafts survive reloads. Esc or Cancel discards a draft, with Undo.
+- **After a round**, a thin bar in the right margin marks what changed: green for a new block, blue for an edited one, and a short red dash where something was removed. Hover one and the added words light up green, while a card shows the removed words, what you asked, and the agent's note on how it was addressed. Click it to list those items in the panel. The button next to **Feedback** hides or shows the bars.
 
-A double-clicked `report.html` is the same page, read-only, with a hint showing the command to serve it.
+A double-clicked `report.html` is the clean report: no feedback UI, no highlights, no change bars. `[modules.static-hint] enabled = true` adds a chip there with the command to serve it.
 
 </details>
 

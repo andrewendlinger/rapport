@@ -86,7 +86,7 @@ def state_dir(report_dir: Path) -> Path:
 def state_gitignore(commit_feedback: bool = False) -> str:
     """The managed .gitignore. Its first line must keep starting with GITIGNORE_MARK:
     that's how ensure_state_dir knows it may rewrite it (older headers included)."""
-    keep = "!.gitignore\n!feedback.json\n!state.json\n" if commit_feedback else ""
+    keep = "!.gitignore\n!feedback.json\n!state.json\n!rounds.json\n" if commit_feedback else ""
     how = ("[report] commit_feedback = true lets feedback through" if commit_feedback
            else "set [report] commit_feedback = true to commit feedback")
     return f"{GITIGNORE_MARK}: {how}; edits are overwritten\n*\n{keep}"

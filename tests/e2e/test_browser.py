@@ -298,9 +298,17 @@ def test_general_comment_from_panel(served, page):
     assert it[0]["target"]["kind"] == "report"
 
 
-def test_static_file_is_read_only_with_hint(report, page):
+def test_static_file_is_a_clean_report(report, page):
     d = report(REPORT, {"reports/r/assets/demo.gif": GIF})
     build(d)
+    page.goto((d / "report.html").as_uri())
+    page.wait_for_selector(".rp-content")
+    assert page.query_selector("[data-rp-ui].rp-fb, .rp-hint, .rp-fb-change") is None
+
+
+def test_static_hint_when_switched_on(report, page):
+    d = report(REPORT, {"reports/r/assets/demo.gif": GIF})
+    build(d, ["modules.static-hint.enabled=true"])
     page.goto((d / "report.html").as_uri())
     page.wait_for_selector(".rp-hint")
     hint = page.text_content(".rp-hint")
@@ -552,3 +560,101 @@ def test_a_broken_feedback_file_is_shown_not_taken_for_no_feedback(served, page)
     page.wait_for_selector(".rp-fb-toast.rp-show")
     assert "is not valid JSON" in page.text_content(".rp-fb-toast")
     assert page.is_hidden(".rp-fb-banner")              # the server is up: not the offline banner
+
+
+def _round(d, app, edit, comments):
+    """Comment on the served report, apply `edit` to report.md, resolve: one feedback round."""
+    from rapport_core.feedback import make_item
+    s, blocks = Store(d), dict(app.blocks)
+    made = []
+    for start, payload in comments:
+        block = next(k for k, v in blocks.items() if v["src"].startswith(start))
+        made.append(s.add(make_item({"target": {"kind": "text", "blocks": [block], "quote": start}, **payload},
+                                    app.cfg, blocks, 1), blocks))
+    first = app.build_id
+    (d / "report.md").write_text(edit((d / "report.md").read_text()))
+    assert wait_for(lambda: app.build_id > first)
+    first = app.build_id
+    for it in made:
+        s.resolve([it["id"]], "fixed " + it["id"])
+    assert wait_for(lambda: app.build_id > first)          # the version bump rebuilds the page
+    return made
+
+
+def test_change_bars_after_a_round(served, page):
+    d, app, url = served()
+    a, b = _round(d, app, lambda t: t.replace("so every request missed the cache once after the deploy",
+                                              "so each request missed once").replace(
+                                  "A second paragraph with different words entirely.\n\n", ""),
+                  [("The cache key", {"actions": ["verbose"], "comment": "say it shorter"}),
+                   ("A second paragraph", {"actions": ["delete"]})])
+    open_page(page, url)
+    page.wait_for_selector(".rp-fb-change")
+    bar, cut = page.query_selector(".rp-fb-change.rp-bar"), page.query_selector(".rp-fb-change.rp-cut")
+    assert len(page.query_selector_all(".rp-fb-change")) == 2 and bar and cut
+    content = page.evaluate("document.querySelector('.rp-content').getBoundingClientRect().right")
+    para = page.evaluate("""[...document.querySelectorAll('[data-rp-id]')]
+        .find(e => e.textContent.includes('each request missed once')).getBoundingClientRect().toJSON()""")
+    box = bar.bounding_box()
+    assert box["x"] > content - 1                                   # in the right margin
+    assert abs(box["y"] - para["top"]) < 2 and abs(box["height"] - para["height"]) < 2
+
+    assert "rp-edited" in bar.get_attribute("class") and "rp-removed" in cut.get_attribute("class")
+    assert page.evaluate("!CSS.highlights.has('rp-fb-added')")      # only while hovering
+
+    bar.hover()
+    page.wait_for_selector(".rp-fb-card", state="visible")
+    text = page.text_content(".rp-fb-card")
+    assert f"fixed {a['id']}" in text and "say it shorter" in text and "Too verbose" in text
+    assert page.evaluate("[...CSS.highlights.get('rp-fb-added')].map(r => r.toString())") == ["each", "once."]
+    assert "every" in page.text_content(".rp-fb-card-del del")      # removed words, struck through
+    cut.hover()
+    page.wait_for_function("document.querySelector('.rp-fb-card').textContent.includes('Removed')")
+    assert f"fixed {b['id']}" in page.text_content(".rp-fb-card")
+    assert page.text_content(".rp-fb-card-del") == "A second paragraph with different words entirely."
+    assert page.evaluate("!CSS.highlights.has('rp-fb-added')")      # nothing left on the page to mark
+
+    cut.click()                                                     # lists its items in the panel
+    page.wait_for_selector(".rp-fb-panel", state="visible")
+    assert "These changes" in page.text_content(".rp-fb-filters")
+    assert b["id"] in page.text_content(".rp-fb-list") and a["id"] not in page.text_content(".rp-fb-list")
+
+    page.click(".rp-fb-chgbtn")                                     # off, and it stays off on reload
+    assert page.get_attribute(".rp-fb-chgbtn", "aria-pressed") == "false"
+    assert page.query_selector(".rp-fb-change") is None
+    open_page(page, url)
+    page.wait_for_selector(".rp-fb-chgbtn", state="visible")
+    assert page.query_selector(".rp-fb-change") is None
+    page.click(".rp-fb-chgbtn")
+    page.wait_for_selector(".rp-fb-change")
+
+
+def test_an_added_block_is_green_and_lights_up_whole(served, page):
+    d, app, url = served()
+    _round(d, app, lambda t: t.replace("A second paragraph", "A new example, as asked.\n\nA second paragraph"),
+           [("The cache key", {"comment": "add an example"})])
+    open_page(page, url)
+    page.wait_for_selector(".rp-fb-change")
+    bar = page.query_selector(".rp-fb-change.rp-bar")
+    assert "rp-added" in bar.get_attribute("class")
+    bar.hover()
+    page.wait_for_selector(".rp-fb-card", state="visible")
+    assert page.text_content(".rp-fb-card-what") == "Added since v1"
+    assert page.evaluate("[...CSS.highlights.get('rp-fb-added')].map(r => r.toString()).join('')") == \
+        "A new example, as asked."
+    page.mouse.move(5, 5)
+    page.wait_for_function("!CSS.highlights.has('rp-fb-added')")
+
+
+def test_change_bars_follow_config_and_a_closed_section(served, page):
+    d, app, url = served(sets=["modules.feedback.changes=false"])
+    _round(d, app, lambda t: t.replace("Hidden sentence inside", "Clearer sentence inside"),
+           [("Hidden sentence", {"actions": ["unclear"]})])
+    open_page(page, url)
+    page.wait_for_selector(".rp-fb-chgbtn", state="visible")
+    assert page.query_selector(".rp-fb-change") is None             # off by config until switched on
+    page.click(".rp-fb-chgbtn")
+    page.wait_for_selector(".rp-fb-change")
+    summary = page.evaluate("document.querySelector('.rp-collapse summary').getBoundingClientRect().toJSON()")
+    box = page.query_selector(".rp-fb-change").bounding_box()       # the block is hidden: its summary carries it
+    assert abs(box["y"] - summary["top"]) < 2 and abs(box["height"] - summary["height"]) < 2

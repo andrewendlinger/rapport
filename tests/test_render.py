@@ -52,7 +52,10 @@ def test_css_and_js_only_for_used_modules(report):
 
 def test_static_vs_served_features(report):
     res = build(report("x\n"), serve_data={"serve": {"token": "t", "api": "/api", "build_id": 1}})
-    assert 'Rapport.module("static-hint"' in res.html and 'Rapport.module("feedback"' not in res.html
+    assert 'Rapport.module("feedback"' not in res.html and 'Rapport.module("static-hint"' not in res.html
+    hinted = build(report("x\n", name="r2"), ["modules.static-hint.enabled=true"],
+                   serve_data={"serve": {"token": "t", "api": "/api", "build_id": 1}})
+    assert 'Rapport.module("static-hint"' in hinted.html and 'Rapport.module("static-hint"' not in hinted.served_html
     assert 'Rapport.module("feedback"' in res.served_html and 'Rapport.module("live-reload"' in res.served_html
     assert '"token": "t"' in res.served_html and '"token"' not in res.html
 

@@ -17,6 +17,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .changes import round_for
 from .util import RapportError, atomic_write, bump_version, collapse_ws, ensure_state_dir, read_state, state_dir
 
 try:
@@ -83,9 +84,11 @@ class Store:
     def items(self) -> list[dict]:
         return self.load()["items"]
 
-    def add(self, fields: dict) -> dict:
+    def add(self, fields: dict, blocks: dict | None = None) -> dict:
         """Create an item; a repeat of an identical open quick action (same
-        passage, same actions, no comment) returns the existing item instead."""
+        passage, same actions, no comment) returns the existing item instead.
+        With the block index the comment was made on, the item joins the open
+        feedback round, or starts one with those blocks as its baseline."""
         with self.locked():
             data = self.load()
             if not fields.get("comment"):
@@ -95,6 +98,8 @@ class Store:
                 if dup:
                     return {**dup, "duplicate": True}
             item = {"id": f"FB-{data['next']}", "status": "open", "created": now(), "updated": now(), **fields}
+            if blocks is not None:
+                item["round"] = round_for(self.report_dir, data["items"], blocks, fields.get("report_version"))
             data["next"] += 1
             data["items"].append(item)
             self.save(data)
@@ -528,6 +533,6 @@ def _cli_add(args, cfg, store: Store, report_dir: Path) -> int:
             raise RapportError("quote not found in any block")
         target = {"kind": "text", "blocks": hits[:1], "quote": args.quote}
     item = store.add(make_item({"target": target, "actions": args.action, "comment": args.comment},
-                               cfg, blocks, read_state(report_dir).get("version", 1)))
+                               cfg, blocks, read_state(report_dir).get("version", 1)), blocks)
     print(f"added {item['id']}")
     return 0

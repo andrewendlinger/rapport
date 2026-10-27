@@ -221,14 +221,6 @@ img.rp-icon{height:1.15em;width:auto;vertical-align:-.2em}
   h2,h3{break-after:avoid}
 }
 
-/* static-hint */
-.rp-hint{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:8px;
-  max-width:min(600px,calc(100vw - 32px));padding:8px 12px;border:1px solid var(--rp-line);border-radius:8px;
-  background:var(--rp-surface);color:var(--rp-ink-soft);box-shadow:var(--rp-shadow);font:12px/1.5 var(--rp-sans)}
-.rp-hint code{font:11px var(--rp-mono);color:var(--rp-ink);user-select:all;word-break:break-all}
-.rp-hint button{border:0;background:none;color:var(--rp-ink-faint);font:inherit;cursor:pointer;padding:2px}
-@media print{.rp-hint{display:none!important}}
-
 /* theme-toggle */
 .rp-theme-toggle{position:fixed;top:14px;right:16px;z-index:40;width:32px;height:32px;border-radius:999px;
   border:1px solid var(--rp-line);background:var(--rp-surface);color:var(--rp-ink-soft);font:15px/1 var(--rp-sans);
@@ -838,7 +830,7 @@ Theme, layout, writing rules and feedback actions live in config files that stac
 </div>
 </div>
 <button class="rp-theme-toggle" type="button" data-rp-ui aria-label="Theme: system" title="Theme: system">◐</button>
-<script type="application/json" id="rp-data">{"report": {"title": "rapport in five minutes", "version": 3, "served": false, "source": "report.md"}, "modules": {"runtime": {"enabled": true}, "toc": {"enabled": true, "title": "Contents", "min_level": 2, "max_level": 3, "min_headings": 3}, "image": {"enabled": true, "zoom": true, "caption_from_alt": true}, "collapse": {"enabled": true, "title": "Details", "open": false}, "copy-code": {"enabled": true}, "print": {"enabled": true}, "static-hint": {"enabled": true, "command": "rapport"}, "theme-toggle": {"enabled": true}}, "present": ["badge", "callout", "code", "collapse", "compare", "copy-code", "footer", "header", "heading", "image", "list", "page", "pane", "paragraph", "print", "runtime", "static-hint", "table", "theme-toggle", "toc"]}</script>
+<script type="application/json" id="rp-data">{"report": {"title": "rapport in five minutes", "version": 3, "served": false, "source": "report.md"}, "modules": {"runtime": {"enabled": true}, "toc": {"enabled": true, "title": "Contents", "min_level": 2, "max_level": 3, "min_headings": 3}, "image": {"enabled": true, "zoom": true, "caption_from_alt": true}, "collapse": {"enabled": true, "title": "Details", "open": false}, "copy-code": {"enabled": true}, "print": {"enabled": true}, "theme-toggle": {"enabled": true}}, "present": ["badge", "callout", "code", "collapse", "compare", "copy-code", "footer", "header", "heading", "image", "list", "page", "pane", "paragraph", "print", "runtime", "table", "theme-toggle", "toc"]}</script>
 <script>/* runtime */
 /* rapport client kernel. Modules register with Rapport.module(name, def):
      init(ctx)        once, if the module is on the page
@@ -995,37 +987,6 @@ Rapport.module("print", {
       opened.forEach(function (d) { d.open = false; });
       opened = [];
     });
-  }
-});
-
-</script>
-<script>/* static-hint */
-/* static-hint: opened via file:// there is no server, so no commenting; say how to get it.
-   The folder comes from the page's own location, so report.html embeds no local paths. */
-Rapport.module("static-hint", {
-  init: function (ctx) {
-    if (location.protocol !== "file:") return;
-    var KEY = "rp-hint-dismissed:" + location.pathname;
-    try { if (sessionStorage.getItem(KEY)) return; } catch (e) { /* show */ }
-    var dir = decodeURIComponent(location.pathname).replace(/\/[^/]*$/, "");
-    if (/^\/[A-Za-z]:\//.test(dir)) dir = dir.slice(1);   // file:///C:/… on Windows
-    var hint = document.createElement("div");
-    hint.className = "rp-hint";
-    hint.setAttribute("data-rp-ui", "");
-    var label = document.createElement("span");
-    label.textContent = "Read-only copy. To comment, ask your agent to serve it, or run:";
-    var cmd = document.createElement("code");
-    cmd.textContent = ((ctx.config && ctx.config.command) || "rapport") + " serve '" + dir + "'";
-    var close = document.createElement("button");
-    close.type = "button";
-    close.setAttribute("aria-label", "Dismiss");
-    close.textContent = "✕";
-    close.addEventListener("click", function () {
-      try { sessionStorage.setItem(KEY, "1"); } catch (e) { /* per view */ }
-      hint.remove();
-    });
-    hint.appendChild(label); hint.appendChild(cmd); hint.appendChild(close);
-    document.body.appendChild(hint);
   }
 });
 

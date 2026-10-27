@@ -28,6 +28,7 @@ from pathlib import Path
 from . import ROOT
 from . import config as config_mod
 from .build import build
+from .changes import changes
 from .feedback import NotFound, Store, check_content, make_item, update_fields
 from .util import STATE_FILE, RapportError, atomic_write, ensure_state_dir, read_state, state_dir, unique
 
@@ -188,6 +189,13 @@ class App:
             except Exception:  # noqa: BLE001
                 traceback.print_exc()
 
+    def feedback(self) -> dict:
+        """The items, plus what changed since the last feedback round (the page's change bars)."""
+        rev, items = self.store.rev(), self.store.items()
+        with self.lock:
+            blocks = self.blocks
+        return {"items": items, "rev": rev, "changes": changes(self.report_dir, blocks, items) if blocks else None}
+
     def meta(self) -> dict:
         with self.lock:
             return {"build_id": self.build_id, "errors": self.errors,
@@ -265,7 +273,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/meta":
             self._json(self.app.meta())
         elif path == "/api/feedback":      # fails only on a broken feedback.json: the server's problem
-            self._answer(lambda: {"items": self.app.store.items(), "rev": self.app.store.rev()}, 500)
+            self._answer(self.app.feedback, 500)
         else:
             self._send(404, b"not found", "text/plain")
 
@@ -297,7 +305,7 @@ class Handler(BaseHTTPRequestHandler):
             if cfg is None:
                 raise RapportError("the report has not built yet")
             version = read_state(self.app.report_dir).get("version", 1)
-            return self.app.store.add(make_item(payload, cfg, blocks, version))
+            return self.app.store.add(make_item(payload, cfg, blocks, version), blocks)
         self._mutate(create)
 
     def _item_id(self) -> str:

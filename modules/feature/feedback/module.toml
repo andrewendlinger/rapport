@@ -24,6 +24,11 @@ type = "bool"
 default = true
 doc = "Show a margin handle on hover to comment on a whole block (images, gifs, code)."
 
+[config.changes]
+type = "bool"
+default = true
+doc = "After a round of feedback, mark what changed with a thin bar in the right margin: green for a new block, blue for an edited one, a short red dash where something was removed. Hover a bar to mark the added words in green and see the removed ones, what was asked, and how it was addressed. The button by Feedback switches the bars off and on; each browser remembers its choice. Colours: --rp-fb-added, --rp-fb-edited, --rp-fb-removed."
+
 [config.panel_hint]
 type = "string"
 default = "Tell your agent: “apply the rapport feedback”."

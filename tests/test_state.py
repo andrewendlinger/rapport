@@ -44,7 +44,7 @@ def test_gitignore_follows_commit_feedback(report):
     assert gitignore(d) == state_gitignore()
     assert gitignore(d).startswith("# managed by rapport: ") and gitignore(d).splitlines()[1:] == ["*"]
     build(d, COMMIT)
-    assert gitignore(d).splitlines()[1:] == ["*", "!.gitignore", "!feedback.json", "!state.json"]
+    assert gitignore(d).splitlines()[1:] == ["*", "!.gitignore", "!feedback.json", "!state.json", "!rounds.json"]
     build(d)
     assert gitignore(d) == state_gitignore()
 

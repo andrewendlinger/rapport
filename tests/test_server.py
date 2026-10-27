@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from rapport_core.feedback import Store
 from rapport_core.serve import make_server, read_server
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -59,6 +60,21 @@ def test_writes_need_token_and_host(server):
     assert req(url + "api/feedback", "POST", {"target": {"kind": "report"}}, app.token)[0] == 400
     assert req(url + "api/feedback/FB-1", "DELETE", None, app.token)[0] == 200
     assert req(url + "api/feedback")[1]["items"] == []
+
+
+def test_feedback_answer_carries_the_changes_of_the_last_round(server):
+    d, app, url = server
+    para = next(k for k, v in app.blocks.items() if v["module"] == "paragraph")
+    payload = {"target": {"kind": "text", "blocks": [para], "quote": "A paragraph"}, "actions": ["verbose"]}
+    code, item = req(url + "api/feedback", "POST", payload, app.token)
+    assert code == 200 and item["round"] == 1
+    assert req(url + "api/feedback")[1]["changes"] is None
+    (d / "report.md").write_text("## Summary\n\nShorter.\n", encoding="utf-8")
+    app.rebuild()
+    Store(d).resolve([item["id"]], "cut it")
+    ch = req(url + "api/feedback")[1]["changes"]
+    assert [c["items"] for c in ch["changed"]] == [[item["id"]]]
+    assert app.blocks[ch["changed"][0]["id"]]["src"] == "Shorter."
 
 
 def test_rebuilds_on_change(server):

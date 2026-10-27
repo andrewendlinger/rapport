@@ -3,7 +3,8 @@
    action; hover a block → a margin handle for whole-block comments. Every
    change is saved to the review server immediately. Existing items show as
    highlights (CSS Custom Highlight API, no DOM changes) plus margin counts;
-   the panel lists everything. Actions, their labels, keys, colours and
+   the panel lists everything. After a round, thin bars in the right margin mark
+   what changed; hovering one says what was asked and how it was addressed. Actions, their labels, keys, colours and
    instructions all come from [modules.feedback] config. */
 Rapport.module("feedback", {
   init: function (ctx) {
@@ -24,6 +25,7 @@ Rapport.module("feedback", {
     var MAIN = document.querySelector(".rp-content") || SCOPE;
     var DRAFT_KEY = "rp-fb-draft:" + location.pathname;
     var items = [];
+    var changes = null;           // since the last feedback round: {since, changed, removed, general}
     var st = { mode: null, target: null, item: null, selected: [], barTarget: null };
 
     /* ── tiny DOM helpers ─────────────────────────────── */
@@ -93,8 +95,13 @@ Rapport.module("feedback", {
     function commonHead(a, b) { var n = 0; while (n < a.length && n < b.length && a[n] === b[n]) n++; return n; }
     function findQuote(root, t) {
       if (!root) return null;
-      var idx = textIndex(root), q = norm(t.quote);
-      if (!q) return null;
+      var idx = textIndex(root), at = findAt(idx, t);
+      return at < 0 ? null : rangeFrom(idx, at, at + norm(t.quote).length);
+    }
+    /* where t.quote is in idx.text, the occurrence whose surroundings best match its context; -1: absent */
+    function findAt(idx, t) {
+      var q = norm(t.quote);
+      if (!q) return -1;
       var best = -1, bestScore = -1, from = 0, pos;
       var pre = norm(t.prefix), suf = norm(t.suffix);
       while ((pos = idx.text.indexOf(q, from)) !== -1) {
@@ -102,7 +109,18 @@ Rapport.module("feedback", {
         if (score > bestScore) { bestScore = score; best = pos; }
         from = pos + 1;
       }
-      return best < 0 ? null : rangeFrom(idx, best, best + q.length);
+      return best;
+    }
+    /* idx.text[a:b] as one range per text node, so UI chrome in between stays unmarked */
+    function nodeRanges(idx, a, b) {
+      var out = [];
+      for (var i = a; i < b;) {
+        var j = i + 1;
+        while (j < b && idx.nodes[j] === idx.nodes[i]) j++;
+        out.push(rangeFrom(idx, i, j));
+        i = j;
+      }
+      return out;
     }
 
     /* ── blocks ─────────────────────────────────────────── */
@@ -191,6 +209,7 @@ Rapport.module("feedback", {
     function load() {
       return api("GET", "/feedback").then(function (d) {
         items = d.items || [];
+        changes = d.changes || null;
         items.forEach(anchor);
         paint();
       }).catch(function (e) { if (e.kind === "http") toast(e.message); });   // api() shows the offline banner
@@ -288,6 +307,187 @@ Rapport.module("feedback", {
         });
         layer.appendChild(m);
       });
+      placeChanges();
+    }
+
+    /* ── change bars: what changed since the last feedback round ── */
+    var CHANGES_KEY = "rp-fb-changes";
+    var showChanges = cfg.changes !== false;
+    try { var pref = localStorage.getItem(CHANGES_KEY); if (pref) showChanges = pref === "on"; } catch (e) { /* default */ }
+    function itemById(id) {
+      for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
+      return null;
+    }
+    function hasChanges() { return !!(changes && ((changes.changed || []).length || (changes.removed || []).length)); }
+    function summaryOf(d) { return d.querySelector(":scope > summary") || d; }
+    function placeChanges() {
+      if (!card.hidden) hideCard();       // its mark is about to go: no mouseleave will come
+      [].slice.call(layer.querySelectorAll(".rp-fb-change")).forEach(function (m) { m.remove(); });
+      if (!showChanges || !hasChanges()) return;
+      // a bar runs along an added or edited block (or the summary of the closed section
+      // hiding it); a cut sits in the gap where blocks were removed
+      var bars = new Map(), cuts = new Map();
+      function note(map, el, ids, change, cut) {
+        var s = map.get(el);
+        if (!s) { s = { ids: [], changes: [], cuts: [], hidden: false }; map.set(el, s); }
+        ids.forEach(function (id) { if (s.ids.indexOf(id) < 0) s.ids.push(id); });
+        if (change) s.changes.push(change);
+        if (cut) s.cuts.push(cut);
+        return s;
+      }
+      changes.changed.forEach(function (c) {
+        var b = byId(c.id);
+        if (!b) return;
+        var d = closedDetails(b);
+        note(bars, d ? summaryOf(d) : b, c.items || [], c).hidden = !!d;
+      });
+      (changes.removed || []).forEach(function (r) {
+        var b = r.before ? byId(r.before) : null, d = b && closedDetails(b);
+        if (d) note(bars, summaryOf(d), r.items || [], null, r);
+        else note(cuts, b, r.items || [], null, r);
+      });
+      var mainR = MAIN.getBoundingClientRect();
+      var vw = document.documentElement.clientWidth;
+      function column(r) { return Math.min(Math.max(mainR.right, r.right) + 6, vw - 8); }
+      function mark(s, cls, x, top, height) {
+        var m = ui(h("button", "rp-fb-change " + cls + " rp-" + kindOf(s)));
+        m.type = "button";
+        m.setAttribute("aria-label", cardTitle(s) + (s.ids.length ? " · " + s.ids.join(", ") : ""));
+        m.style.left = (x - 6 + window.scrollX) + "px";
+        m.style.top = (top + window.scrollY) + "px";
+        if (height != null) m.style.height = height + "px";
+        m.addEventListener("mouseenter", function (e) { showCard(m, s, e.clientY); });
+        m.addEventListener("mouseleave", hideCardSoon);
+        m.addEventListener("focus", function () { showCard(m, s, m.getBoundingClientRect().top); });
+        m.addEventListener("blur", hideCardSoon);
+        m.addEventListener("click", function () { showChangeItems(s); });
+        layer.appendChild(m);
+      }
+      bars.forEach(function (s, el) {
+        var r = el.getBoundingClientRect();
+        if (r.width || r.height) mark(s, "rp-bar", column(r), r.top, r.height);
+      });
+      var all = MAIN.querySelectorAll("[data-rp-id]");
+      cuts.forEach(function (s, el) {
+        var last = all[all.length - 1];
+        var r = (el || last || MAIN).getBoundingClientRect();
+        if (!r.width && !r.height) return;
+        mark(s, "rp-cut", column(r), (el ? r.top - 10 : r.bottom + 4), null);
+      });
+    }
+    function changeItems(s) {
+      var ids = s.ids.slice();
+      if (!ids.length && !s.cuts.length) ids = (changes.general || []).slice();
+      return ids.map(itemById).filter(Boolean);
+    }
+    /* edited: some words in, some out (blue); added: all new (green); removed: gone (red) */
+    function kindOf(s) {
+      if (s.changes.some(function (c) { return c.kind === "edited"; })) return "edited";
+      return s.changes.length ? "added" : "removed";
+    }
+    function cardTitle(s) {
+      var kind = kindOf(s);
+      if (kind === "removed") {
+        var n = s.cuts.reduce(function (a, r) { return a + (r.count || 1); }, 0);
+        return "Removed" + (n > 1 ? " " + n + " blocks" : "");
+      }
+      return (kind === "edited" ? "Edited" : "Added") + (s.ids.length ? " since v" + (changes.since || "?") : " in this round") +
+        (s.hidden ? ", in this collapsed section" : "");
+    }
+    /* words that are gone: the removed blocks' text, or the runs taken out of an edited block */
+    function removedText(s) {
+      var runs = s.cuts.map(function (r) { return r.text || r.module || "a block"; });
+      s.changes.forEach(function (c) { runs = runs.concat(c.removed || []); });
+      return runs.slice(0, 3);
+    }
+    /* the added words, as ranges on the page: all of an added block, the runs of an edited one */
+    function addedRanges(s) {
+      var out = [];
+      if (s.hidden) return out;
+      s.changes.forEach(function (c) {
+        var b = byId(c.id);
+        if (!b) return;
+        var idx = textIndex(b);
+        if (c.kind !== "edited") { out = out.concat(nodeRanges(idx, 0, idx.text.length)); return; }
+        (c.added || []).forEach(function (run) {
+          var at = findAt(idx, run);
+          if (at >= 0) out = out.concat(nodeRanges(idx, at, at + norm(run.quote).length));
+        });
+      });
+      return out;
+    }
+    function markAdded(ranges) {
+      if (!HL) return;
+      if (!ranges || !ranges.length) { CSS.highlights.delete("rp-fb-added"); return; }
+      var hl = new Highlight();
+      ranges.forEach(function (r) { hl.add(r); });
+      hl.priority = 1;          // over feedback highlights on the same words
+      CSS.highlights.set("rp-fb-added", hl);
+    }
+    var card = ui(h("div", "rp-fb-card"));
+    card.hidden = true;
+    card.setAttribute("role", "tooltip");
+    document.body.appendChild(card);
+    var cardTimer = 0, CARD_MAX = 2;
+    function hideCard() { clearTimeout(cardTimer); card.hidden = true; markAdded(null); }
+    function hideCardSoon() { clearTimeout(cardTimer); cardTimer = setTimeout(hideCard, 200); }
+    card.addEventListener("mouseenter", function () { clearTimeout(cardTimer); });
+    card.addEventListener("mouseleave", hideCardSoon);
+    function showCard(m, s, y) {
+      clearTimeout(cardTimer);
+      card.textContent = "";
+      card.appendChild(h("div", "rp-fb-card-what", cardTitle(s)));
+      var gone = removedText(s);
+      if (gone.length) {
+        var del = h("div", "rp-fb-card-del");
+        gone.forEach(function (t, i) {
+          if (i) del.appendChild(document.createTextNode(" · "));
+          del.appendChild(h("del", null, t));
+        });
+        card.appendChild(del);
+      }
+      var list = changeItems(s);
+      list.slice(0, CARD_MAX).forEach(function (it) {
+        var row = h("div", "rp-fb-card-item");
+        row.appendChild(tagRow(it, it.resolution ? "v" + it.resolution.version : ""));
+        if ((it.resolution || {}).note) row.appendChild(h("div", "rp-fb-card-note", "✓ " + it.resolution.note));
+        var t = it.target || {};
+        var was = it.comment || (t.quote && !gone.length ? "“" + norm(t.quote) + "”" : "");   // the struck words already say it
+        if (was) row.appendChild(h("div", "rp-fb-card-was", was));
+        card.appendChild(row);
+      });
+      if (list.length > CARD_MAX) {
+        var more = h("button", "rp-fb-card-more", "+" + (list.length - CARD_MAX) + " more →");
+        more.type = "button";
+        more.addEventListener("click", function () { showChangeItems(s); });
+        card.appendChild(more);
+      }
+      card.hidden = false;
+      // beside the mark if there's room; else below or above its block, off the words it marks.
+      // Never over the column itself: the next mark must stay in reach
+      var r = m.getBoundingClientRect(), w = card.offsetWidth, ht = card.offsetHeight;
+      var vw = document.documentElement.clientWidth, vh = window.innerHeight;
+      var left = r.right + 4, top = Math.min(Math.max(8, y - 16), vh - ht - 8);
+      if (left + w > vw - 8) {
+        left = Math.max(8, r.left - w - 4);
+        if (r.bottom + 6 + ht <= vh - 8) top = r.bottom + 6;
+        else if (r.top - 6 - ht >= 8) top = r.top - 6 - ht;
+      }
+      card.style.left = (left + window.scrollX) + "px";
+      card.style.top = (top + window.scrollY) + "px";
+      markAdded(addedRanges(s));
+    }
+    function showChangeItems(s) {
+      var list = changeItems(s);
+      hideCard();
+      if (list.length) openPanel(null, list.map(function (it) { return it.id; }));
+    }
+    function setShowChanges(on) {
+      showChanges = on;
+      try { localStorage.setItem(CHANGES_KEY, on ? "on" : "off"); } catch (e) { /* this view only */ }
+      if (!on) hideCard();
+      paintChangesToggle();
+      placeChanges();
     }
     var raf = 0;
     function placeSoon() { cancelAnimationFrame(raf); raf = requestAnimationFrame(placeMarkers); }
@@ -298,6 +498,7 @@ Rapport.module("feedback", {
       var n = items.filter(function (i) { return i.status === "open"; }).length;
       chipN.textContent = n;
       chip.classList.toggle("rp-hot", n > 0);
+      paintChangesToggle();
     }
 
     /* ── the window ─────────────────────────────────────── */
@@ -732,13 +933,26 @@ Rapport.module("feedback", {
     });
 
     /* ── panel ──────────────────────────────────────────── */
-    var chip = ui(h("button", "rp-fb-chipbtn"));
+    var dock = ui(h("div", "rp-fb-dock"));
+    var chgBtn = h("button", "rp-fb-chgbtn");
+    chgBtn.type = "button";
+    chgBtn.hidden = true;
+    chgBtn.addEventListener("click", function () { setShowChanges(!showChanges); });
+    var chip = h("button", "rp-fb-chipbtn");
     chip.type = "button";
     chip.setAttribute("aria-expanded", "false");
     chip.appendChild(document.createTextNode("Feedback "));
     var chipN = h("span", "rp-n", "0");
     chip.appendChild(chipN);
-    document.body.appendChild(chip);
+    dock.appendChild(chgBtn); dock.appendChild(chip);
+    document.body.appendChild(dock);
+    function paintChangesToggle() {
+      chgBtn.hidden = !hasChanges();
+      chgBtn.setAttribute("aria-pressed", showChanges ? "true" : "false");
+      var what = "changes since v" + ((changes && changes.since) || "?");
+      chgBtn.title = (showChanges ? "Hide " : "Show ") + what;
+      chgBtn.setAttribute("aria-label", chgBtn.title);
+    }
     var panel = ui(h("aside", "rp-fb-panel"));
     panel.hidden = true;
     panel.setAttribute("aria-label", "Feedback");
@@ -760,7 +974,7 @@ Rapport.module("feedback", {
     panel.appendChild(ph); panel.appendChild(filters); panel.appendChild(list); panel.appendChild(general);
     if (cfg.panel_hint) panel.appendChild(hint);
     document.body.appendChild(panel);
-    var view = { status: "open", action: null, block: null };
+    var view = { status: "open", action: null, block: null, ids: null };
     function filterChip(text, active, onClick, tone) {
       var b = h("button", "rp-fb-chip" + (tone ? " rp-tone-" + tone : ""), text);
       b.type = "button";
@@ -780,10 +994,12 @@ Rapport.module("feedback", {
         }, a.tone));
       });
       if (view.block) filters.appendChild(filterChip("This block ✕", true, function () { view.block = null; renderPanel(); }));
+      if (view.ids) filters.appendChild(filterChip("These changes ✕", true, function () { view.ids = null; renderPanel(); }));
       var shown = items.filter(function (it) {
         if (view.status !== "all" && (it.status === "open") !== (view.status === "open")) return false;
         if (view.action && (it.actions || []).indexOf(view.action) < 0) return false;
         if (view.block && (it.target.blocks || []).indexOf(view.block) < 0) return false;
+        if (view.ids && view.ids.indexOf(it.id) < 0) return false;
         return true;
       });
       shown.sort(function (a, b) {
@@ -802,13 +1018,7 @@ Rapport.module("feedback", {
         var group = t.kind === "report" ? "Whole report" : (t.heading_path && t.heading_path[0]) || (t.module === "header" ? "Title" : "Top");
         if (group !== lastGroup) { list.appendChild(h("div", "rp-fb-group", group)); lastGroup = group; }
         var row = h("div", "rp-fb-item" + (it.status === "open" ? "" : " rp-res"));
-        var top = h("div", "rp-fb-row");
-        (it.actions && it.actions.length ? it.actions : [null]).forEach(function (id) {
-          var a = id && BY_ID[id];
-          top.appendChild(h("span", "rp-fb-tag" + (a ? " rp-tone-" + (a.tone || "neutral") : ""), id ? label(id) : "Comment"));
-        });
-        top.appendChild(h("span", "rp-fb-iid", it.id));
-        row.appendChild(top);
+        row.appendChild(tagRow(it));
         if (t.quote) row.appendChild(h("div", "rp-fb-q", "“" + norm(t.quote) + "”"));
         else if (t.kind === "block") row.appendChild(h("div", "rp-fb-q", it._block ? blockLabel(it._block) : "Whole block"));
         if (it.comment) row.appendChild(h("div", "rp-fb-c", it.comment));
@@ -821,9 +1031,20 @@ Rapport.module("feedback", {
         list.appendChild(row);
       });
     }
-    function openPanel(blockId) {
+    function tagRow(it, extra) {
+      var top = h("div", "rp-fb-row");
+      (it.actions && it.actions.length ? it.actions : [null]).forEach(function (id) {
+        var a = id && BY_ID[id];
+        top.appendChild(h("span", "rp-fb-tag" + (a ? " rp-tone-" + (a.tone || "neutral") : ""), id ? label(id) : "Comment"));
+      });
+      top.appendChild(h("span", "rp-fb-iid", it.id + (extra ? " · " + extra : "")));
+      return top;
+    }
+    function openPanel(blockId, ids) {
       view.block = blockId || null;
+      view.ids = ids || null;
       if (blockId) view.status = "open";
+      if (ids) view.status = "all";
       renderPanel();
       panel.hidden = false;
       chip.setAttribute("aria-expanded", "true");
