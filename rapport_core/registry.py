@@ -180,6 +180,10 @@ class Module:
         """Its style.css after each one it inherits, base first: an override's adds rules to its base's."""
         return [p for m in reversed(self.chain) if (p := m.dir / "style.css").is_file()]
 
+    def has_css(self) -> bool:
+        """A style.css, its own or inherited, or a css(ctx) hook in prepare.py."""
+        return bool(self.css_paths or self.hook("css"))
+
     @property
     def asset_dirs(self) -> list[Path]:
         """assets/ folders for its example, base first (copied in that order for check and gallery)."""
@@ -202,7 +206,7 @@ class Module:
         return self.file("server.py") is not None
 
     def hook(self, name: str):
-        """A function from prepare.py: prepare(node, ctx) -> dict, check(config) -> [warnings].
+        """A function from prepare.py: prepare(node, ctx) -> dict, css(ctx) -> str, check(config) -> [warnings].
         prepare.py is loaded once; if that fails, load_error says why and there are no hooks."""
         if self._prepare is None:
             self._prepare, self.load_error = load_code(self.file("prepare.py"), f"mod_{self.name.replace('-', '_')}")
@@ -214,10 +218,6 @@ class Module:
         if self._server is None:
             self._server, self.server_error = load_code(self.file("server.py"), f"srv_{self.name.replace('-', '_')}")
         return getattr(self._server, name, None) if self._server else None
-
-    def prepare_fn(self):
-        """The module's prepare(node, ctx) -> dict hook, if it has one."""
-        return self.hook("prepare")
 
     # -- schema --------------------------------------------------------------- #
     @functools.cached_property

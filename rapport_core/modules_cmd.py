@@ -645,7 +645,8 @@ def _next_steps(name: str, kind: str, dest: Path, server: bool = False, thin: bo
         "block": f"use it in report.md:  ::: {name} Title {{key = \"value\"}} … :::",
         "inline": f"use it in report.md:  :{name}[text]",
         "element": "it now renders every matching Markdown element",
-        "layout": f"place it:  [layout] top = [\"header\", \"{name}\"]   (or side / bottom)",
+        "layout": "it is the page shell (`[layout] page`); place [layout.regions] in its template as {{ regions.<name> }}"
+                  if name == "page" else f"place it:  [layout] top = [\"header\", \"{name}\"]   (or side / bottom)",
         "theme": f"select it:  [theme] name = \"{name}\"",
         "feature": "it is on by default; switch off with [modules." + name + "] enabled = false",
     }[kind]
@@ -689,7 +690,7 @@ def check_module(mod: Module, cfg, tokens: set) -> list[str]:
     if mod.kind == "theme" and (missing := [t for t in CORE_TOKENS if t not in mod.tokens]):
         out.append(f"warning: no {' or '.join(missing)} token; the page falls back to "
                    + ", ".join(f"{t} = {CORE_TOKENS[t]}" for t in missing))
-    if mod.css_paths:
+    if mod.has_css():
         own = set(mod.tokens) | set(mod.dark_tokens) | set(CORE_TOKENS) if mod.kind == "theme" else tokens
         out += check_css(mod, cfg, own)
     if mod.kind in ("block", "inline") and not mod.example_path:

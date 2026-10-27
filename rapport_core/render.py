@@ -32,6 +32,7 @@ from . import __version__
 from . import css as css_mod
 from .parse import Builder, Diag, Document, Node, _close_index, assign_ids, make_markdown, parse
 from .registry import Module, resolve_params
+from .schema import check_value
 from .util import is_image_file, json_block
 
 # leading whitespace and HTML comments are skipped: anchors go on the first real tag
@@ -40,6 +41,8 @@ CLASS_ATTR_RE = re.compile(r'\sclass="([^"]*)"')
 SCRIPT_END_RE = re.compile(r"</(script)", re.I)
 # tokens rapport's own CSS relies on, for a theme that doesn't define them
 CORE_TOKENS = {"width": "70ch", "body-size": "17px"}
+REGIONS = ("top", "side", "bottom")         # the page's own regions; [layout.regions] adds more
+REGION_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 def _attr(v) -> str:
@@ -330,6 +333,24 @@ class Renderer:
             self.errors.append(Diag(self._line, f"module '{mod.name}' failed to render: {e}"))
             return f'<div class="rp-error">module {html.escape(mod.name)} failed: {html.escape(str(e))}</div>'
 
+    def hook(self, mod: Module, name: str):
+        """A function from the module's prepare.py. A prepare.py that fails to load is a build error."""
+        fn = mod.hook(name)
+        if mod.load_error:
+            self.errors.append(Diag(None, f"module '{mod.name}' {mod.load_error}"))
+        return fn
+
+    def prepare(self, mod: Module, view: "View", line: int | None = None) -> dict:
+        """The extra template variables from prepare(node, ctx), if the module has one."""
+        fn = self.hook(mod, "prepare")
+        if not fn:
+            return {}
+        try:
+            return fn(view, self.ctx) or {}
+        except Exception as e:  # noqa: BLE001 - a broken module must not kill the build
+            self.errors.append(Diag(line, f"module '{mod.name}' prepare.py failed: {e}"))
+            return {}
+
     # -- assets ------------------------------------------------------------------ #
     def asset(self, src: str, line: int | None = None, base: Path | None = None, where: str | None = None) -> str:
         """A local file as a data: URI. base: the folder src is relative to (default:
@@ -482,16 +503,7 @@ class Renderer:
                 self._line = line           # the children moved it: this block's own problems are on its ::: line
             elif node.tokens:
                 view.html = Lazy(lambda: self.default_html(node))
-            extra = {}
-            prep = mod.prepare_fn()
-            if mod.load_error:
-                self.errors.append(Diag(None, f"module '{mod.name}' {mod.load_error}"))
-            if prep:
-                try:
-                    extra = prep(view, self.ctx) or {}
-                except Exception as e:  # noqa: BLE001
-                    self.errors.append(Diag(line, f"module '{mod.name}' prepare.py failed: {e}"))
-            out = self._render_template(mod, node=view, **extra)
+            out = self._render_template(mod, node=view, **self.prepare(mod, view, line))
         if not out.strip():
             return Markup("")
         if self.strict and (n := count_roots(out)) != 1:
@@ -531,7 +543,7 @@ class Renderer:
             self.errors.append(Diag(self._line, e))
         content = Markup(self.md.renderInline(meta.get("content", ""), {"rp": self}))
         view = View(module=mod.name, id="", params=params, body=content, text=meta.get("content", ""))
-        out = self._render_template(mod, node=view)
+        out = self._render_template(mod, node=view, **self.prepare(mod, view, self._line))
         return inject_root(out, {"data-rp-module": mod.name}, [f"rp-m-{mod.name}"])
 
     def render_markdown(self, text: str) -> Markup:
@@ -553,12 +565,23 @@ class Renderer:
         return out
 
     def module_css(self, mod: Module) -> str:
-        """Its style.css after the ones it inherits, in one layer: same selector, the override's wins.
-        Each url()s files beside it, so an inherited one still finds its own."""
+        """Its style.css after the ones it inherits, then what the css(ctx) hook of its prepare.py
+        returns, in one layer: same selector, the override's wins. Each url()s files beside the
+        file it's in, so an inherited one still finds its own."""
         parts = []
         for p in mod.css_paths:
             where = f"module '{mod.name}' style.css" + ("" if p.parent == mod.dir else f" (inherited, in {p.parent})")
             parts.append(self.inline_css(p.read_text(encoding="utf-8-sig"), p.parent, where, "put the rules in style.css"))
+        fn = self.hook(mod, "css")
+        if fn:
+            base = mod.file("prepare.py").parent
+            where = f"module '{mod.name}' css()" + ("" if base == mod.dir else f" (inherited, in {base})")
+            try:
+                css = fn(self.ctx) or ""
+            except Exception as e:  # noqa: BLE001 - a broken module must not kill the build
+                self.errors.append(Diag(None, f"module '{mod.name}' prepare.py css() failed: {e}"))
+            else:
+                parts.append(self.inline_css(str(css), base, where, "put the rules in style.css"))
         return "\n".join(parts)
 
     def theme_css(self, theme: Module) -> str:
@@ -577,6 +600,62 @@ class Renderer:
             css += f'@media (prefers-color-scheme:dark){{:root:not([data-theme="light"]){{{decl(dark)}}}}}\n'
             css += f':root[data-theme="dark"]{{color-scheme:dark;{decl(dark)}}}\n'
         return css
+
+    def extra_regions(self) -> list[tuple[str, str, list]]:
+        """[layout.regions] as (region, config key, module names); an entry that can't be one is a build error."""
+        out = []
+        for region, names in (self.config.get("layout.regions", {}) or {}).items():
+            where = f"layout.regions.{region}"
+            if region in REGIONS:
+                self.errors.append(Diag(None, f"{where}: '{region}' is a region of its own; set [layout] {region} instead"))
+            elif not REGION_NAME_RE.match(region):
+                self.errors.append(Diag(None, f"layout.regions: '{region}' is not a region name "
+                                              "(lowercase letters, digits and hyphens)"))
+            elif err := check_value({"type": "list", "items": "string"}, names, where)[1]:
+                self.errors.append(Diag(None, err))
+            else:
+                out.append((region, where, names))
+        return out
+
+    def render_region(self, region: str, where: str, names: list, headings: list, fm: tuple) -> Markup:
+        """The layout modules named for a page region, one after another."""
+        parts = []
+        for name in names:
+            mod = self.registry.get(name)
+            if mod is None or mod.kind != "layout":
+                self.errors.append(Diag(None, f"{where}: '{name}' is not a layout module"))
+                continue
+            if not self.config.enabled(name):
+                continue
+            self.used.add(name)
+            view = View(module=name, id=name, params={}, attrs={"region": region})
+            out = self._render_template(mod, headings=headings, region=region, **self.prepare(mod, view))
+            if not out.strip():
+                continue
+            attrs = {"data-rp-module": name}
+            if mod.feedback_unit == "none":
+                attrs["data-rp-ui"] = ""
+            else:
+                attrs["data-rp-id"] = name
+                attrs["data-rp-lines"] = f"{fm[0]}-{fm[1]}"
+                self.blocks[name] = {"module": name, "lines": list(fm),
+                                     "src": "\n".join(self._source_lines[fm[0] - 1:fm[1]]) if fm[0] else "",
+                                     "heading_path": [], "section": "", "text": text_of(out)}
+            parts.append(inject_root(out, attrs, [f"rp-m-{name}"]))
+        return Markup("\n".join(parts))
+
+    def check_regions_placed(self, page: Module, configured: list) -> None:
+        """Warn about an extra region the page template never mentions: only a page override can place it."""
+        extra = [region for region, _, names in configured if region not in REGIONS and names]
+        if not extra or page.template_path is None:
+            return
+        source = page.template_path.read_text(encoding="utf-8")
+        for region in extra:
+            if not re.search(rf"(?<![\w-]){re.escape(region)}(?![\w-])", source):
+                ref = f"regions.{region}" if region.isidentifier() else f'regions["{region}"]'
+                self.warnings.append(Diag(None, f"layout.regions.{region}: the page template '{page.name}' never places it; "
+                                                f"override it (`rapport modules new {page.name}`, then copy template.html in) "
+                                                f"and add {{{{ {ref} }}}}"))
 
     def render_document(self, doc: Document) -> str:
         # doc is shared by the static and the served render: never mutate it
@@ -598,59 +677,36 @@ class Renderer:
         self._seen: dict = {}
         content = self.render_nodes(nodes)
 
-        regions = {}
         fm = self.config.front_matter_lines or title_lines or (0, 0)
         if title_lines and self.config.front_matter_lines:
             fm = (fm[0], max(fm[1], title_lines[1]))
-        for region in ("top", "side", "bottom"):
-            parts = []
-            for name in self.config.get(f"layout.{region}", []) or []:
-                mod = self.registry.get(name)
-                if mod is None or mod.kind != "layout":
-                    self.errors.append(Diag(None, f"layout.{region}: '{name}' is not a layout module"))
-                    continue
-                if not self.config.enabled(name):
-                    continue
-                self.used.add(name)
-                out = self._render_template(mod, headings=headings, region=region)
-                if not out.strip():
-                    continue
-                attrs = {"data-rp-module": name}
-                if mod.feedback_unit == "none":
-                    attrs["data-rp-ui"] = ""
-                else:
-                    attrs["data-rp-id"] = name
-                    attrs["data-rp-lines"] = f"{fm[0]}-{fm[1]}"
-                    self.blocks[name] = {"module": name, "lines": list(fm),
-                                         "src": "\n".join(self._source_lines[fm[0] - 1:fm[1]]) if fm[0] else "",
-                                         "heading_path": [], "section": "", "text": text_of(out)}
-                parts.append(inject_root(out, attrs, [f"rp-m-{name}"]))
-            regions[region] = Markup("\n".join(parts))
+        configured = [(r, f"layout.{r}", self.config.get(f"layout.{r}", []) or []) for r in REGIONS]
+        configured += self.extra_regions()
+        regions = {region: self.render_region(region, where, names, headings, fm) for region, where, names in configured}
 
         feature_html = []
         for mod in self.features():
             self.used.add(mod.name)
             if mod.template_path:
-                feature_html.append(self._render_template(mod))
+                view = View(module=mod.name, id="", params={})
+                feature_html.append(self._render_template(mod, **self.prepare(mod, view)))
 
         page = self.registry.get(self.config.get("layout.page", "page"))
         if page is None or page.kind != "layout":
             self.errors.append(Diag(None, f"layout.page: no layout module '{self.config.get('layout.page')}'"))
             page = self.registry.get("page")
         self.used.add(page.name)
+        page_vars = self.prepare(page, View(module=page.name, id="", params={}))   # before the CSS: it may use ctx.highlight
+        self.check_regions_placed(page, configured)
         theme_name = self.config.get("theme.name", "default")
         theme = self.registry.get(theme_name)
         if theme is None or theme.kind != "theme":
             self.errors.append(Diag(None, f"theme.name: no theme module '{theme_name}'"))
             theme = self.registry.get("default")
         used_mods = self.registry.ordered(self.used)
-        theme_parts = [self.theme_css(theme)] + ([self.module_css(theme)] if theme.css_paths else [])
+        theme_parts = [self.theme_css(theme)] + ([self.module_css(theme)] if theme.has_css() else [])
         mod_parts = [f"/* {mod.name} */\n" + self.module_css(mod)
-                     for mod in used_mods if mod.css_paths and mod.kind != "theme"]
-        if "code" in self.used:
-            code_cfg = self.config.module("code")
-            mod_parts.append(pygments_css(code_cfg.get("light_style", "friendly"),
-                                          code_cfg.get("dark_style", "github-dark")))
+                     for mod in used_mods if mod.has_css() and mod.kind != "theme"]
         css = css_mod.style_safe("\n".join([css_mod.layered(theme_parts, mod_parts)] + self.user_css()))
         js_mods = [m for m in used_mods if m.js_path]
         js_mods.sort(key=lambda m: m.name != "runtime")      # the kernel first; the rest keep (kind, order, name)
@@ -670,4 +726,4 @@ class Renderer:
             page, content=content, regions=regions, css=Markup(css),
             scripts=Markup(scripts), features=Markup("\n".join(feature_html)),
             data_json=Markup(json_block(data)), lang=self.config.get("report.lang", "en"),
-            theme_mode=None if mode == "auto" else mode, headings=headings)
+            theme_mode=None if mode == "auto" else mode, headings=headings, **page_vars)

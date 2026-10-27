@@ -8,7 +8,7 @@ side-note/
   template.html   Jinja2 template with ONE root element
   style.css       optional; scoped .rp-<name> classes, theme tokens only
   script.js       optional; Rapport.module("<name>", { init, mount, reveal })
-  prepare.py      optional; prepare(node, ctx) -> extra template variables; check(config) -> warnings
+  prepare.py      optional; prepare(node, ctx) -> extra template variables; css(ctx) -> CSS; check(config) -> warnings
   server.py       optional; routes(r) for the review server, describe(state, config) for the agent
   example.md      canonical usage, used by `brief`, `gallery` and `modules check`
   assets/         optional; files the example references (copied for check/gallery)
@@ -23,7 +23,7 @@ Start from a scaffold: `rapport modules new <name> --kind block --scope project`
 | `block` | a `:::` directive | `::: name title {params}` … `:::` in report.md |
 | `inline` | an inline directive | `:name[text]{params}` |
 | `element` | renders a standard Markdown element: `heading`, `paragraph`, `list`, `code`, `table`, `image`, `blockquote`, `hr`, `html`, `footnotes` | automatic; override by name |
-| `layout` | page shell (`page`) or a region module (`header`, `toc`, `footer`, yours) | `[layout] page`, `top`, `side`, `bottom` |
+| `layout` | page shell (`page`) or a region module (`header`, `toc`, `footer`, yours) | `[layout] page`, `top`, `side`, `bottom`; more regions with `[layout.regions]` (see [Extra regions](#extra-regions)) |
 | `theme` | design tokens + base typography | `[theme] name = "…"` |
 | `feature` | page-level behaviour, `when = "always"` \| `"serve"` \| `"static"` | on by default; `[modules.<name>] enabled = false` turns it off (a manifest can default it to off) |
 
@@ -67,6 +67,18 @@ What it inherits:
 `rapport modules info <name>` shows the chain (`callout (project) extends callout (built-in)`) and where each file comes from. `rapport modules list` marks extending modules.
 
 **Drift.** `modules new` records the base in `[upstream]`: the rapport version and a hash of each file. `rapport modules check` warns when the base has changed a file this module has its own copy of. For a `--copy` that is any file; for an override, a file it replaced (not `style.css`, which adds). `rapport modules diff <name>` prints a unified diff of the module's files against the base's, and after such a change the `[upstream]` lines to record once you have merged it. A copy made by an older rapport has no `[upstream]`; `modules diff` still compares it with what it overrides.
+
+### Names core relies on
+
+Core looks these modules up by name, so an override of one keeps working only if it keeps what core expects of it. Everything else about them can change.
+
+- `runtime`: the client kernel. Required (it can't be switched off) and always the first script; every other `script.js` calls its `Rapport` API, so an override keeps the [kernel API](#the-client-kernel).
+- `page`: the default for `[layout] page`, and the fallback if that names no layout module. An override must still output `css`, `features`, `data_json` (as `<script type="application/json" id="rp-data">`), `scripts`, `Rapport.start()` and an element with class `rp-content` around `content`, which the kernel and feedback look for.
+- `header`, `toc`, `footer`: the defaults of `[layout] top`, `side` and `bottom` (set in `config/schema.toml`, not in code). `rapport feedback` also labels a comment on `header` "title block (front matter)".
+- `default`: the default `[theme] name`, the fallback when that names no theme (also the token list `modules check` falls back to), and the base of a new theme (`modules new --kind theme`).
+- `heading`, `paragraph`, `list`, `code`, `table`, `image`, `blockquote`, `hr`, `html`, `footnotes`: the elements. `rapport_core/parse.py` maps each Markdown token to one of these names, so a module with another name never renders an element. Beyond that, a leading `# Title` is lifted out of the content into `meta.title`, a paragraph holding only an image renders as `image`, and `html` renders raw HTML when `[report] raw_html` is on.
+- `code`: `ctx.highlight()` marks it as used, so any module that highlights code gets `code`'s CSS, including the Pygments rules from the `css(ctx)` hook in its prepare.py; `rapport brief` prints its params. A `code` module that doesn't inherit that prepare.py loses the Pygments rules.
+- `feedback`: `rapport feedback` and `rapport brief` read its `actions` from `[modules.feedback]`, and the CLI reads and writes its state in `.rapport/feedback.json` (the one state file not under `.rapport/modules/`). Its routes are `/api/m/feedback/`, and `commit_feedback` and the state folder's `.gitignore` name its file.
 
 ## module.toml
 
@@ -137,7 +149,7 @@ Jinja2 with autoescape on. The renderer injects `data-rp-id`, `data-rp-module`, 
 
 `prepare.py` gets no template variables, only `ctx`; that is why `config` and `meta` also hang off it.
 
-Layout modules also get `headings` (`level`, `text`, `id`) and `region`. The `page` module gets `content`, `regions`, `css`, `scripts`, `features`, `data_json`, `lang`, `theme_mode`.
+Layout modules also get `headings` (`level`, `text`, `id`) and `region` (`top`, `side`, `bottom`, or the name of an [extra region](#extra-regions)). The `page` module gets `content`, `regions` (region name → its rendered HTML), `css`, `scripts`, `features`, `data_json`, `lang`, `theme_mode`. The variables `prepare()` returns are added to all of these.
 
 ## style.css
 
@@ -147,6 +159,7 @@ Layout modules also get `headings` (`level`, `text`, `id`) and `region`. The `pa
 - **Font sizes in `rem` or `em`**, so they follow the theme's `body-size` (`1rem` is the body size). The built-ins write `calc(13.5rem/17)`: 13.5px at a 17px body size, 12.7px at the default 16px. Feature modules may use px, because their UI shouldn't grow with the report's text. Elsewhere `modules check` warns about px font sizes.
 - **Bundled files.** `url()` paths resolve relative to the module folder, and the files are inlined as `data:` URIs (fonts and images only), so a theme can ship its fonts: `src:url(fonts/Brand.woff2)`. Remote URLs, root-relative paths, `@import` and a `var()` inside `image-set()` fail the build. Inlined files count toward `report.max_inline_mb`.
 - CSS is included only when the module is used on the page.
+- CSS that depends on a setting can come from a `css(ctx)` hook in [prepare.py](#preparepy).
 
 ## script.js
 
@@ -219,9 +232,64 @@ def prepare(node, ctx):
     return {"total": sum(r["value"] for r in rows)}     # extra template variables
 ```
 
-It may also define `check(config) -> list[str]`, which validates the module's `[modules.<name>]` settings whenever config loads; each string becomes a warning in `rapport config validate`, `lint` and `brief`. The built-in `feedback` module uses it to catch two actions sharing a shortcut key.
+`prepare(node, ctx)` runs each time a module renders a template, whatever its kind, and what it returns is added to the template's variables. It runs once per use of a block, element or inline module, and once per page for a layout region module, the `page`, and a feature (a feature without a template.html renders nothing, so it doesn't run). `node` depends on the kind:
+
+| kind | `node` |
+|---|---|
+| block, element | the node the template gets: `params`, `body`, `children`, `text`, `attrs`, `html`, `id`, `lines`, `heading_path` |
+| inline | `module`, `params`, `body` (the rendered text between the brackets), `text` (the raw text); `id` is `""` |
+| layout region module (`header`, `toc`, yours) | `module` and `id` are its name, `attrs` is `{"region": "top"}` (or `side`, `bottom`, the name of an [extra region](#extra-regions)), `params` is `{}` |
+| `page` | `module` is the page's name; `id` is `""`, `params` is `{}` |
+| feature | `module` is its name; `id` is `""`, `params` is `{}` |
+
+Layout, page and feature modules take no params, so their `node` only says who is asking: read the rest from `ctx` (`ctx.meta`, `ctx.module(name)`, `ctx.config`). A load error in prepare.py, or an exception in `prepare`, is a build error naming the module; the template then renders without its variables.
+
+**Data for `script.js`.** There is no separate hook for it: render it in the template, as JSON in a `<script>` element. `tojson` escapes `<`, `>`, `&` and `'`, so the data can't end the element, and scripts are never part of a feedback quote.
+
+```python
+def prepare(node, ctx):
+    return {"stats": {"rows": 12, "label": ctx.meta.get("title")}}
+```
+
+```html
+<script type="application/json" class="rp-stats-data">{{ stats|tojson }}</script>
+```
+
+```js
+var stats = JSON.parse(document.querySelector(".rp-stats-data").textContent);   // in init(); in mount, search inside el
+```
+
+**`css(ctx) -> str`.** Optional. CSS computed at build time, for rules that depend on a setting and so can't sit in style.css. It is called once per page, for each module on the page that defines it, and the CSS it returns goes right after that module's style.css, in the same cascade layer (`rp-modules`; `rp-theme` for the theme). Its `url()` files are inlined as in style.css, relative to the folder of the prepare.py that defines it. A `css()` that raises is a build error naming the module.
+
+```python
+def css(ctx):
+    cols = ctx.module("gallery").get("columns", 3)
+    return f".rp-gallery{{grid-template-columns:repeat({cols},1fr)}}"
+```
+
+The built-in `code` module uses it for its Pygments rules, from `[modules.code] light_style` and `dark_style` (`modules/element/code/prepare.py`).
+
+**`check(config) -> list[str]`.** Optional. It validates the module's `[modules.<name>]` settings whenever config loads; each string becomes a warning in `rapport config validate`, `lint` and `brief`. The built-in `feedback` module uses it to catch two actions sharing a shortcut key.
 
 `prepare.py` runs as Python code, so it carries the same trust as the folder it lives in. `rapport modules list` marks modules that have one.
+
+### Extra regions
+
+The default page has three regions, `top`, `side` and `bottom`, and `[layout]` fills them with layout modules. `[layout.regions]` adds more: a banner above everything, a right rail. The page template places each one as `{{ regions.<name> }}`, and the default page places only its own three, so an extra region needs a `page` override:
+
+```toml
+# rapport.toml
+[layout.regions]
+banner = ["notice"]          # the layout modules in it, in order
+```
+
+```
+rapport modules new page     # a thin override: copy the built-in template.html in, then add {{ regions.banner }} where it goes
+```
+
+`rapport modules info page` shows where the built-in's template.html is.
+
+Region names are lowercase letters, digits and hyphens, and can't be `top`, `side` or `bottom` (set those with `[layout] top = […]`). Write `regions["right-rail"]` for a name with a hyphen, and for one that is also a dict method (`items`, `keys`, `values`, `get`). Every module in a region must be a layout module; each gets `region` set to the region's name. A region the page template never mentions is still rendered, and the build warns that the page doesn't place it.
 
 ## server.py
 

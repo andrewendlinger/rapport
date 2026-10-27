@@ -75,6 +75,12 @@ items = "string"
 default = ["footer"]
 doc = "Layout modules below the content, in order."
 
+[layout.regions]
+type = "table"
+merge = "merge"
+default = {}
+doc = "Extra regions: name → list of layout modules, e.g. banner = [\"notice\"]. The page template places them as {{ regions.<name> }} (regions[\"x-y\"] for a hyphenated name); the default page places only top, side and bottom, so add them to a `page` override. Names are lowercase letters, digits and hyphens."
+
 [layout.width]
 type = "string"
 default = ""

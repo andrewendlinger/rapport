@@ -2,6 +2,7 @@ import json
 import re
 
 from conftest import GIF, write
+from rapport_core import BUILTIN_MODULES
 from rapport_core.build import build
 
 
@@ -75,6 +76,62 @@ def test_layout_regions_configurable(report):
     html = build(report("## A\n\nx\n\n## B\n\ny\n\n## C\n\nz\n"), ["layout.side=[]", "layout.bottom=[]"]).html
     body = html.split("</style>")[1]
     assert '<body class="rp-page">' in body and "rp-footer" not in body and "rp-toc" not in body
+
+
+def regions_project(isolated_home, regions, placed=None):
+    """A project with a `notice` layout module, [layout.regions] set to regions, and, if placed
+    is given, a page override whose template is the built-in one with `placed` added above <main>."""
+    mdir = isolated_home / "proj/rapport-modules"
+    write(isolated_home / "proj/rapport.toml", f"[layout.regions]\n{regions}\n")
+    write(mdir / "notice/module.toml", 'kind = "layout"\nsummary = "A notice."\n[feedback]\nunit = "none"\n')
+    write(mdir / "notice/template.html", '<p class="rp-notice">Heads up ({{ region }})</p>\n')
+    if placed:
+        write(mdir / "page/module.toml", 'extends = "page"\n')
+        template = (BUILTIN_MODULES / "layout/page/template.html").read_text(encoding="utf-8")
+        write(mdir / "page/template.html", template.replace("<main", placed + "\n<main", 1))
+
+
+def test_an_extra_region_is_placed_by_a_page_override(report, isolated_home):
+    regions_project(isolated_home, 'banner = ["notice"]\n"top-bar" = ["notice"]',
+                    '<div class="my-banner">{{ regions.banner }}</div><div class="my-bar">{{ regions["top-bar"] }}</div>')
+    res = build(report("x\n"))
+    assert res.ok, res.messages()
+    assert not any("layout.regions" in w for w in res.warnings)
+    body = res.html.split("</style>")[1]
+    assert '<div class="my-banner"><p class="rp-m-notice rp-notice" data-rp-module="notice" data-rp-ui="">Heads up (banner)</p>' in body
+    assert 'class="my-bar"><p class="rp-m-notice rp-notice" data-rp-module="notice" data-rp-ui="">Heads up (top-bar)</p>' in body
+    assert "rp-top" in body and "rp-footer" in body                 # the built-in regions are still there
+
+
+def test_an_extra_region_the_page_never_places_is_a_warning(report, isolated_home):
+    regions_project(isolated_home, 'banner = ["notice"]\n"top-bar" = ["notice"]\nempty = []')
+    res = build(report("x\n"))
+    assert res.ok, res.messages()
+    warned = [w for w in res.warnings if "layout.regions" in w]
+    assert len(warned) == 2, res.warnings                           # not for the empty one
+    assert any("layout.regions.banner" in w and "{{ regions.banner }}" in w and "modules new page" in w for w in warned)
+    assert any('{{ regions["top-bar"] }}' in w for w in warned)
+    assert "Heads up" not in res.html                               # rendered, but nothing places it
+
+
+def test_extra_region_names_and_values_are_checked(report, isolated_home):
+    regions_project(isolated_home, 'Banner = ["notice"]\ntop = ["notice"]\nside2 = "notice"\n'
+                                   'inner = ["callout", "nothing"]\nok = ["notice"]')
+    res = build(report("x\n"))
+    msgs = [e.message for e in res.errors]
+    assert "layout.regions: 'Banner' is not a region name (lowercase letters, digits and hyphens)" in msgs
+    assert "layout.regions.top: 'top' is a region of its own; set [layout] top instead" in msgs
+    assert any(m.startswith("layout.regions.side2: expected list") for m in msgs), msgs
+    assert "layout.regions.inner: 'callout' is not a layout module" in msgs
+    assert "layout.regions.inner: 'nothing' is not a layout module" in msgs
+    assert len(msgs) == 5, msgs                                     # "ok" is fine
+
+
+def test_regions_merge_across_layers(report, isolated_home):
+    regions_project(isolated_home, 'banner = ["notice"]')
+    d = report('+++\n[layout.regions]\nfooter-note = ["notice"]\n+++\n\nx\n')
+    cfg = build(d).config
+    assert cfg.get("layout.regions") == {"banner": ["notice"], "footer-note": ["notice"]}
 
 
 def test_strict_mode_flags_multi_root_templates(report, isolated_home):

@@ -112,8 +112,10 @@ def brief(cfg) -> str:
         for a in actions:
             out.append(f"- {a.get('label', a['id'])} [{a['id']}]: {instruction_for(a)}")
         out.append("")
+    extra = "".join(f" {k}={','.join(map(str, v))}" for k, v in (cfg.get("layout.regions") or {}).items()
+                    if isinstance(v, list))
     out += ["Theme: " + str(cfg.get("theme.name")) + " · layout: top=" + ",".join(cfg.get("layout.top", []))
-            + " side=" + ",".join(cfg.get("layout.side", [])) + " bottom=" + ",".join(cfg.get("layout.bottom", []))]
+            + " side=" + ",".join(cfg.get("layout.side", [])) + " bottom=" + ",".join(cfg.get("layout.bottom", [])) + extra]
     if cfg.warnings:
         out += ["", "## Config warnings"] + [f"- {x}" for x in cfg.warnings]
     return "\n".join(out)

@@ -134,6 +134,19 @@ side = []
 bottom = []
 ```
 
+A region of your own, such as a banner or a right rail: write the layout module (`rapport modules new notice --kind layout`), name it in `[layout.regions]`, and place the region in a `page` override. The default page places only `top`, `side` and `bottom`, and the build warns about a region the page doesn't place.
+
+```toml
+[layout.regions]
+banner = ["notice"]               # name = the layout modules in it, in order
+```
+
+```
+rapport modules new page --scope project    # then copy template.html in and add {{ regions.banner }} where it goes
+```
+
+Region names are lowercase letters, digits and hyphens (`regions["right-rail"]` in the template); `top`, `side` and `bottom` keep their own `[layout]` keys. See "Extra regions" in `references/modules.md`.
+
 Logo, title icon, and header or footer entries with icons:
 
 ```toml
