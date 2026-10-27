@@ -143,7 +143,7 @@ logo = "brand/logo.svg"
 logo_dark = "brand/logo-dark.svg"   # optional: shown in dark mode instead
 logo_alt = "ACME"
 logo_align = "left"                 # left | right
-logo_height = 32                    # px at the default text size; scales with body-size
+logo_height = 32                    # px at a 17px body size; scales with body-size
 icon = "📊"                         # before every title; a report's front matter `icon` wins
 
 [[modules.header.entries]]          # byline, after author and date
@@ -191,12 +191,13 @@ instruction = "Add a source or link supporting this claim."
 # instruction_file = "prompts/cite.md"   # longer text, relative to this file
 ```
 
-Selection behaviour: a slim icon bar instead of the window, and no block handles:
+Selection behaviour: a slim icon bar instead of the window, no block handles, and the change bars (margin marks for what changed since the last feedback round) off until the reader switches them on:
 
 ```toml
 [modules.feedback]
 on_select = "bar"
 block_handles = false
+changes = false
 ```
 
 House writing rules for a project:
@@ -259,7 +260,7 @@ A report's review state lives in `.rapport/` next to report.md:
 |---|---|
 | `feedback.json` | reader feedback, open and resolved |
 | `state.json` | report version and resolve notes |
-| `blocks.json` | block index, rewritten on every build |
+| `blocks.json` | block index, rewritten by `build` and each `serve` rebuild (`lint` and `feedback add` build without writing it) |
 | `rounds.json` | the blocks as they were when each feedback round began, for the change bars |
 | `server.json`, `server.log`, `feedback.lock` | review server (URL, pid, local token) and locking |
 
@@ -274,5 +275,5 @@ commit_feedback = true
 
 The `.gitignore` then lets `feedback.json`, `state.json`, `rounds.json` and itself through (so clones keep the rule and the change bars); everything else stays ignored. An outer `.gitignore` that ignores `.rapport/` still wins; `build` and `lint` say so in a note for the user, with the `git check-ignore -v` command that shows which file does it.
 
-- `git clean -fd` skips ignored files, so it keeps `.rapport/`; `git clean -fdx` and `-fdX` delete it, unresolved feedback included. With `commit_feedback = true`, `feedback.json`, `state.json` and the `.gitignore` aren't ignored: until they're committed they're untracked, and `git clean -fd` deletes them.
+- `git clean -fd` skips ignored files, so it keeps `.rapport/`; `git clean -fdx` and `-fdX` delete it, unresolved feedback included. With `commit_feedback = true`, `feedback.json`, `state.json`, `rounds.json` and the `.gitignore` aren't ignored: until they're committed they're untracked, and `git clean -fd` deletes them.
 - Files committed before the folder ignored itself stay tracked. `build` and `lint` print a note for the user with the exact command, e.g. `git rm --cached reports/q3/.rapport/blocks.json reports/q3/.rapport/feedback.json`; it doesn't fail `lint`, since changing git state is the user's call. Once that's committed, collaborators' tracked copies are deleted on their next pull (they're recoverable from git history).

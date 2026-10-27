@@ -32,7 +32,7 @@ name = "paper"
 +++
 ```
 
-Top-level keys that aren't config sections become `meta.*` (title, subtitle, author, date, status, kicker, or your own, read by layout templates as `meta.x`).
+Top-level keys that aren't config sections become `meta.*` (title, subtitle, author, date, status, kicker, icon, or your own, read by layout templates as `meta.x`).
 
 Without a `title`, a leading `# Heading` becomes the title.
 

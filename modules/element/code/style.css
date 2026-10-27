@@ -12,5 +12,4 @@
 .rp-ln .rp-line{padding-left:0}
 .rp-ln .rp-line::before{counter-increment:rp-line;content:counter(rp-line);display:inline-block;width:3.2em;
   padding-right:1.2em;text-align:right;color:var(--rp-ink-faint);user-select:none}
-.rp-content .rp-pre code{background:none;border:0;padding:0}
 @media print{.rp-pre{white-space:pre-wrap}.rp-pre code{min-width:0}}

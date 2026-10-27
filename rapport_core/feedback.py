@@ -413,7 +413,7 @@ def describe(items: list[dict], cfg, source: str) -> list[dict]:
     return out
 
 
-def format_items(described: list[dict], cfg, source_name: str, source: str, version) -> str:
+def format_items(described: list[dict], source_name: str, source: str, version) -> str:
     open_n = sum(1 for d in described if d.get("status") == "open")
     rows = source.split("\n")
     out = [f"rapport feedback — {open_n} open · {source_name} · v{version}"]
@@ -503,7 +503,7 @@ def cli(args, report_dir: Path) -> int:
             print(json.dumps({"version": version, "source": str(cfg.source_path), "items": described},
                              indent=2, ensure_ascii=False))
         else:
-            print(format_items(described, cfg, name, source, version))
+            print(format_items(described, name, source, version))
         return 0
     if action == "resolve":
         items, version = store.resolve(args.ids, args.note)

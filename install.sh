@@ -25,7 +25,7 @@ VENV=0
 UNINSTALL=0
 DRY=0
 
-usage() { sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; }
 
 while [ $# -gt 0 ]; do
   case $1 in

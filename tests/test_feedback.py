@@ -124,7 +124,7 @@ def test_cli_output_for_agents(report):
     (d / "report.md").write_text("## Summary\n\nInserted.\n\n" + SRC.split("\n\n", 1)[1], encoding="utf-8")
     cfg2, _ = config_mod.load_for_report(d)
     src = (d / "report.md").read_text()
-    out = format_items(describe(s.items(), cfg2, src), cfg2, "report.md", src, 1)
+    out = format_items(describe(s.items(), cfg2, src), "report.md", src, 1)
     assert "FB-1 · AI slop · Summary · report.md:5 · (moved since the comment)" in out
     assert "do: Rewrite this in plain, concise" in out
     assert "comment: too generic" in out and "learn: after fixing: distil the pattern" in out
@@ -173,7 +173,7 @@ def test_region_is_kept_and_shown(report):
     item = make_item({"target": {"kind": "block", "blocks": [para], "region": "After"}, "comment": "c"}, cfg, blocks, 1)
     assert item["target"]["region"] == "After"
     src = (d / "report.md").read_text()
-    out = format_items(describe([{**item, "id": "FB-1", "status": "open"}], cfg, src), cfg, "report.md", src, 1)
+    out = format_items(describe([{**item, "id": "FB-1", "status": "open"}], cfg, src), "report.md", src, 1)
     assert "in “After”" in out
 
 

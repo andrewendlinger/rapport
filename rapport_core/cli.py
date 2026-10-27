@@ -25,7 +25,7 @@ date = "{today}"
 Lead with the conclusions.
 """
 
-VALUE_OPTIONS = {"-C", "--set", "--key", "--kind", "--scope", "--out", "--note", "--quote", "--block", "--action"}
+VALUE_OPTIONS = {"-C", "--set", "--key", "--kind", "--scope", "--note", "--quote", "--block", "--action"}
 
 # commands whose first positional is an action: `rapport feedback <dir>` means `feedback list <dir>`
 DEFAULT_ACTIONS = {

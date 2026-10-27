@@ -75,7 +75,7 @@ def brief(cfg) -> str:
     out += [
         "## Syntax",
         "- report.md is Markdown (CommonMark + tables, ~~strike~~, footnotes[^1], - [ ] task lists).",
-        "- Front matter: TOML between +++ lines. Keys: title, subtitle, author, date, status, kicker (any",
+        "- Front matter: TOML between +++ lines. Keys: title, subtitle, author, date, status, kicker, icon (any",
         "  other top-level key also lands in meta), plus any config section ([theme], [layout], [modules.x] …).",
         "- Block modules: `::: name optional title {key = \"value\", flag = true}` … `:::`. Params are ONE",
         "  single-line TOML inline table at the end of the line (key = value, comma-separated).",

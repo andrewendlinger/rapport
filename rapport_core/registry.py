@@ -26,7 +26,6 @@ WHENS = ("always", "serve", "static")
 UNITS = ("block", "none")
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 RESERVED = {"paths"}
-SCAN_DEPTH = 2  # root/<name>/module.toml or root/<pack>/<name>/module.toml
 
 
 @dataclass
@@ -35,8 +34,6 @@ class Module:
     kind: str
     dir: Path
     manifest: dict
-    root: Path
-    rank: int
     builtin: bool
     shadows: list[Path] = field(default_factory=list)
     load_error: str | None = None   # prepare.py exists but failed to load (set by hook())
@@ -155,10 +152,11 @@ class Registry:
 
     def _discover(self) -> None:
         seen_dirs: set[Path] = set()
-        for rank, root in enumerate(self.roots):
+        for root in self.roots:
             if not root.is_dir():
                 continue
             builtin = root.resolve() == BUILTIN_MODULES.resolve()
+            # root/<name>/module.toml or root/<pack>/<name>/module.toml
             manifests = sorted(root.glob("*/module.toml")) + sorted(root.glob("*/*/module.toml"))
             for mf in manifests:
                 mdir = mf.parent.resolve()
@@ -180,7 +178,7 @@ class Registry:
                     self.modules[name].shadows.append(mdir)
                     continue
                 self.modules[name] = Module(name=name, kind=data["kind"], dir=mdir, manifest=data,
-                                            root=root, rank=rank, builtin=builtin)
+                                            builtin=builtin)
 
     @staticmethod
     def _check_manifest(name: str, data: dict) -> str | None:

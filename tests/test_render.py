@@ -65,12 +65,6 @@ def test_feature_can_be_disabled(report):
     assert "rp-theme-toggle" not in html.split("</style>")[1]
 
 
-def test_leading_h1_becomes_title(report):
-    res = build(report("# The Title\n\nBody.\n"))
-    assert '<h1 class="rp-title">The Title</h1>' in res.html
-    assert res.html.count("The Title</h1>") == 1
-
-
 def test_theme_tokens_and_dark(report):
     html = build(report("x\n"), ['theme.tokens.accent="#123456"', "theme.name=paper"]).html
     assert "--rp-accent:#123456;" in html and "--rp-body-font:var(--rp-serif)" in html
@@ -109,6 +103,7 @@ def test_leading_h1_is_the_title_in_both_renders(report):
     for page in (res.html, res.served_html):
         assert "<title>My Real Title</title>" in page
         assert '<h1 class="rp-title">My Real Title</h1>' in page
+        assert page.count("My Real Title</h1>") == 1
 
 
 def test_each_image_counts_once_toward_the_budget(report):

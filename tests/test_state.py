@@ -11,7 +11,7 @@ from rapport_core import serve
 from rapport_core.build import build
 from rapport_core.cli import main
 from rapport_core.feedback import Store
-from rapport_core.util import OLD_GITIGNORE, RapportError, bump_version, state_dir, state_gitignore
+from rapport_core.util import RapportError, bump_version, state_dir, state_gitignore
 
 needs_git = pytest.mark.skipif(not shutil.which("git"), reason="git not installed")
 COMMIT = ["report.commit_feedback=true"]
@@ -49,11 +49,8 @@ def test_gitignore_follows_commit_feedback(report):
     assert gitignore(d) == state_gitignore()
 
 
-def test_old_gitignore_upgraded_and_user_file_left_alone(report):
+def test_user_gitignore_left_alone(report):
     d = report("x\n")
-    write(state_dir(d) / ".gitignore", OLD_GITIGNORE)
-    build(d)
-    assert gitignore(d) == state_gitignore()
     write(state_dir(d) / ".gitignore", "server.json\n# mine\n")
     build(d)
     build(d, COMMIT)

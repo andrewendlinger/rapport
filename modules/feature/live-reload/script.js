@@ -58,7 +58,7 @@ Rapport.module("live-reload", {
       document.body.appendChild(errBox);
     }
 
-    var timer = null, down = false;
+    var down = false;
     function poll() {
       fetch(api + "/meta", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (m) {
         if (down) { down = false; Rapport.emit("server:up"); }
@@ -71,7 +71,7 @@ Rapport.module("live-reload", {
       }).catch(function () {
         if (!down) { down = true; Rapport.emit("server:down"); }
       }).then(function () {
-        timer = setTimeout(poll, ctx.config.interval_ms || 1000);
+        setTimeout(poll, ctx.config.interval_ms || 1000);
       });
     }
     poll();

@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+.DS_Store
 /rapport-gallery/
-# a report's review state (feedback, server token, block index)
+# a report's review state (feedback, versions, block index, server files)
 .rapport/

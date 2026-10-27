@@ -24,7 +24,7 @@ Start from a scaffold: `rapport modules new <name> --kind block --scope project`
 | `element` | renders a standard Markdown element: `heading`, `paragraph`, `list`, `code`, `table`, `image`, `blockquote`, `hr`, `html`, `footnotes` | automatic; override by name |
 | `layout` | page shell (`page`) or a region module (`header`, `toc`, `footer`, yours) | `[layout] page`, `top`, `side`, `bottom` |
 | `theme` | design tokens + base typography | `[theme] name = "…"` |
-| `feature` | page-level behaviour, `when = "always"` \| `"serve"` \| `"static"` | on unless `[modules.<name>] enabled = false` |
+| `feature` | page-level behaviour, `when = "always"` \| `"serve"` \| `"static"` | on by default; `[modules.<name>] enabled = false` turns it off (a manifest can default it to off) |
 
 ## Search roots (nearest wins, by name)
 
@@ -47,6 +47,7 @@ body = "markdown"         # block only: markdown | text | toml | none
 positional = "title"      # block only: text after the name fills this param
 children = ["pane"]       # block only, optional: allowed child directives
 order = 50                # optional: CSS/JS order within its kind
+# enabled = false         # optional: off by default; users turn it on with [modules.side-note] enabled = true
 
 [params.title]            # per-use params (::: side-note Title {tone = "warm"})
 type = "string"           # string | int | number | bool | enum | list | table | tables | any
@@ -73,7 +74,7 @@ Spec keys: `type`, `default`, `doc`, plus `choices` (enum), `items` (the item ty
 
 Blocks nest, and every block is commentable on its own: a reader's comment lands on the innermost block, so each pane of a `compare` (or each code block in it) takes its own comments. To tell the agent *which* part of your module a comment is about, put `data-rp-label="…"` on that part (e.g. a pane or tab); `rapport feedback` shows it as `in “After”`.
 
-- Users set defaults for every use at `[modules.side-note]`, with both params and config keys. Per-use params win. `enabled = true|false` is added to every module automatically.
+- Users set defaults for every use at `[modules.side-note]`, with both params and config keys. Per-use params win. `enabled = true|false` is added to every module automatically; it defaults to true, or to the manifest's top-level `enabled`.
 - **Themes** add `[tokens]` and `[tokens.dark]` tables. Each token becomes `--rp-<name>`. Their style.css holds base typography. rapport sets the root font size to `--rp-body-size` for every theme, so give `body` `1rem` and size headings in `rem`. Define `width` and `body-size`: a theme without them gets rapport's 70ch and 17px, and `modules check` warns.
 - **Features** add `when`, and `required = true` for the kernel only.
 - For a list-of-tables setting merged by id (as `feedback.actions` is), declare `type = "tables"` with `merge = "by-id"`, a `[config.x.fields.*]` schema, and `[[config.x.default]]` entries.

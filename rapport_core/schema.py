@@ -16,8 +16,6 @@ from . import SCHEMA_FILE
 from .css import SCHEME_RE
 from .util import did_you_mean, is_image_file, unique
 
-TYPES = ("string", "int", "number", "bool", "enum", "list", "table", "tables", "any")
-
 
 def is_leaf(spec) -> bool:
     return isinstance(spec, dict) and isinstance(spec.get("type"), str)

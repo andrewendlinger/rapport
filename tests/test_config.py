@@ -73,7 +73,7 @@ def test_preset_resolved_first_and_slotted_low(report, isolated_home):
     write(isolated_home / "proj/rapport-presets/dense.toml", '[layout]\nwidth = "60ch"\nside = []\n')
     write(isolated_home / "proj/rapport.toml", '[layout]\nside = ["toc"]\n')
     cfg = load(d)
-    assert cfg.preset == "dense"
+    assert cfg.data["preset"] == "dense"
     assert cfg.get("layout.width") == "60ch"     # from preset
     assert cfg.get("layout.side") == ["toc"]     # project beats preset
 

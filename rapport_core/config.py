@@ -129,10 +129,7 @@ class Config:
     layers: list[Layer]
     warnings: list[str]
     report_dir: Path
-    project_dirs: list[Path]
     registry: Registry
-    schema: Schema
-    preset: str = "default"
     front_matter_lines: tuple[int, int] | None = None
 
     def get(self, dotted: str, default=None):
@@ -394,8 +391,7 @@ def load(report_dir: Path, front_matter: dict | None = None, sets=None,
     warnings += _check_theme_tokens(data, registry)
     warnings += _module_checks(data, registry)
     return Config(data=data, origins=origins, layers=layers, warnings=warnings,
-                  report_dir=report_dir, project_dirs=project_dirs, registry=registry,
-                  schema=schema, preset=preset_name, front_matter_lines=front_matter_lines)
+                  report_dir=report_dir, registry=registry, front_matter_lines=front_matter_lines)
 
 
 def _check_theme_tokens(data: dict, registry: Registry) -> list[str]:

@@ -89,9 +89,6 @@ class _RootCounter(HTMLParser):
         if self.depth == 0 and data.strip():
             self.roots += 1
 
-    def handle_comment(self, data):
-        pass
-
 
 def count_roots(fragment: str) -> int:
     c = _RootCounter()

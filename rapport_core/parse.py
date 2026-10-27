@@ -31,7 +31,6 @@ OPEN_RE = re.compile(r"^(:{3,})[ \t]*([A-Za-z][\w-]*)(.*)$")
 CLOSE_RE = re.compile(r"^(:{3,})[ \t]*$")
 FENCE_RE = re.compile(r"^(`{3,}|~{3,})")
 INLINE_RE = re.compile(r":([a-z][a-z0-9-]*)\[")
-TAG_RE = re.compile(r"<[^>]+>")
 
 PARAMS_HINT = 'params must be one single-line TOML inline table at the end of the line, e.g. {tone = "warning", open = true}'
 INLINE_PARAMS_HINT = 'params must be a TOML inline table right after the ], e.g. :badge[shipped]{tone = "ok"}'

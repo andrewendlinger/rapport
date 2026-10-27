@@ -111,7 +111,8 @@ A double-clicked `report.html` is the clean report: no feedback UI, no highlight
 SKILL.md             what agents follow
 bin/rapport          CLI wrapper (.venv → uv run → python3)
 scripts/rapport.py   entry point with inline (PEP 723) dependencies
-rapport_core/        config · schema · registry · parse · render · build · serve · feedback · lint · brief
+rapport_core/        cli · config · schema · registry · parse · render · css · build · changes
+                     serve · feedback · lint · brief · modules_cmd · util
 config/schema.toml   core settings: types, defaults, docs, merge rules
 modules/             every built-in module: layout, theme, element, block, inline, feature
 presets/             named bundles of settings
