@@ -11,7 +11,7 @@ import pytest
 
 from rapport_core.feedback import Store
 from rapport_core import serve
-from rapport_core.serve import idle_stop, make_server, read_server
+from rapport_core.serve import idle_limit, idle_stop, make_server, read_server
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -163,7 +163,53 @@ def test_idle_server_stops_itself_but_not_while_used(report):
     finally:
         httpd.shutdown()
         httpd.server_close()
-    assert cfg.get("serve.idle_hours") == 3
+
+
+class Settings:
+    def __init__(self, value):
+        self.value = value
+
+    def get(self, key, default=None):
+        return self.value if key == "serve.idle_hours" else default
+
+
+@pytest.mark.parametrize("value, limit", [(3, 3 * 3600), (0.5, 1800), (0, None), (-1, None), (float("nan"), None),
+                                          (0.00001, 60), ("2h", 3 * 3600), (True, 3 * 3600)])
+def test_idle_hours_values(value, limit, capsys):
+    assert idle_limit(Settings(value)) == limit
+    said = capsys.readouterr().out
+    assert ("isn't a number; using 3" in said) == isinstance(value, (str, bool))
+
+
+def test_only_the_reports_own_edits_count_as_use(server, isolated_home):
+    from rapport_core.config import user_paths
+    d, app, url = server
+    first, app.active = app.build_id, 0
+    user_paths().config_file.parent.mkdir(parents=True, exist_ok=True)
+    user_paths().config_file.write_text("# touched by another session\n")
+    assert app.watcher.tick() and app.build_id > first and app.active == 0     # rebuilt, but not use
+    (d / "report.md").write_text("## Summary\n\nEdited.\n")
+    assert app.watcher.tick() and app.active > 0
+
+
+def test_writes_count_as_use_but_reads_dont(server):
+    d, app, url = server
+    app.active = 0
+    assert req(url + "api/meta")[0] == 200 and req(url + "api/m/feedback/")[0] == 200
+    assert req(url + "api/m/feedback/", "POST", {"target": {"kind": "report"}, "comment": "c"})[0] == 403
+    assert app.active == 0                                  # polling, a read, a refused write
+    assert req(url + "api/m/feedback/", "POST", {"target": {"kind": "report"}, "comment": "c"}, app.token)[0] == 200
+    assert app.active > 0
+
+
+def test_a_restarted_server_takes_the_port_it_had(report):
+    d = report("x\n")
+    h1, _, url1, _ = make_server(d, port=0, pinned=True)
+    h1.server_close()
+    h2, app2, url2, _ = make_server(d)
+    h2.server_close()
+    assert url2 == url1 and app2.wanted_port == h1.server_address[1]
+    assert f'"dir": {json.dumps(str(d.resolve()))}' in app2.html.decode()   # the page knows its report
 
 
 def test_rerunning_serve_resets_the_idle_clock(server, capsys):

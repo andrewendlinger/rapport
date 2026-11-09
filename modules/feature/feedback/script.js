@@ -20,7 +20,9 @@ Rapport.module("feedback", {
     var HL = !!(window.CSS && CSS.highlights && window.Highlight);
     var SCOPE = document.querySelector(".rp-shell") || document.body;
     var MAIN = document.querySelector(".rp-content") || SCOPE;
-    var DRAFT_KEY = "rp-fb-draft:" + location.pathname;
+    var SERVE = (ctx.data && ctx.data.serve) || {};
+    // per report, not per address: a draft must never come back on another report served there
+    var DRAFT_KEY = "rp-fb-draft:" + (SERVE.dir || location.pathname);
     var items = [];
     var changes = null;           // since the last feedback round: {since, changed, removed, general}
     var st = { mode: null, target: null, item: null, selected: [], barTarget: null };
@@ -1116,7 +1118,9 @@ Rapport.module("feedback", {
       clearTimeout(toastTimer);
       toastTimer = setTimeout(function () { toastEl.classList.remove("rp-show"); }, undo ? 6000 : 2600);
     }
-    var bannerEl = ui(h("div", "rp-fb-banner", "Can't reach the review server — comments can't be saved right now. Drafts are kept."));
+    var bannerEl = ui(h("div", "rp-fb-banner", "Can't reach the review server for this report, so comments can't be " +
+      "saved right now; your draft is kept. The server stops by itself when unused for a while." +
+      (SERVE.dir ? " To start it again: rapport serve '" + SERVE.dir + "'" : "")));
     bannerEl.hidden = true;
     document.body.appendChild(bannerEl);
     function banner(on) { bannerEl.hidden = !on; }

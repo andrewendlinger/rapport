@@ -239,7 +239,7 @@ Serving:
 [serve]
 port = 5000
 open_browser = false
-idle_hours = 8      # stop after 8 h without a rebuild, page load or comment (default 3; 0: never)
+idle_hours = 8      # stop after 8 h without an edit of the report, a page load or a comment (default 3; 0: never)
 ```
 
 Sharing report.html: the built file contains no local paths and none of the review UI, so it's ready to send. To have a double-clicked copy show a hint with `rapport serve '<its folder>'`, switch the hint on; if `rapport` isn't on the reader's PATH, also set the command it shows:

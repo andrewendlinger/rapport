@@ -744,6 +744,34 @@ def test_marks_for_a_hidden_tab_sit_on_the_tab_list_and_follow_a_switch(served, 
     page.wait_for_function("""() => Math.abs(document.querySelector('.rp-fb-change').getBoundingClientRect().top
         - document.querySelector('.rp-tabs-bar').getBoundingClientRect().top) < 2""", timeout=3000)
 
+
+def test_a_page_never_turns_into_another_report_at_its_address(report, page):
+    """A's server stopped (idle) and B took its port: A's tab says so, refuses to save into B,
+    and doesn't reload into B (whose build id differs)."""
+    a, b = report("## A\n\nReport A text.\n", name="a"), report("## B\n\nReport B text.\n", name="b")
+    h1, _, url, _ = make_server(a, port=0, pinned=True)
+    threading.Thread(target=h1.serve_forever, daemon=True).start()
+    h2 = None
+    try:
+        open_page(page, url)
+        page.wait_for_selector("text=Report A text.")
+        h1.shutdown()
+        h1.server_close()
+        h2, _, _, _ = make_server(b, port=h1.server_address[1], pinned=True)
+        threading.Thread(target=h2.serve_forever, daemon=True).start()
+        page.wait_for_selector(".rp-fb-banner", state="visible")
+        assert f"rapport serve '{a.resolve()}'" in page.text_content(".rp-fb-banner")
+        msg = page.evaluate("Rapport.api('feedback', '/', {body: {target: {kind: 'report'}, comment: 'for A'}})"
+                            ".then(function () { return 'saved'; }, function (e) { return e.message + ' / ' + e.status; })")
+        assert "another report" in msg and msg.endswith(" / 0")
+        time.sleep(1.5)                                             # several polls: still A, nothing filed in B
+        assert "Report A text." in page.text_content(".rp-content") and not Store(b).items()
+    finally:
+        for h in (h1, h2):
+            if h:
+                h.shutdown()
+                h.server_close()
+
 # ── modules with a server.py ───────────────────────────────────────────────── #
 def test_a_module_calls_its_routes_and_follows_its_state(served, page):
     """The `modules new --server` scaffold in a real page: Rapport.api, the server's

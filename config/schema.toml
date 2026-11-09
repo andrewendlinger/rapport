@@ -170,7 +170,7 @@ doc = "Interface the review server binds."
 [serve.port]
 type = "int"
 default = 4848
-doc = "Preferred port; falls back to the next 9, then an OS-assigned one."
+doc = "Preferred port for a report's first server; later ones take the port it had, so a page left open reconnects. Falls back to the next 9, then an OS-assigned one."
 
 [serve.open_browser]
 type = "bool"
@@ -185,7 +185,7 @@ doc = "How often sources are checked for changes (rebuild on save)."
 [serve.idle_hours]
 type = "number"
 default = 3
-doc = "Stop the review server after this many hours without a rebuild, page load or comment; 0 never stops it. An open page's polling doesn't count."
+doc = "Stop the review server after this many hours (at least a minute) without an edit of the report's files, a page load or a comment; 0 never stops it. An open page's polling doesn't count, nor do edits of modules or config, which rebuild every server."
 
 # ── confluence: `rapport export confluence` (see references/confluence.md) ──
 [confluence.apps]

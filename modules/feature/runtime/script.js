@@ -43,7 +43,8 @@
        opts.method defaults to POST when opts.body is given, else GET. Resolves with the
        parsed answer; rejects with an Error carrying the server's message and .status
        (0: no answer). A 403 on a write means the session token went stale: emit
-       "session:stale" once (a module can tell the reader) and reload 0.7 s later. */
+       "session:stale" once (a module can tell the reader) and reload 0.7 s later; unless
+       the server now answers for another report, which counts as no answer. */
     api: function (module, path, opts) {
       opts = opts || {};
       path = path || "/";
@@ -60,12 +61,22 @@
       }).then(function (r) {
         return r.json().catch(function () { return null; }).then(function (res) {
           if (r.ok) return res;
-          if (r.status === 403 && method !== "GET" && !stale) {
+          var err = fail((res && res.error) || "HTTP " + r.status, r.status);
+          if (r.status !== 403 || method === "GET" || stale) throw err;
+          return fetch((data.serve.api || "/api") + "/meta", { cache: "no-store" }).then(function (m) {
+            return m.json();
+          }).then(null, function () {
+            throw fail("can't reach the review server", 0);
+          }).then(function (m) {
+            if (data.serve.dir && m.dir !== data.serve.dir) {
+              throw fail("this address now serves another report; start this one again: rapport serve '" +
+                         data.serve.dir + "'", 0);
+            }
             stale = true;
             R.emit("session:stale");
             setTimeout(R.reload, 700);
-          }
-          throw fail((res && res.error) || "HTTP " + r.status, r.status);
+            throw err;
+          });
         });
       }, function () {
         throw fail("can't reach the review server", 0);

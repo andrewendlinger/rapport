@@ -8,7 +8,7 @@
 - **Callouts default to `info`**, Confluence's blue panel; `note` is now purple. A callout without a `tone` used to read "Note" and now reads "Info": add `{tone = "note"}` to keep the old look.
 - **Marks for hidden content.** Comment markers and change bars for content in a tab that isn't showing sit on the tab list and move when you switch, as they do on a closed section's summary. A module that hides content gets the same with `aria-labelledby` and a `toggle` event (`references/modules.md`).
 - **`lint`** no longer reports raw HTML inside a module that takes its body verbatim (`body = "text"`, as `html-embed` and `::: confluence` do).
-- **Idle servers stop themselves.** A review server now stops after 3 hours without a rebuild, a page load or a comment, so servers left behind by finished agent sessions no longer pile up. A tab left open doesn't keep it alive; its comments stay as drafts until `rapport serve` starts it again. Set `[serve] idle_hours` (0 never stops).
+- **Idle servers stop themselves.** A review server stops after `[serve] idle_hours` (3; 0 never) without an edit of the report, a page load or a comment, so servers left behind by agent sessions no longer pile up; an open tab doesn't keep it alive. `rapport serve` brings it back on the same port, and the open tab reconnects; meanwhile it shows the command, keeps the comment being written, and never turns into another report that took its address.
 
 ## 0.6.0 (2026-10-27)
 

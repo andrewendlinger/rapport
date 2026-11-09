@@ -208,7 +208,7 @@ The first script on the page is the kernel, `Rapport`; the module scripts follow
 | `Rapport.busy()` | whether any predicate says so now |
 | `Rapport.reveal(el)` | makes `el` visible: opens `<details>` ancestors and calls the `reveal` of every module around it; returns `el` |
 | `Rapport.reload()` | reloads the page and returns to the same scroll position; emits `before-reload` first |
-| `Rapport.api(module, path, opts)` | calls a route of the module's `server.py` and returns a Promise of the parsed answer. `opts.body` is sent as JSON; `opts.method` defaults to POST with a body, else GET. It rejects with an `Error` holding the server's message and `.status` (0: no answer, or a static page). A 403 on a write means the session token is stale: the kernel emits `session:stale` and reloads the page 0.7 s later, so drafts saved in `before-reload` survive |
+| `Rapport.api(module, path, opts)` | calls a route of the module's `server.py` and returns a Promise of the parsed answer. `opts.body` is sent as JSON; `opts.method` defaults to POST with a body, else GET. It rejects with an `Error` holding the server's message and `.status` (0: no answer, or a static page). A 403 on a write means the session token is stale: the kernel emits `session:stale` and reloads the page 0.7 s later, so drafts saved in `before-reload` survive. If the address now serves another report, it rejects with status 0 instead and doesn't reload |
 
 `Rapport.start()` is called by the page template once all scripts are in. It is internal: don't call it.
 
@@ -217,7 +217,7 @@ The first script on the page is the kernel, `Rapport`; the module scripts follow
 | `ready` | the kernel, after every module's `init` and `mount` | none |
 | `before-reload` | `Rapport.reload()` | none; save unsent input (to `sessionStorage`) here |
 | `session:stale` | `Rapport.api()`, when a write got 403: the page reloads 0.7 s later | none; tell the reader why (feedback shows a toast) |
-| `server:down` | live-reload, when the server stops answering | none |
+| `server:down` | live-reload, when the server stops answering, or another report answers at its address | none |
 | `server:up` | live-reload, when it answers again after being down | none |
 | `<module>:changed` | live-reload, when the stored state of a module with a `server.py` changed (here, in another tab, or from another process) | the `/api/meta` response: `{build_id, errors, version, revs, dir}` |
 | `feedback:changed` | the same, for the feedback module: a comment added or resolved, here or from the CLI | the `/api/meta` response |
@@ -231,7 +231,7 @@ Page data (`Rapport.data`, `ctx.data`) is built at render time:
 | `report` | `{title, version, served, source}`: `served` is true on a `rapport serve` page, `source` is the report file name |
 | `modules` | `{name: resolved config}` for each module on the page that has a script.js |
 | `present` | the names of all modules used on the page, sorted |
-| `serve` | served pages only: `{token, api, build_id}`: the session token (sent as `X-Rapport-Token`), the API base path and the id of this build |
+| `serve` | served pages only: `{token, api, build_id, dir}`: the session token (sent as `X-Rapport-Token`), the API base path, the id of this build and the report folder (compare it with `/api/meta`'s `dir`: after a restart, another report may answer at this address) |
 
 ## prepare.py
 
@@ -423,6 +423,8 @@ Before a handler runs, the server has:
 - required the page's session token (`X-Rapport-Token`) for every method but GET, so another site can't post to it;
 - refused a body that isn't a JSON object, or is over 1 MB;
 - answered 404 for a module that is switched off, is `when = "static"`, or has no `server.py`.
+
+A write (any method but GET) counts as use, so the server doesn't stop for being idle (`serve.idle_hours`) while it gets them: write when the reader does something, never on a timer. GET requests don't count.
 
 Routes come from the last successful build. An edit to `server.py` applies on the next rebuild. A `server.py` that fails to load, or whose `routes(r)` fails, is a build error: in the server log and on the page, never a crash.
 

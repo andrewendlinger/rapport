@@ -12,6 +12,8 @@ busy); a page holding a stale token gets 403 and reloads itself.
 
 A server stops by itself after serve.idle_hours without use (see idle_stop):
 agents start them in the background and sessions end without stopping them.
+It comes back on the port it had, so an open page reconnects; a page whose
+address now serves another report says so instead of turning into it.
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ from . import ROOT
 from . import config as config_mod
 from .build import build
 from .routes import Request, mount
+from .schema import load_core_tree
 from .store import Corrupt, module_store
 from .util import STATE_FILE, NotFound, RapportError, atomic_write, ensure_state_dir, read_state, state_dir, unique
 
@@ -139,11 +142,14 @@ class Watcher:
 
     def __init__(self, rebuild, files: list[Path], sig: dict | None = None):
         self.rebuild, self.files, self.sig = rebuild, files, sig
+        self.changed: list[Path] = []       # what this tick's rebuild is for
 
     def tick(self) -> bool:
         sig = signature(self.files)
         if sig == self.sig:
             return False
+        before = self.sig or {}
+        self.changed = [Path(k) for k in sig.keys() | before.keys() if sig.get(k) != before.get(k)]
         self.sig = sig                  # if rebuild() raises, the next tick doesn't retry the same change
         self.files = self.rebuild() or self.files
         self.sig = settle(sig, self.files)
@@ -169,7 +175,8 @@ class App:
         self.files: list[Path] = []
         self.watcher = Watcher(self._rebuild_files, fallback_files(report_dir))
         self.allowed_hosts: set[str] = set()
-        self.active = time.time()           # last use: a rebuild, a page load or a write (idle_stop)
+        self.active = time.time()           # last use: an edit of the report, a page load, a write (idle_stop)
+        self.wanted_port = 0
 
     def touch(self) -> None:
         self.active = time.time()
@@ -177,7 +184,8 @@ class App:
     def rebuild(self) -> None:
         try:
             res = build(self.report_dir, self.sets,
-                        serve_data={"serve": {"token": self.token, "api": "/api", "build_id": self.build_id + 1}})
+                        serve_data={"serve": {"token": self.token, "api": "/api", "build_id": self.build_id + 1,
+                                              "dir": str(self.report_dir)}})
             routes, route_errors = mount(res.config)       # runs each server.py: outside the lock
             with self.lock:
                 self.build_id += 1
@@ -204,8 +212,6 @@ class App:
             self._fail(str(e))
         except Exception:  # noqa: BLE001 - keep serving the last good page
             self._fail("internal error during build:\n" + traceback.format_exc(limit=6))
-        finally:
-            self.touch()                # from the end: a slow build mustn't eat into the idle time
 
     def _fail(self, message: str) -> None:
         # build_id only moves on a successful build: the served page still
@@ -217,7 +223,15 @@ class App:
         print(f"build failed: {message}", flush=True)
 
     def _rebuild_files(self) -> list[Path]:
+        # only the report's own files count as use: a module, config or learned-rule edit
+        # rebuilds every server, and must not keep forgotten ones alive
+        source = self.cfg.source_path if self.cfg else None
+        used = any(f.is_relative_to(self.report_dir) or f == source for f in self.watcher.changed)
+        if used:
+            self.touch()                # at the start too: a slow build isn't cut off mid-way
         self.rebuild()
+        if used:
+            self.touch()
         return self.files
 
     def watch(self, interval: float) -> None:
@@ -446,9 +460,12 @@ def make_server(report_dir: Path, sets=None, port: int | None = None, pinned: bo
     report_dir = report_dir.resolve()
     cfg, _ = config_mod.load_for_report(report_dir, sets)
     host = cfg.get("serve.host", "127.0.0.1")
-    port = int(cfg.get("serve.port", 4848)) if port is None else port
-    token = read_server(report_dir).get("token") or secrets.token_urlsafe(18)
+    saved = read_server(report_dir)
+    if port is None:                # the port it had, so a page left open finds it again
+        port = int(saved.get("port") or serve_number(cfg, "port"))
+    token = saved.get("token") or secrets.token_urlsafe(18)
     app = App(report_dir, sets, token)
+    app.wanted_port = port
     handler = type("BoundHandler", (Handler,), {"app": app})
     httpd = bind(host, port, pinned, report_dir, handler)
     port = httpd.server_address[1]
@@ -456,11 +473,29 @@ def make_server(report_dir: Path, sets=None, port: int | None = None, pinned: bo
     url = f"http://{shown}:{port}/"
     app.allowed_hosts = {f"{h}:{port}" for h in ("127.0.0.1", "localhost", "[::1]", shown)}
     app.rebuild()
+    app.touch()                     # starting is use, however long the first build took
     app.watcher.files = app.files or app.watcher.files
     app.watcher.sig = signature(app.watcher.files)
     write_server(report_dir, {"pid": os.getpid(), "url": url, "port": port, "token": token, "dir": str(report_dir),
                               "started": time.strftime("%Y-%m-%dT%H:%M:%S")})
     return httpd, app, url, cfg
+
+
+def serve_number(cfg, name: str):
+    """serve.<name> as a number. Config validation only warns about a wrong type, so a value
+    that isn't one ("2h") falls back to the schema's default here, with a line in the log."""
+    default = load_core_tree()["serve"][name]["default"]
+    value = cfg.get(f"serve.{name}", default)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        print(f"serve.{name} = {value!r} isn't a number; using {default}", flush=True)
+        return default
+    return value
+
+
+def idle_limit(cfg) -> float | None:
+    """serve.idle_hours in seconds, at least a minute; None (never stop) for 0 or less."""
+    hours = serve_number(cfg, "idle_hours")
+    return max(60.0, hours * 3600) if hours > 0 else None
 
 
 def idle_stop(httpd, app: App, limit: float, every: float = 60) -> None:
@@ -470,8 +505,9 @@ def idle_stop(httpd, app: App, limit: float, every: float = 60) -> None:
     while True:
         time.sleep(min(every, limit))
         if time.time() - app.active >= limit:
-            print(f"[{time.strftime('%H:%M:%S')}] no rebuild, page load or write for "
-                  f"{limit / 3600:g} h (serve.idle_hours): stopping", flush=True)
+            span = f"{limit / 3600:g} h" if limit >= 3600 else f"{limit / 60:.0f} min"
+            print(f"[{time.strftime('%H:%M:%S')}] no edit of the report, page load or write for "
+                  f"{span} (serve.idle_hours): stopping", flush=True)
             httpd.shutdown()
             return
 
@@ -493,14 +529,13 @@ def run(report_dir: Path, args) -> int:
         return already_serving(report_dir, existing)
     sets = getattr(args, "set", None)
     httpd, app, url, cfg = make_server(report_dir, sets, args.port, bool(args.port))
-    wanted = args.port or int(cfg.get("serve.port", 4848))
-    interval = max(0.1, int(cfg.get("serve.watch_ms", 400)) / 1000)
+    interval = max(0.1, serve_number(cfg, "watch_ms") / 1000)
     threading.Thread(target=app.watch, args=(interval,), daemon=True).start()
-    idle_hours = float(cfg.get("serve.idle_hours", 3))
-    if idle_hours > 0:
-        threading.Thread(target=idle_stop, args=(httpd, app, idle_hours * 3600), daemon=True).start()
-    if httpd.server_address[1] != wanted:
-        print(f"port {wanted} busy → using {httpd.server_address[1]}")
+    limit = idle_limit(cfg)
+    if limit:
+        threading.Thread(target=idle_stop, args=(httpd, app, limit), daemon=True).start()
+    if app.wanted_port and httpd.server_address[1] != app.wanted_port:     # --port 0 asked for any
+        print(f"port {app.wanted_port} busy → using {httpd.server_address[1]}")
     print(f"rapport review server · {cfg.source_path}\n→ {url}   (Ctrl-C to stop)", flush=True)
     if cfg.get("serve.open_browser", True) and not args.no_open:
         threading.Timer(0.4, lambda: webbrowser.open(url)).start()
@@ -610,7 +645,7 @@ def watch_loop(report_dir: Path, sets) -> int:
         except RapportError as e:       # reported once; config files stay watched for the fix
             print(f"  error: {e}", flush=True)
             return fallback_files(report_dir)
-        interval = max(0.1, int(res.config.get("serve.watch_ms", 400)) / 1000)
+        interval = max(0.1, serve_number(res.config, "watch_ms") / 1000)
         print(f"[{time.strftime('%H:%M:%S')}] built {res.config.output_path.name}"
               + (f" with {len(res.errors)} error(s)" if res.errors else ""), flush=True)
         for m in res.messages():

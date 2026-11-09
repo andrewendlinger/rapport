@@ -1,7 +1,9 @@
 /* live-reload: poll the server; reload when the report was rebuilt, unless the
    reader is busy (Rapport.busy(): a comment is being typed, text is selected),
    in which case offer a pill instead. Also relays build errors and state changes:
-   <module>:changed for each module with a server.py (feedback:changed among them). */
+   <module>:changed for each module with a server.py (feedback:changed among them).
+   A server answering for another report (it took this address after ours stopped)
+   counts as down: reloading would turn this page into that report. */
 Rapport.module("live-reload", {
   init: function (ctx) {
     var serve = ctx.data.serve || {};
@@ -49,6 +51,7 @@ Rapport.module("live-reload", {
     var down = false;
     function poll() {
       fetch(api + "/meta", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (m) {
+        if (serve.dir && m.dir !== serve.dir) throw new Error("another report");
         if (down) { down = false; Rapport.emit("server:up"); }
         if (buildId != null && m.build_id !== buildId) {
           if (Rapport.busy()) showPill(); else return Rapport.reload();

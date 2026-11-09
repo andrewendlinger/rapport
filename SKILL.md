@@ -18,8 +18,8 @@ A report is a folder: `report.md` (Markdown plus `:::` modules, written by you) 
    - Nest containers by giving the outer one more colons (`::::`).
    - No raw HTML (it shows as literal text). No remote images: download them into `assets/`. Inlined files total at most `report.max_inline_mb` (8), so shrink big gifs.
 4. **Lint.** `rapport lint -C <dir>` until it prints `lint: clean`; problems point at `report.md:LINE`. Lint never writes `report.html`.
-5. **Serve.** `rapport serve --detach -C <dir>` prints the URL. Plain `serve` blocks until Ctrl-C. Re-running prints the URL again, and starts the server anew if it stopped itself (after `serve.idle_hours`, 3, without use). `--stop` ends it; `--no-open` skips opening the browser. If it reports a sandbox, give the user the command it prints.
-6. **Hand over the served URL**, not `report.html`, and tell the user: select text to comment or flag it, the panel is bottom-right, then say "apply the rapport feedback". A double-clicked `report.html` is a clean read-only copy with no feedback UI: send that one around.
+5. **Serve.** `rapport serve --detach -C <dir>` prints the URL. Plain `serve` blocks until Ctrl-C. Either kind stops by itself after `serve.idle_hours` (3) without use; re-running starts it again on the same URL, or prints the URL if it's running. `--stop` ends it; `--no-open` skips opening the browser. If it reports a sandbox, give the user the command it prints.
+6. **Hand over the served URL**, not `report.html`, and tell the user: select text to comment or flag it, the panel is bottom-right, then say "apply the rapport feedback". If they may not get to it for hours, say the server will have stopped and you'll restart it (or they run the command the page shows). A double-clicked `report.html` is a clean read-only copy with no feedback UI: send that one around.
 
 ## Applying feedback
 
