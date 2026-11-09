@@ -46,3 +46,14 @@ The `.gitignore` then lets `feedback.json`, `state.json`, `rounds.json`, module 
 
 - `git clean -fd` skips ignored files, so it keeps `.rapport/`; `git clean -fdx` and `-fdX` delete it, unresolved feedback included. With `commit_feedback = true`, `feedback.json`, `state.json`, `rounds.json`, module state and the `.gitignore` aren't ignored: until they're committed they're untracked, and `git clean -fd` deletes them.
 - Files committed before the folder ignored itself stay tracked. `build` and `lint` print a note for the user with the exact command, e.g. `git rm --cached reports/q3/.rapport/blocks.json reports/q3/.rapport/feedback.json`; it doesn't fail `lint`, since changing git state is the user's call. Once that's committed, collaborators' tracked copies are deleted on their next pull (they're recoverable from git history).
+
+## Writing log
+
+With `[writing] log = true`, rapport keeps how the user corrected the agent's writing, across all reports, for `rapport writing digest` and the playbook in [writing-digest.md](writing-digest.md):
+
+- **Where:** `writing-log/` beside the user config (`rapport-writing-log/` beside a `RAPPORT_CONFIG` file), one `YYYY-MM.jsonl` per month plus `digest.json` (when the last digest was done). The folder is readable by the user only. Without a user config (`RAPPORT_CONFIG=/dev/null`) there is no log. Inside a git work tree it must be git-ignored, or nothing is written (`rapport writing log` says so).
+- **What:** per resolved or reopened feedback item, and per block edited between rounds, the block's Markdown before and after (up to 2,000 characters each), its heading path, the neighbouring blocks' text, the actions, comment and the agent's note; per round, the title, headings and length. Never a whole report. Emails, URLs and `writing.log_redact` terms are blanked as entries are written.
+- **Who edited:** rapport can't see who typed. `build`, `lint` and `feedback resolve` leave a snapshot (`.rapport/writing-snapshot.json`); `rapport feedback` (and `add`, `reopen`) log what changed since then as edited by "owner?". An agent that edits and then lints or resolves isn't mistaken for the user; edits made while the agent is mid-round are missed instead.
+- **Never** in report.html, a served page, an export or `commit_feedback`. `rapport writing forget --report <dir>`, `--before YYYY-MM-DD` or `--entry <id>` removes entries.
+
+Switch it off for one project or report with `[writing] log = false` in its `rapport.toml` or front matter.

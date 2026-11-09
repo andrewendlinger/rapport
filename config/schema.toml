@@ -148,6 +148,18 @@ merge = "append"
 default = ["delve", "it's worth noting", "in today's fast-paced", "game-changer", "seamless", "leverage", "robust solution"]
 doc = "Phrases the agent must not use; `rapport lint` flags them. Appended across layers."
 
+[writing.log]
+type = "bool"
+default = false
+doc = "Keep a writing log for `rapport writing digest`: each resolved or reopened feedback item, and each block edited between rounds, with its Markdown before and after. It lives in writing-log/ beside the user config, holds report text, and never reaches report.html, a served page or an export. Set false in a project's rapport.toml or a report's front matter to leave it out."
+
+[writing.log_redact]
+type = "list"
+items = "string"
+merge = "append"
+default = []
+doc = "Words blanked in the writing log as entries are written: case-insensitive, /…/ for a regular expression (customer names, codenames). Emails and URLs always are. Appended across layers."
+
 [writing.max_paragraph_words]
 type = "int"
 default = 120

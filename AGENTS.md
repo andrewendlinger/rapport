@@ -10,6 +10,7 @@ rapport is an Agent Skill plus a Python CLI, and this folder is both. `SKILL.md`
   - `render.py` nodes into HTML through module templates; assets, CSS/JS, the block index · `css.py` `url()` inlining, cascade layers · `build.py` parse, render, write
   - `serve.py` the review server · `routes.py` the routes of a module's `server.py` · `store.py` state files in `.rapport/`
   - `feedback.py` the feedback store and `rapport feedback` · `changes.py` the change bars · `brief.py`, `lint.py`, `modules_cmd.py` those commands · `util.py` errors, `did_you_mean`, `atomic_write`
+  - `writinglog.py` the writing log (`[writing] log`) and `rapport writing log|digest|forget`; its playbook is `references/writing-digest.md`
   - `confluence.py` the export (`confluence.html` templates) · `confluence_sync.py`, `confluence_cli.py` the page outline and `rapport confluence` · `dom.py` a small HTML tree for both
   - `palette.py` the named colour palettes · `external.py` local tools (diagrams), with a cache · `mathjax.py`/`mathjax.cjs` math to SVG
 - `modules/<kind>/<name>/`: every built-in part of a page. `layout` (page, header, toc, footer), `theme`, `element` (heading, code…), `block` (`:::`), `inline`, `feature` (runtime kernel, feedback, live-reload…).
@@ -37,7 +38,7 @@ A new hook gets a section in `modules.md` and a built-in module that uses it, as
 - **One parsed `Document`.** `build.build` parses once and renders twice, static and served. Rendering must never mutate the `Document` or its nodes.
 - **`build_id`** (`serve.App`) moves only on a successful build (a failed one that bumped it would reload the page forever) and counts from the server's start time, so a page open across a restart reloads, unless `/api/meta` names another report folder than the page's `serve.dir`: a page never turns into another report.
 - **Security** (`serve.py`, `routes.py`). `_host_ok` on every request (DNS rebinding), `_token_ok` on every write (CSRF). All writes are module routes, never a handler added to `serve.py`. A GET handler gets a read-only store: GET needs no token.
-- **State files** go through `store.StateFile`: thread lock, flock and atomic write. Edit with `with store.edit() as state:`, never nest edits, never write `.rapport/` files directly.
+- **State files** go through `store.StateFile`: thread lock, flock and atomic write. Edit with `with store.edit() as state:`, never nest edits, never write `.rapport/` files directly. The writing log, the one file kept outside a report, appends through `store.Journal` (flock, user-only permissions).
 - **Module Python** loads through `registry.load_code`, which writes no `__pycache__`: a new folder in a module looks like an edit to the watcher and rebuilds a second time.
 - **CSS layers** (`css.layered`): theme in `rp-theme`, modules in `rp-modules`, the user's `[theme] css` unlayered after both so it wins. Module CSS uses theme tokens and no `!important` (`rapport modules check` warns).
 - **Module JS is ES5**: `var` and `function`, no arrows, `let`/`const` or template literals, no build step, no npm.

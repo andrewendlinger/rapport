@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
+import tempfile
 import threading
 from pathlib import Path
 
@@ -112,3 +114,31 @@ def module_store(report_dir: Path, name: str, readonly: bool = False) -> StateFi
     feedback's is .rapport/feedback.json."""
     file, lock = LEGACY.get(name) or (f"{MODULE_STATE_DIR}/{name}.json", f"{MODULE_STATE_DIR}/{name}.lock")
     return StateFile(report_dir, file, lock, readonly)
+
+
+class Journal:
+    """A file outside the state folder that only grows (the writing log, in a folder beside the
+    user config): each line appended under an flock, so two commands never interleave lines.
+    The folder and file are made readable by the user only: they hold report text."""
+
+    def __init__(self, path: Path):
+        self.path = Path(path)
+
+    def _folder(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+    def append(self, line: str) -> None:
+        self._folder()
+        fd = os.open(self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        with os.fdopen(fd, "a", encoding="utf-8") as fh:
+            if fcntl:
+                fcntl.flock(fh, fcntl.LOCK_EX)
+            fh.write(line.rstrip("\n") + "\n")
+
+    def replace(self, text: str) -> None:
+        """The whole file at once (a small side file, such as the last digest's date)."""
+        self._folder()
+        fd, tmp = tempfile.mkstemp(dir=self.path.parent, prefix=".tmp-")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text.rstrip("\n") + "\n")
+        os.replace(tmp, self.path)

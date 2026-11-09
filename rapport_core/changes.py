@@ -30,6 +30,15 @@ CONTEXT = 48        # characters of context around a run, as for a feedback quot
 
 
 # ── outline: the block index as an ordered list of comparable entries ─────────── #
+def own_src(blocks: dict, bid: str) -> str:
+    """A block's Markdown without its nested blocks: what identifies the block itself."""
+    b = blocks[bid]
+    own = b.get("src") or ""
+    for c in b.get("children") or []:
+        own = own.replace(blocks.get(c, {}).get("src") or "\0", "", 1)
+    return own
+
+
 def outline(blocks: dict) -> list[dict]:
     """Blocks in reading order (a container before its children), each with a
     key for its own content and the text the reader sees."""
@@ -43,9 +52,7 @@ def outline(blocks: dict) -> list[dict]:
 
     def walk(bid):
         b = blocks[bid]
-        own = b.get("src") or ""
-        for c in b.get("children") or []:
-            own = own.replace(blocks.get(c, {}).get("src") or "\0", "", 1)
+        own = own_src(blocks, bid)
         out.append({"id": bid, "key": short_hash(f"{b.get('module')}|{collapse_ws(own)}", 12),
                     "module": b.get("module"), "text": collapse_ws(b.get("text") or "")[:TEXT_MAX]})
         for c in b.get("children") or []:
@@ -106,6 +113,15 @@ def round_for(report_dir: Path, items: list[dict], blocks: dict, version) -> int
 
 # ── the diff ──────────────────────────────────────────────────────────────────── #
 ALIGN_MAX = 400     # old × new blocks in one changed run; past that, pair them by position
+
+
+def block_steps(old: list[dict], new: list[dict]):
+    """Every block that differs between two outlines, in reading order, as (op, old index,
+    new index): ("pair", i, j) an edited block, ("del", i, None), ("ins", None, j)."""
+    sm = difflib.SequenceMatcher(None, [e.get("key") for e in old], [e.get("key") for e in new], autojunk=False)
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag != "equal":
+            yield from _align(old, new, i1, i2, j1, j2)
 
 
 def _align(old, new, i1, i2, j1, j2) -> list[tuple[str, int | None, int | None]]:

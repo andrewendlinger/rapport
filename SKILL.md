@@ -1,6 +1,6 @@
 ---
 name: rapport
-description: Write a report as a self-contained HTML page with rapport, and revise it from the reader's in-browser feedback: they select text to comment or flag it (Delete, AI slop, Too verbose, Unclear…). Use when the user asks for a report, write-up, analysis, summary or "HTML report"; says "apply/revise the rapport feedback" or "I left comments"; has a folder with report.md and .rapport/; wants a report published to Confluence or a Confluence page's edits brought back; wants report style or behaviour changed (rapport.toml); or wants a new report module (side-by-side code, collapsible sections, gifs…).
+description: Write a report as a self-contained HTML page with rapport, and revise it from the reader's in-browser feedback: they select text to comment or flag it (Delete, AI slop, Too verbose, Unclear…). Use when the user asks for a report, write-up, analysis, summary or "HTML report"; says "apply/revise the rapport feedback" or "I left comments"; has a folder with report.md and .rapport/; wants a report published to Confluence or a Confluence page's edits brought back; asks to digest their writing log; wants report style or behaviour changed (rapport.toml); or wants a new report module (side-by-side code, collapsible sections, gifs…).
 ---
 
 # rapport
@@ -31,7 +31,7 @@ For "apply the feedback", "I left comments", "revise": start here, skip the step
    - `whole report` items have no lines. `[whole image]` (table, code…) is about that block. `title block (front matter)` is the `+++` block.
 2. **Edit only what the items ask.** After a round the page puts a margin bar on every block changed since it began, and hovering shows the reader your note. A drive-by rewrite is a bar nobody can explain. If an edit needs a matching change elsewhere (summary, cross-reference, a number), make it and say so in the note.
 3. **Resolve each item you addressed:** `rapport feedback resolve FB-1 --note "<what you changed>" -C <dir>`. Write the note for the reader, specific ("Cut to two sentences; kept the p99 figure"). One call per item; several ids only when one change covers them, and all must be open or the call fails. Leave an item you didn't act on open, and say why.
-4. **`learn:` lines** ask you to propose one short, general writing rule. Show the user the exact rule and where it would apply (`--scope user`: all their reports; `project`: beside the nearest `rapport.toml`, else the git root, else the report folder), and ask. Only on a yes, run the `writing add` command with `--approved -C <dir>`; `--avoid` is for a banned phrase.
+4. **`learn:` lines** ask you to propose one short, general writing rule. Show the user the exact rule and where it would apply (`--scope user`: all their reports; `project`: beside the nearest `rapport.toml`, else the git root, else the report folder), and ask. Only on a yes, run the `writing add` command with `--approved -C <dir>`; `--avoid` is for a banned phrase. With the writing log on, the line says the item is kept for the next digest instead: propose only if the comment itself states a general rule.
 5. Tell the user briefly what changed, and the new version. Run `rapport serve --detach -C <dir>` and give the URL: the server may have stopped while the reader was away.
 
 Feedback given in chat gets the same treatment. To record it: `rapport feedback add "<comment>" --quote "<exact text>" [--action verbose]`, or `--block <id>` for an image, table or code block (ids: the `blocks` keys in `.rapport/blocks.json`, written by `build` and `serve`). With neither it's about the whole report.
@@ -39,6 +39,10 @@ Feedback given in chat gets the same treatment. To record it: `rapport feedback 
 ## Publishing to Confluence
 
 `report.md` stays the source; the page is a copy people may edit. `rapport export confluence -C <dir>` writes the page body (`.rapport/confluence/export.html`) and prints the title; publish it with the user's Confluence tools, fetch the page back, and `rapport confluence record <page>`. Later updates must never overwrite other people's edits or comments: fetch the live page (save the getConfluencePage JSON to a file), `rapport confluence diff <page>`, apply each change to `report.md` yourself (surgical edits, like feedback), then publish only what `rapport confluence prepare <page>` produces (it refuses while Confluence has changes `report.md` lacks or a comment would come loose), only while the page is still at the version it checked, and `record` the result. Confluence comments become feedback items. Pass on every `for the user:` line. Follow the playbook in `references/confluence.md` (steps, outline format, module mapping, what's lossy).
+
+## Digesting the writing log
+
+Only when the user asks ("digest my writing log", "turn my feedback into rules"): follow `references/writing-digest.md`. It starts with `rapport writing digest`, proposes a few rule changes with evidence, applies only the approved ones and ends with `rapport writing digest --done`.
 
 ## Rules
 

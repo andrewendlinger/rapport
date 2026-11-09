@@ -132,4 +132,7 @@ def writing_add(report_dir: Path, rule: str, scope: str, avoid: bool, approved: 
     with open(path, "a" if exists else "w", encoding="utf-8") as fh:
         fh.write(entry if exists else after)
     print(f"saved to {path}: {'avoid' if avoid else 'rule'} — {rule}\n  to undo: delete that [[learned]] entry there")
+    from . import writinglog
+    writinglog.rule_decision(config_mod.load_for_report(report_dir)[0], rule, "approved",
+                             "avoid" if avoid else "rule", scope)
     return 0

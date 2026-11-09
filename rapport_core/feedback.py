@@ -16,6 +16,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import writinglog
 from .changes import round_for
 from .store import module_store
 from .util import NotFound, RapportError, bump_version, collapse_ws, read_state
@@ -355,6 +356,9 @@ LEARN_TEXT = {
                       "rapport writing add \"<rule>\" --scope user|project --approved",
     "global": _PROPOSE + " for all their reports. Only on a yes: rapport writing add \"<rule>\" --scope user --approved",
     "project": _PROPOSE + " for this project. Only on a yes: rapport writing add \"<rule>\" --scope project --approved",
+    # with the writing log on, rules come from digests across reports, not from one flag
+    "logged": "kept in the writing log for the next digest. Propose a rule now only if the comment itself states "
+              "a general one (and ask first, as always)",
 }
 
 
@@ -379,6 +383,8 @@ def describe(items: list[dict], cfg, source: str) -> list[dict]:
         if t.get("quote") and lines:
             located = "\n".join(source.split("\n")[lines[0] - 1:lines[1]])
             quote_ok = quote_in(t["quote"], located)
+        if learn and writinglog.enabled(cfg):
+            learn = ["logged"]
         out.append({**item, "labels": labels or ["Comment"], "instructions": todo, "learn": learn,
                     "located": {"lines": lines, "status": status, "quote_found": quote_ok}})
     return out
@@ -464,6 +470,9 @@ def cli(args, report_dir: Path) -> int:
     source = cfg.source_path.read_text(encoding="utf-8")
     name = cfg.get("report.source", "report.md")
 
+    if action in ("list", "reopen") and writinglog.enabled(cfg):
+        from .build import build       # the agent starts working: edits since it last finished are the reader's
+        writinglog.owner_edits(report_dir, cfg, build(report_dir, None, write=False).blocks, f"feedback {action}")
     if action == "list":
         items = store.items()
         if not getattr(args, "all", False):
@@ -479,8 +488,11 @@ def cli(args, report_dir: Path) -> int:
     if action == "resolve":
         items, version = store.resolve(args.ids, args.note)
         print(f"resolved {', '.join(i['id'] for i in items)} → v{version}")
+        writinglog.resolved(report_dir, cfg, items, version)
         return 0
     if action == "reopen":
+        data = store.load()
+        writinglog.reopened(report_dir, cfg, [_find(data, i) for i in args.ids if i])
         items = store.reopen(args.ids)
         print("reopened " + ", ".join(i["id"] for i in items))
         return 0
@@ -503,7 +515,9 @@ def _cli_add(args, cfg, store: Store, report_dir: Path) -> int:
         if not hits:
             raise RapportError("quote not found in any block")
         target = {"kind": "text", "blocks": hits[:1], "quote": args.quote}
-    item = store.add(make_item({"target": target, "actions": args.action, "comment": args.comment},
-                               cfg, blocks, read_state(report_dir).get("version", 1)), blocks)
+    writinglog.owner_edits(report_dir, cfg, blocks, "feedback add")
+    fields = make_item({"target": target, "actions": args.action, "comment": args.comment},
+                       cfg, blocks, read_state(report_dir).get("version", 1))
+    item = store.add({**fields, "via": "chat"}, blocks)
     print(f"added {item['id']}")
     return 0

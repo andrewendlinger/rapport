@@ -233,6 +233,14 @@ Use a module pack:
 paths = ["~/code/rapport-modules-extra"]
 ```
 
+Keep a writing log (what you correct, for `rapport writing digest`; see [state.md](state.md#writing-log)):
+
+```toml
+[writing]
+log = true
+log_redact = ["Acme", "/Project [A-Z]+/"]   # blanked in the log; emails and URLs always are
+```
+
 Serving:
 
 ```toml

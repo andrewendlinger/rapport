@@ -9,7 +9,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import __version__
+from . import __version__, writinglog
 from . import config as config_mod
 from .schema import is_leaf, load_core_tree
 from .util import RapportError, state_dir, toml_repr
@@ -88,6 +88,7 @@ def cmd_build(args) -> int:
     res = build(d, args.set)
     print_messages(res.messages())
     print(f"{'built' if res.ok else 'built with errors'} {res.config.output_path}")
+    writinglog.agent_done(d, res.config, res.blocks, "build")
     return 0 if res.ok else 1
 
 
@@ -112,6 +113,7 @@ def cmd_lint(args) -> int:
     from .lint import lint
     d = report_dir_of(args)
     problems, res = lint(d, args.set)
+    writinglog.agent_done(d, res.config, res.blocks, "lint")
     print_messages(problems + res.notes(), sys.stdout)       # notes are for the user: they don't fail lint
     if not problems:
         print("lint: clean")
@@ -266,7 +268,24 @@ def cmd_confluence(args) -> int:
 
 def cmd_writing(args) -> int:
     from .lint import writing_add
-    return writing_add(report_dir_of(args), args.rule, args.scope, args.avoid, args.approved)
+    d = report_dir_of(args)
+    if args.action in ("add", "reject"):
+        if not args.rule:
+            raise RapportError(f'usage: rapport writing {args.action} "<rule>"')
+        if args.action == "add":
+            return writing_add(d, args.rule, args.scope, args.avoid, args.approved)
+        cfg, _ = config_mod.load_for_report(d, getattr(args, "set", None))
+        writinglog.rule_decision(cfg, " ".join(args.rule.split()), "rejected", "avoid" if args.avoid else "rule")
+        print("noted: not proposed again" if writinglog.enabled(cfg) else "noted (the writing log is off, so nothing kept)")
+        return 0
+    if args.rule:
+        raise RapportError(f"rapport writing {args.action} takes no rule; use -C <dir> for the report folder")
+    if args.action == "forget":
+        return writinglog.forget(args.report, args.before, args.entry)
+    cfg = load_cfg(args)            # the log spans every report: any folder will do
+    if args.action == "log":
+        return writinglog.status(cfg, d)
+    return writinglog.digest(cfg, args.all, args.json, args.done)
 
 
 # ── parser ───────────────────────────────────────────────────────────────────── #
@@ -371,16 +390,23 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("gallery", cmd_gallery, "render every module's example into one servable report")
     p.add_argument("--out", default="rapport-gallery", help="output folder (default: ./rapport-gallery)")
 
-    p = sub.add_parser("writing", help="save a learned writing rule: rapport writing add \"…\"")
+    p = sub.add_parser("writing", help="writing rules and the writing log: add \"…\" --approved, reject \"…\", "
+                                       "log (status), digest, forget")
     p.set_defaults(fn=cmd_writing)
     p.add_argument("-C", metavar="DIR", default=argparse.SUPPRESS)
-    p.add_argument("action", choices=["add"])
-    p.add_argument("rule")
+    p.add_argument("action", choices=["add", "reject", "log", "digest", "forget"])
+    p.add_argument("rule", nargs="?")
     p.add_argument("dir", nargs="?", help="report folder (default: current directory)")
     p.add_argument("--scope", choices=["user", "project"], default="user")
     p.add_argument("--avoid", action="store_true", help="a phrase to avoid rather than a rule")
     p.add_argument("--approved", action="store_true",
                    help="the user said yes to this exact rule and scope (required: agents propose, users decide)")
+    p.add_argument("--all", action="store_true", help="digest: every entry, not only those since the last digest")
+    p.add_argument("--json", action="store_true", help="digest: the entries and counts as JSON")
+    p.add_argument("--done", action="store_true", help="digest: mark it done, so the next starts from here")
+    p.add_argument("--report", metavar="DIR", help="forget: every entry about this report")
+    p.add_argument("--before", metavar="YYYY-MM-DD", help="forget: entries from before this date")
+    p.add_argument("--entry", metavar="ID", help="forget: one entry (its [e:…] id)")
     return ap
 
 
