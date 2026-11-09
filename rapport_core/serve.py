@@ -9,6 +9,9 @@ module routes. The token persists in server.json in the state folder
 (.rapport/, git-ignored), so a page left open across a restart keeps working
 (it reloads on the new server's first build id, or offers to if the reader is
 busy); a page holding a stale token gets 403 and reloads itself.
+
+A server stops by itself after serve.idle_hours without use (see idle_stop):
+agents start them in the background and sessions end without stopping them.
 """
 
 from __future__ import annotations
@@ -166,6 +169,10 @@ class App:
         self.files: list[Path] = []
         self.watcher = Watcher(self._rebuild_files, fallback_files(report_dir))
         self.allowed_hosts: set[str] = set()
+        self.active = time.time()           # last use: a rebuild, a page load or a write (idle_stop)
+
+    def touch(self) -> None:
+        self.active = time.time()
 
     def rebuild(self) -> None:
         try:
@@ -197,6 +204,8 @@ class App:
             self._fail(str(e))
         except Exception:  # noqa: BLE001 - keep serving the last good page
             self._fail("internal error during build:\n" + traceback.format_exc(limit=6))
+        finally:
+            self.touch()                # from the end: a slow build mustn't eat into the idle time
 
     def _fail(self, message: str) -> None:
         # build_id only moves on a successful build: the served page still
@@ -297,6 +306,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         path = self.path.split("?")[0]
         if path in ("/", "/index.html"):
+            self.app.touch()
             with self.app.lock:
                 body = self.app.html
             self._send(200, body, "text/html; charset=utf-8")
@@ -325,6 +335,8 @@ class Handler(BaseHTTPRequestHandler):
         are checked here, before the module's code sees anything."""
         if not self._host_ok() or (method != "GET" and not self._token_ok()):
             return
+        if method != "GET":
+            self.app.touch()
         path, _, query = self.path.partition("?")
         name, _, rest = path[len(MODULE_API):].partition("/")
         with self.app.lock:
@@ -451,17 +463,42 @@ def make_server(report_dir: Path, sets=None, port: int | None = None, pinned: bo
     return httpd, app, url, cfg
 
 
+def idle_stop(httpd, app: App, limit: float, every: float = 60) -> None:
+    """Shut the server down once it has gone `limit` seconds without use. The page's own
+    polling of /api/meta doesn't count, or a forgotten tab would keep it alive. Wall-clock
+    time, so a night with the lid closed counts too."""
+    while True:
+        time.sleep(min(every, limit))
+        if time.time() - app.active >= limit:
+            print(f"[{time.strftime('%H:%M:%S')}] no rebuild, page load or write for "
+                  f"{limit / 3600:g} h (serve.idle_hours): stopping", flush=True)
+            httpd.shutdown()
+            return
+
+
+def already_serving(report_dir: Path, info: dict) -> int:
+    """Re-running serve hands the URL out again, so it loads the page: that resets the idle clock."""
+    try:
+        urllib.request.urlopen(info["url"], timeout=3).close()
+    except OSError:
+        pass
+    print(f"already serving {report_dir}\n→ {info['url']}")
+    return 0
+
+
 def run(report_dir: Path, args) -> int:
     report_dir = report_dir.resolve()
     existing = running(report_dir)
     if existing:
-        print(f"already serving {report_dir}\n→ {existing['url']}")
-        return 0
+        return already_serving(report_dir, existing)
     sets = getattr(args, "set", None)
     httpd, app, url, cfg = make_server(report_dir, sets, args.port, bool(args.port))
     wanted = args.port or int(cfg.get("serve.port", 4848))
     interval = max(0.1, int(cfg.get("serve.watch_ms", 400)) / 1000)
     threading.Thread(target=app.watch, args=(interval,), daemon=True).start()
+    idle_hours = float(cfg.get("serve.idle_hours", 3))
+    if idle_hours > 0:
+        threading.Thread(target=idle_stop, args=(httpd, app, idle_hours * 3600), daemon=True).start()
     if httpd.server_address[1] != wanted:
         print(f"port {wanted} busy → using {httpd.server_address[1]}")
     print(f"rapport review server · {cfg.source_path}\n→ {url}   (Ctrl-C to stop)", flush=True)
@@ -489,8 +526,7 @@ def detach(report_dir: Path, args) -> int:
     report_dir = report_dir.resolve()
     existing = running(report_dir)
     if existing:
-        print(f"already serving {report_dir}\n→ {existing['url']}")
-        return 0
+        return already_serving(report_dir, existing)
     cfg, _ = config_mod.load_for_report(report_dir, getattr(args, "set", None))
     log = ensure_state_dir(report_dir) / LOG_FILE
     cmd = [sys.executable, str(ROOT / "scripts" / "rapport.py"), "serve", str(report_dir), "--no-open"]

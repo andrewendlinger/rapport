@@ -181,3 +181,8 @@ doc = "Open the report in the browser when the server starts."
 type = "int"
 default = 400
 doc = "How often sources are checked for changes (rebuild on save)."
+
+[serve.idle_hours]
+type = "number"
+default = 3
+doc = "Stop the review server after this many hours without a rebuild, page load or comment; 0 never stops it. An open page's polling doesn't count."

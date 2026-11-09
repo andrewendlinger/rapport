@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 
 from rapport_core.feedback import Store
-from rapport_core.serve import make_server, read_server
+from rapport_core import serve
+from rapport_core.serve import idle_stop, make_server, read_server
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -139,6 +140,37 @@ def test_token_survives_restart(report):
     h2, app2, _, _ = make_server(d, port=0, pinned=True)
     h2.server_close()
     assert app1.token == app2.token == read_server(d)["token"]
+
+
+def test_idle_server_stops_itself_but_not_while_used(report):
+    d = report("x\n")
+    httpd, app, url, cfg = make_server(d, port=0, pinned=True)
+    t = threading.Thread(target=httpd.serve_forever, daemon=True)
+    t.start()
+    try:
+        threading.Thread(target=idle_stop, args=(httpd, app, 0.6, 0.05), daemon=True).start()
+        for _ in range(4):                      # page loads count as use: 1.2 s, still up
+            time.sleep(0.3)
+            assert req(url)[0] == 200
+        deadline = time.time() + 3
+        while t.is_alive() and time.time() < deadline:
+            try:                                # an open page's polling doesn't
+                urllib.request.urlopen(url + "api/meta", timeout=0.5).close()
+            except OSError:                     # stopped: the socket stays open until server_close
+                pass
+            time.sleep(0.1)
+        assert not t.is_alive()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    assert cfg.get("serve.idle_hours") == 3
+
+
+def test_rerunning_serve_resets_the_idle_clock(server, capsys):
+    d, app, url = server
+    app.active = 0
+    assert serve.run(d, None) == 0
+    assert "already serving" in capsys.readouterr().out and app.active > 0
 
 
 def test_detach_status_stop(report, isolated_home):

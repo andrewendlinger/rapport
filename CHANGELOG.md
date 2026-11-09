@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Idle servers stop themselves.** A review server now stops after 3 hours without a rebuild, a page load or a comment, so servers left behind by finished agent sessions no longer pile up. A tab left open doesn't keep it alive; its comments stay as drafts until `rapport serve` starts it again. Set `[serve] idle_hours` (0 never stops).
+
 ## 0.6.0 (2026-10-27)
 
 - **Modules can extend the review server.** A `server.py` in a module folder registers routes under `/api/m/<module>/` and keeps the module's state in `.rapport/modules/<name>.json`. Its script calls them with `Rapport.api()` and hears about changes as `<module>:changed`. The server checks the host, the session token and the body before any module code runs. So a sign-off button, a poll or a checklist that remembers no longer needs a fork: `rapport modules new <name> --server` scaffolds one, and `rapport modules state <name>` shows the agent what readers did.

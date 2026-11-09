@@ -18,7 +18,7 @@ A report is a folder: `report.md` (Markdown plus `:::` modules, written by you) 
    - Nest containers by giving the outer one more colons (`::::`).
    - No raw HTML (it shows as literal text). No remote images: download them into `assets/`. Inlined files total at most `report.max_inline_mb` (8), so shrink big gifs.
 4. **Lint.** `rapport lint -C <dir>` until it prints `lint: clean`; problems point at `report.md:LINE`. Lint never writes `report.html`.
-5. **Serve.** `rapport serve --detach -C <dir>` prints the URL. Plain `serve` blocks until Ctrl-C. Re-running prints the URL again. `--stop` ends it; `--no-open` skips opening the browser. If it reports a sandbox, give the user the command it prints.
+5. **Serve.** `rapport serve --detach -C <dir>` prints the URL. Plain `serve` blocks until Ctrl-C. Re-running prints the URL again, and starts the server anew if it stopped itself (after `serve.idle_hours`, 3, without use). `--stop` ends it; `--no-open` skips opening the browser. If it reports a sandbox, give the user the command it prints.
 6. **Hand over the served URL**, not `report.html`, and tell the user: select text to comment or flag it, the panel is bottom-right, then say "apply the rapport feedback". A double-clicked `report.html` is a clean read-only copy with no feedback UI: send that one around.
 
 ## Applying feedback
@@ -32,7 +32,7 @@ For "apply the feedback", "I left comments", "revise": start here, skip the step
 2. **Edit only what the items ask.** After a round the page puts a margin bar on every block changed since it began, and hovering shows the reader your note. A drive-by rewrite is a bar nobody can explain. If an edit needs a matching change elsewhere (summary, cross-reference, a number), make it and say so in the note.
 3. **Resolve each item you addressed:** `rapport feedback resolve FB-1 --note "<what you changed>" -C <dir>`. Write the note for the reader, specific ("Cut to two sentences; kept the p99 figure"). One call per item; several ids only when one change covers them, and all must be open or the call fails. Leave an item you didn't act on open, and say why.
 4. **`learn:` lines** give a `writing add` command (scope `user` or `project`). If it says to ask, distil one short, general rule, propose it, and save it only if the user agrees; otherwise run it. Add `-C <dir>`: `--scope project` writes beside the nearest `rapport.toml` (else the git root, else the report folder). `--avoid` is for a banned phrase.
-5. Tell the user briefly what changed, and the new version.
+5. Tell the user briefly what changed, and the new version. Run `rapport serve --detach -C <dir>` and give the URL: the server may have stopped while the reader was away.
 
 Feedback given in chat gets the same treatment. To record it: `rapport feedback add "<comment>" --quote "<exact text>" [--action verbose]`, or `--block <id>` for an image, table or code block (ids: the `blocks` keys in `.rapport/blocks.json`, written by `build` and `serve`). With neither it's about the whole report.
 
