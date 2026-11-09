@@ -1,5 +1,6 @@
 """The runtime dependencies are declared three times: the script header that bin/rapport runs
-(PEP 723), requirements.txt (pip), and pyproject.toml (the dev tooling's `uv run`). They must agree."""
+(PEP 723), requirements.txt (pip), and pyproject.toml (the dev tooling's `uv run`). They must agree.
+Also: SKILL.md's front matter must stay strict YAML, as skill loaders read it."""
 
 import re
 import tomllib
@@ -40,3 +41,15 @@ def test_the_three_dependency_lists_agree():
 def test_the_python_requirement_agrees():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["requires-python"]
     assert script_header()["requires-python"] == project
+
+
+def test_skill_front_matter_is_strict_yaml():
+    """Skill loaders parse the front matter as YAML: a plain value holding ": " or " #" is an
+    error or gets cut short there, so such a value must be quoted or a block scalar (>-)."""
+    head = (ROOT / "SKILL.md").read_text(encoding="utf-8").split("---\n")[1]
+    for line in head.splitlines():
+        if line[:1].strip() and ":" in line:
+            key, _, value = line.partition(":")
+            value = value.strip()
+            assert value[:1] in ('"', "'", ">", "|") or (": " not in value and " #" not in value), \
+                f"SKILL.md front matter: quote {key}'s value or make it a block scalar (description: >-)"

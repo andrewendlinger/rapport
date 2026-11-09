@@ -1,6 +1,12 @@
 ---
 name: rapport
-description: Write a report as a self-contained HTML page with rapport, and revise it from the reader's in-browser feedback: they select text to comment or flag it (Delete, AI slop, Too verbose, Unclear…). Use when the user asks for a report, write-up, analysis, summary or "HTML report"; says "apply/revise the rapport feedback" or "I left comments"; has a folder with report.md and .rapport/; wants a report published to Confluence or a Confluence page's edits brought back; asks to digest their writing log; wants report style or behaviour changed (rapport.toml); or wants a new report module (side-by-side code, collapsible sections, gifs…).
+description: >-
+  Write a report as a self-contained HTML page with rapport, and revise it from the reader's in-browser feedback:
+  they select text to comment or flag it (Delete, AI slop, Too verbose, Unclear…). Use when the user asks for a
+  report, write-up, analysis, summary or "HTML report"; says "apply/revise the rapport feedback" or "I left
+  comments"; has a folder with report.md and .rapport/; wants a report published to Confluence or a Confluence
+  page's edits brought back; asks to digest their writing log; wants report style or behaviour changed
+  (rapport.toml); or wants a new report module (side-by-side code, collapsible sections, gifs…).
 ---
 
 # rapport
