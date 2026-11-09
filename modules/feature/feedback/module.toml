@@ -71,7 +71,7 @@ doc = "Whether the action needs a written comment. With an empty comment box, op
 [config.actions.fields.learn]
 type = "enum"
 choices = ["none", "ask", "global", "project"]
-doc = "After resolving: none, ask the user whether to save a writing rule, or save it user-wide / per project."
+doc = "After resolving: none, or propose a writing rule and ask the user whether to save it: ask (they choose where), global (suggest all their reports) or project. Nothing is saved without their yes."
 
 [config.actions.fields.instruction]
 type = "string"

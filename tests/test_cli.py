@@ -74,8 +74,8 @@ def test_all_builtin_modules_check_clean(capsys, report):
 def test_writing_add_scopes(capsys, report, isolated_home):
     d = report("x\n")
     (isolated_home / "proj/.git").mkdir(parents=True)
-    run(capsys, "writing", "add", "Say 'we', not 'the team'", "--scope", "project", "-C", str(d))
-    run(capsys, "writing", "add", "synergy", "--avoid", "-C", str(d))
+    run(capsys, "writing", "add", "--approved", "Say 'we', not 'the team'", "--scope", "project", "-C", str(d))
+    run(capsys, "writing", "add", "--approved", "synergy", "--avoid", "-C", str(d))
     assert (isolated_home / "proj/rapport-learned.toml").exists()
     code, out = run(capsys, "brief", "-C", str(d))
     assert "rule: Say 'we', not 'the team'" in out and '"synergy"' in out
@@ -180,7 +180,7 @@ def test_report_folder_as_a_plain_argument(capsys, report):
     code, out = run(capsys, "modules", "info", "callout", str(d))
     assert code == 0 and "callout" in out
     assert run(capsys, "gallery", str(d), "--out", str(d.parent / "g"))[0] == 0
-    assert run(capsys, "writing", "add", "Prefer numbers.", str(d), "--scope", "project")[0] == 0
+    assert run(capsys, "writing", "add", "--approved", "Prefer numbers.", str(d), "--scope", "project")[0] == 0
 
 
 def test_init_quoting_scaffold_and_dash_c(capsys, isolated_home):
@@ -211,6 +211,15 @@ def test_project_module_in_a_git_repo_without_rapport_toml(capsys, isolated_home
     (d / "report.md").write_text("::: timeline\nInside.\n:::\n", encoding="utf-8")
     code, out = run(capsys, "build", str(d))
     assert code == 0, out
+
+
+def test_writing_add_needs_the_users_yes(capsys, report, isolated_home):
+    d = report("x\n")
+    code, out = run(capsys, "writing", "add", "Prefer numbers.", "-C", str(d))
+    assert code != 0 and "needs the user's explicit yes" in out and "--approved" in out
+    assert not list(isolated_home.rglob("*learned.toml"))
+    code, out = run(capsys, "writing", "add", "--approved", "Prefer numbers.", "-C", str(d))
+    assert code == 0 and "to undo: delete that [[learned]] entry" in out
 
 
 def test_lint_flags_raw_html(capsys, report):

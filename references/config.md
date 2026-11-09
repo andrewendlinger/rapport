@@ -183,7 +183,7 @@ icon = "📎"
 key = "n"                      # Alt+N in window mode, N in bar mode
 tone = "ok"                    # neutral | accent | ok | warn | danger | violet
 comment = "optional"           # none | optional | required
-learn = "none"                 # none | ask (propose a writing rule, save if the user agrees) | global (save to the user config) | project
+learn = "none"                 # none | ask (propose a writing rule; saved only if the user agrees) | global | project (the same, suggesting that scope)
 instruction = "Add a source or link supporting this claim."
 # instruction_file = "prompts/cite.md"   # longer text, relative to this file
 ```

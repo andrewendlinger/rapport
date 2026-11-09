@@ -127,7 +127,8 @@ def test_cli_output_for_agents(report):
     out = format_items(describe(s.items(), cfg2, src), "report.md", src, 1)
     assert "FB-1 · AI slop · Summary · report.md:5 · (moved since the comment)" in out
     assert "do: Rewrite this in plain, concise" in out
-    assert "comment: too generic" in out and "learn: after fixing: distil the pattern" in out
+    assert "comment: too generic" in out and "learn: after fixing: distil the pattern" in out \
+        and "Only on a yes" in out and "--approved" in out
     assert "│    5  The cache key changed" in out
     assert out.index("FB-2") > out.index("FB-1") and "whole report" in out
 

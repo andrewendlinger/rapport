@@ -266,7 +266,7 @@ def cmd_confluence(args) -> int:
 
 def cmd_writing(args) -> int:
     from .lint import writing_add
-    return writing_add(report_dir_of(args), args.rule, args.scope, args.avoid)
+    return writing_add(report_dir_of(args), args.rule, args.scope, args.avoid, args.approved)
 
 
 # ── parser ───────────────────────────────────────────────────────────────────── #
@@ -379,6 +379,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("dir", nargs="?", help="report folder (default: current directory)")
     p.add_argument("--scope", choices=["user", "project"], default="user")
     p.add_argument("--avoid", action="store_true", help="a phrase to avoid rather than a rule")
+    p.add_argument("--approved", action="store_true",
+                   help="the user said yes to this exact rule and scope (required: agents propose, users decide)")
     return ap
 
 

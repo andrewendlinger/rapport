@@ -73,7 +73,7 @@ def test_config_file_and_its_siblings(capsys, report, isolated_home, monkeypatch
     write(dots / "rapport-presets/mine.toml", '[layout]\nwidth = "50ch"\n')
     write(isolated_home / ".config/rapport/config.toml", "[serve]\nport = 1000\n")     # not read any more
     monkeypatch.setenv("RAPPORT_CONFIG", str(dots / "my-rapport.toml"))
-    assert run(capsys, "writing", "add", "Prefer numbers.", "-C", str(d))[0] == 0
+    assert run(capsys, "writing", "add", "--approved", "Prefer numbers.", "-C", str(d))[0] == 0
     assert "Prefer numbers." in (dots / "rapport-learned.toml").read_text()
     assert not (isolated_home / ".config/rapport/learned.toml").exists()
     assert run(capsys, "modules", "new", "aside", "--kind", "block", "--scope", "user", "-C", str(d))[0] == 0
@@ -105,7 +105,7 @@ def test_dev_null_turns_user_config_off(capsys, report, isolated_home, monkeypat
     assert not [r for r in cfg.registry.roots if "rapport-modules" in str(r) and ".config" in str(r)]
     with pytest.raises(RapportError, match="preset 'mine' not found"):
         load(report("+++\npreset = \"mine\"\n+++\nx\n", name="r2"))
-    code, out = run(capsys, "writing", "add", "a rule", "-C", str(d))
+    code, out = run(capsys, "writing", "add", "--approved", "a rule", "-C", str(d))
     assert code == 2 and "no user config" in out and "--scope project" in out
     code, out = run(capsys, "modules", "new", "aside", "--scope", "user", "-C", str(d))
     assert code == 2 and "no user config" in out

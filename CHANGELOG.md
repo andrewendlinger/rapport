@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Writing rules need the user's yes.** `rapport writing add` refuses without `--approved`, every `learn` mode now proposes a rule and asks (`global` and `project` only suggest where it goes), and SKILL.md forbids saving a rule without asking, whether it comes from a flag, from chat or from the agent.
 - **Confluence parity.** A report can become a Confluence page, be edited there, and have those edits brought back into `report.md`, which stays the source. `rapport export confluence` writes the page body from a `confluence.html` per module; `rapport confluence diff|check|prepare|record` track the published page so a re-publish never overwrites other people's edits or comments. rapport never talks to Confluence itself: the agent publishes with its own tools and follows `references/confluence.md`.
 - **Confluence's elements.** Colour palettes, inline marks (status, color, highlight, underline, sub, sup, date, mention), columns, tabs, decisions, properties, cards, align, grid tables and panel tones; mermaid, plantuml, draw.io, LaTeX and math rendered to SVG at build time; `::: html-embed`. The new `atlassian` theme makes a report look like the page it becomes.
 - **`modules check`**: two modules with one name in one folder are an error; tokens used with a fallback are optional. It now warns about a block, inline or element module without a `confluence.html`, your own included.

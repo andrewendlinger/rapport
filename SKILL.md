@@ -31,7 +31,7 @@ For "apply the feedback", "I left comments", "revise": start here, skip the step
    - `whole report` items have no lines. `[whole image]` (table, code…) is about that block. `title block (front matter)` is the `+++` block.
 2. **Edit only what the items ask.** After a round the page puts a margin bar on every block changed since it began, and hovering shows the reader your note. A drive-by rewrite is a bar nobody can explain. If an edit needs a matching change elsewhere (summary, cross-reference, a number), make it and say so in the note.
 3. **Resolve each item you addressed:** `rapport feedback resolve FB-1 --note "<what you changed>" -C <dir>`. Write the note for the reader, specific ("Cut to two sentences; kept the p99 figure"). One call per item; several ids only when one change covers them, and all must be open or the call fails. Leave an item you didn't act on open, and say why.
-4. **`learn:` lines** give a `writing add` command (scope `user` or `project`). If it says to ask, distil one short, general rule, propose it, and save it only if the user agrees; otherwise run it. Add `-C <dir>`: `--scope project` writes beside the nearest `rapport.toml` (else the git root, else the report folder). `--avoid` is for a banned phrase.
+4. **`learn:` lines** ask you to propose one short, general writing rule. Show the user the exact rule and where it would apply (`--scope user`: all their reports; `project`: beside the nearest `rapport.toml`, else the git root, else the report folder), and ask. Only on a yes, run the `writing add` command with `--approved -C <dir>`; `--avoid` is for a banned phrase.
 5. Tell the user briefly what changed, and the new version. Run `rapport serve --detach -C <dir>` and give the URL: the server may have stopped while the reader was away.
 
 Feedback given in chat gets the same treatment. To record it: `rapport feedback add "<comment>" --quote "<exact text>" [--action verbose]`, or `--block <id>` for an image, table or code block (ids: the `blocks` keys in `.rapport/blocks.json`, written by `build` and `serve`). With neither it's about the whole report.
@@ -43,6 +43,7 @@ Feedback given in chat gets the same treatment. To record it: `rapport feedback 
 ## Rules
 
 - Never hand-edit `report.html` (generated) or `.rapport/` (review state). To read what readers did in a module with state (a sign-off, a poll): `rapport modules state <name> [--json]`.
+- **Never save a writing rule the user hasn't said yes to.** That holds for `learn:` lines, feedback given in chat and your own ideas alike: propose the exact rule and its scope, ask, wait. Saving without asking and reporting it afterwards is not allowed; `writing add` refuses without `--approved`.
 - A `note for the user:` line from `build` or `lint` is git advice, not a failure. Pass on the note and its command; don't change git state yourself.
 
 ## Changing style or behaviour

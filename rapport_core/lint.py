@@ -105,10 +105,14 @@ LEARNED_HEADER = """# Learned writing rules, appended by `rapport writing add` (
 """
 
 
-def writing_add(report_dir: Path, rule: str, scope: str, avoid: bool) -> int:
+def writing_add(report_dir: Path, rule: str, scope: str, avoid: bool, approved: bool = False) -> int:
     rule = " ".join(rule.split())
     if not rule:
         raise RapportError("empty rule")
+    if not approved:                # a rule shapes every later report: the user decides, never the agent
+        raise RapportError("not saved: a writing rule needs the user's explicit yes. Show them the exact rule and "
+                           "where it applies (--scope user: all their reports; --scope project: this project), "
+                           "ask, and rerun with --approved only after they agree")
     if scope == "user":
         path = config_mod.user_paths().learned_file
         if path is None:
@@ -127,5 +131,5 @@ def writing_add(report_dir: Path, rule: str, scope: str, avoid: bool) -> int:
         raise RapportError(f"{path} would become invalid TOML ({e}); fix it by hand first") from None
     with open(path, "a" if exists else "w", encoding="utf-8") as fh:
         fh.write(entry if exists else after)
-    print(f"saved to {path}: {'avoid' if avoid else 'rule'} — {rule}")
+    print(f"saved to {path}: {'avoid' if avoid else 'rule'} — {rule}\n  to undo: delete that [[learned]] entry there")
     return 0

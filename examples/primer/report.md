@@ -75,7 +75,7 @@ FB-2 · AI slop · report.md:18
   do: Rewrite this in plain, concise, simply worded language that is easy to follow and understand. Not unnecessarily descriptive or verbose: to the point and human-friendly. Keep the facts.
   quote: "Two ideas run through it:"
   │   18  Two ideas run through it:
-  learn: after fixing: distil the pattern into one short writing rule, propose it to the user, and ask whether to save it (rapport writing add "<rule>" --scope user|project).
+  learn: after fixing: distil the pattern into one short, general writing rule and ask the user whether to save it, and for all their reports or this project. Only on a yes: rapport writing add "<rule>" --scope user|project --approved
 ```
 
 Each `do:` line is the action's instruction from config: change it and you change what the agent does. `learn` asks the agent to turn a fix into a writing rule, so the same complaint doesn't come back.

@@ -348,11 +348,13 @@ def instruction_for(action: dict) -> str:
     return " ".join(str(text).split())
 
 
+# every mode asks: a rule is saved only on the user's yes; global/project only suggest where
+_PROPOSE = "after fixing: distil the pattern into one short, general writing rule and ask the user whether to save it"
 LEARN_TEXT = {
-    "ask": "after fixing: distil the pattern into one short writing rule, propose it to the user, and ask "
-           "whether to save it (rapport writing add \"<rule>\" --scope user|project).",
-    "global": "after fixing: save one short writing rule that prevents this: rapport writing add \"<rule>\" --scope user",
-    "project": "after fixing: save one short writing rule that prevents this: rapport writing add \"<rule>\" --scope project",
+    "ask": _PROPOSE + ", and for all their reports or this project. Only on a yes: "
+                      "rapport writing add \"<rule>\" --scope user|project --approved",
+    "global": _PROPOSE + " for all their reports. Only on a yes: rapport writing add \"<rule>\" --scope user --approved",
+    "project": _PROPOSE + " for this project. Only on a yes: rapport writing add \"<rule>\" --scope project --approved",
 }
 
 
