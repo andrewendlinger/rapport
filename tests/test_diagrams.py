@@ -80,6 +80,15 @@ def test_missing_renderer_shows_the_source_with_a_warning(report):
     assert "rp-diagram-source" in main and "@startuml" in main and "<figcaption>c</figcaption>" in main
 
 
+def test_an_extends_under_another_name_reads_its_own_config(report):
+    d = report("::: flow\nA -> B\n:::\n",
+               {"reports/r/rapport-modules/flow/module.toml": 'name = "flow"\nextends = "plantuml"\n'})
+    res = build(d, ['modules.flow.command="flow-tool"', 'modules.plantuml.command="plantuml-tool"'])
+    assert res.ok, res.messages()
+    missing = [str(w) for w in res.warnings if "isn't installed" in str(w)]
+    assert len(missing) == 1 and "flow-tool isn't installed" in missing[0]
+
+
 def test_drawio_file_errors(report):
     assert any("file not found" in e.message for e in build(report("::: drawio assets/nope.drawio\n:::\n")).errors)
     res = build(report("::: drawio https://x.org/a.drawio\n:::\n", name="r2"))
@@ -143,3 +152,27 @@ def test_html_embed_is_static_isolated_and_self_contained(report):
     assert any("removed 3" in w for w in res.warnings)
     res2 = build(report("::: html-embed\n<img src=\"https://x.org/a.png\">\n:::\n", name="r2"))
     assert any("remote resource" in e.message for e in res2.errors)
+
+
+@pytest.mark.parametrize("html", [
+    "<img src=https://x.org/a.png>",
+    '<img src="assets/a.gif" srcset="assets/a.gif 1x, https://x.org/b.png 2x">',
+    '<video poster="//x.org/p.png"></video>',
+    '<svg><image href="https://x.org/i.png"/></svg>',
+    "<svg><use xlink:href='https://x.org/s.svg#i'/></svg>",
+    '<style>@import "https://x.org/a.css";</style>',
+])
+def test_html_embed_refuses_every_remote_load(report, html):
+    from conftest import GIF
+    res = build(report(f"::: html-embed\n{html}\n:::\n", {"reports/r/assets/a.gif": GIF}))
+    assert not res.ok and "x.org" not in res.html.split("<main", 1)[1]
+
+
+def test_html_embed_inlines_srcset_and_svg_images_but_keeps_links(report):
+    from conftest import GIF
+    res = build(report('::: html-embed\n<img srcset="assets/a.gif 1x, assets/a.gif 2x">'
+                       '<svg><image href="assets/a.gif"/></svg><a href="https://x.org/">x</a>\n:::\n',
+                       {"reports/r/assets/a.gif": GIF}))
+    assert res.ok, res.messages()
+    main = res.html.split("<main", 1)[1]
+    assert main.count("data:image/gif;base64,") == 3 and 'href="https://x.org/"' in main

@@ -219,6 +219,13 @@ def test_lint_flags_raw_html(capsys, report):
     assert code == 1 and "report.md:3: raw HTML shows up as literal text" in out and "report.md:5" not in out
 
 
+def test_lint_leaves_html_inside_verbatim_modules_alone(capsys, report):
+    d = report("::: html-embed\n<div>kept</div>\n:::\n\n::::tabs\n:::tab A\n::: confluence\n<p>passed</p>\n:::\n"
+               ":::\n::::\n\n<b>stray</b>\n")
+    code, out = run(capsys, "lint", "-C", str(d))
+    assert code == 1 and "report.md:13: raw HTML" in out and out.count("raw HTML") == 1
+
+
 def test_lint_prints_build_warnings(capsys, report):
     d = report("::: collapse More\nNever closed.\n")
     code, out = run(capsys, "lint", "-C", str(d))

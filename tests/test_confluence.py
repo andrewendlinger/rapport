@@ -512,3 +512,13 @@ def test_cli_takes_page_json_only(report, tmp_path, capsys):
     assert main(["confluence", "diff", str(html), str(d)]) != 0               # plain HTML: refused
     cap = capsys.readouterr()
     assert "save the JSON getConfluencePage returns" in cap.err + cap.out
+
+
+def test_toc_macro_follows_the_toc_in_any_region(report):
+    d = report("## One\n\nText.\n\n## Two\n\nMore.\n")
+    toc = 'data-extension-key="toc"'
+    assert toc in export(d).body                                                    # toc is in side by default
+    assert toc in export(d, ["layout.side=[]", 'layout.top=["header", "toc"]']).body
+    assert toc in export(d, ["layout.side=[]", 'layout.regions={rail = ["toc"]}']).body
+    assert toc not in export(d, ["layout.side=[]"]).body
+    assert toc not in export(d, ["confluence.toc=false"]).body

@@ -25,7 +25,8 @@ from markupsafe import Markup
 from . import dom, palette
 from .parse import Diag
 from .registry import Module, resolve_params
-from .render import Renderer, View, Lazy
+from .render import REGIONS, Renderer, View, Lazy
+from .util import state_dir
 
 MACRO_PACK = "1ef074bf-c90d-4af8-9ea9-32d2e6ae9a90/2256cafd-362d-4b27-a796-139875a465b5/static/macro-pack"
 DRAWIO = "1afdce52-d22e-4d27-84db-5be989c3c83b/92d899e8-452f-4c9b-9f60-823ab11c8253/static/drawio"
@@ -127,7 +128,7 @@ class Cf:
 
     def page_id(self) -> str:
         """The Confluence page this report was published to (from `confluence record`), or ""."""
-        meta = self._r.report_dir / ".rapport" / "confluence" / "page.json"
+        meta = state_dir(self._r.report_dir) / "confluence" / "page.json"
         try:
             return str(json.loads(meta.read_text(encoding="utf-8")).get("page_id") or "")
         except (OSError, ValueError):
@@ -321,7 +322,7 @@ class ConfluenceRenderer(Renderer):
                 return None
             try:
                 self.templates[key] = self.env.from_string(path.read_text(encoding="utf-8"))
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:  # noqa: BLE001 - a broken confluence.html is reported, not fatal
                 self.errors.append(Diag(None, f"module '{mod.name}' confluence.html: {e}"))
                 return None
         return self.templates[key]
@@ -335,7 +336,7 @@ class ConfluenceRenderer(Renderer):
         try:
             return tpl.render(ctx=self.ctx, cf=self.cf, config=self.config.data, meta=self.meta,
                               cfg=self.config.module(mod.name), **kw)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 - a broken module must not kill the export
             self.errors.append(Diag(self._line, f"module '{mod.name}' failed to export: {e}"))
             return ""
 
@@ -348,7 +349,7 @@ class ConfluenceRenderer(Renderer):
             return {}
         try:
             return fn(view, self.ctx, self.cf) or {}
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 - a broken confluence() hook must not kill the export
             self.errors.append(Diag(self._line, f"module '{mod.name}': {e}"))
             return {}
 
@@ -383,6 +384,12 @@ class ConfluenceRenderer(Renderer):
         extra = self._hook(mod, view)
         return self._render_template(mod, node=view, **extra).strip()
 
+    def _shows_toc(self) -> bool:
+        """Is `toc` in any page region: top, side, bottom or a [layout.regions] one?"""
+        regions = [self.config.get(f"layout.{r}", []) for r in REGIONS]
+        regions += list((self.config.get("layout.regions", {}) or {}).values())
+        return any(isinstance(names, list) and "toc" in names for names in regions)
+
     def render_page(self, doc) -> ExportResult:
         self.meta = dict(doc.meta)
         nodes = doc.nodes
@@ -396,8 +403,7 @@ class ConfluenceRenderer(Renderer):
         self._source_lines = doc.source.split("\n")
         self._seen = {}
         parts = [str(self.render_node(n)) for n in nodes]
-        if self.config.get("confluence.toc", True) and "toc" in (self.config.get("layout.side", []) or []) \
-                and any(n.module == "heading" for n in nodes):
+        if self.config.get("confluence.toc", True) and self._shows_toc() and any(n.module == "heading" for n in nodes):
             parts.insert(0, str(self.cf.macro("toc", "Table of Contents", {"maxLevel": "3"})))
         body = "\n".join(p for p in parts if p.strip()) + "\n"
         return ExportResult(title=str(self.meta["title"]), body=body,

@@ -31,6 +31,7 @@ A report's review state lives in `.rapport/` next to report.md:
 | `rounds.json` | the blocks as they were when each feedback round began, for the change bars |
 | `modules/<name>.json` | the state of a module with a `server.py` (a sign-off, a poll); `rapport modules state <name>` reads it |
 | `server.json`, `server.log`, `feedback.lock`, `modules/<name>.lock` | review server (URL, pid, local token) and locking |
+| `confluence/` | Confluence sync ([confluence.md](confluence.md)): `export.html` from `export confluence`; `base.html` and `page.json`, the page as last recorded, which `diff` and `prepare` compare against; `publish.html`/`publish.json` from `prepare`, until `record`. Never committed, even with `commit_feedback`: in another checkout, `prepare` has no base and says how to make one |
 
 The folder ignores itself: rapport keeps a `.gitignore` in it containing `*`, so `git add -A` skips it and a rebuild never dirties the tree. It's working data for one checkout: the block index churns, server.json holds a local token, and feedback is a conversation about a draft. The `.gitignore` starts with `# managed by rapport` and the build rewrites it to match the config. Replace that first line and rapport treats the file as yours and leaves it alone.
 

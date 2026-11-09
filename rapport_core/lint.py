@@ -42,6 +42,19 @@ def _prose_lines(source: str, fm_lines):
         yield i, line
 
 
+def _verbatim_lines(nodes: list[Node], registry) -> set[int]:
+    """Lines of modules that take their body as is (html-embed's HTML, a diagram's source):
+    raw HTML there is the point, not a mistake."""
+    out: set[int] = set()
+    for n in nodes:
+        mod = registry.get(n.module)
+        if mod and mod.body != "markdown" and n.lines and n.lines[0]:
+            out.update(range(n.lines[0], n.lines[1] + 1))
+        elif n.children:
+            out |= _verbatim_lines(n.children, registry)
+    return out
+
+
 def _paragraphs(nodes: list[Node]):
     for n in nodes:
         if n.module == "paragraph":
@@ -69,8 +82,9 @@ def lint(report_dir: Path, sets=None) -> tuple[list[str], object]:
                 problems.append(f"{name}:{i}: avoid \"{phrase}\" (writing.avoid)")
 
     if not cfg.get("report.raw_html", False):
+        verbatim = _verbatim_lines(res.doc.nodes, cfg.registry) if res.doc else set()
         for i, line in _prose_lines(source, cfg.front_matter_lines):
-            if HTML_LINE_RE.match(line):
+            if HTML_LINE_RE.match(line) and i not in verbatim:
                 problems.append(f"{name}:{i}: raw HTML shows up as literal text (report.raw_html = false); "
                                 f"use Markdown or a module instead")
 

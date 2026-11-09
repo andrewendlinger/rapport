@@ -60,7 +60,7 @@ instruction = "Add a source or a link that supports this claim."
 ```
 
 - **Look:** the default theme is minimal: system fonts, a white page, one accent colour, and a dark mode. `classic`, `paper` and `atlassian` (a report that looks like the Confluence page it will become) are built in too. Adjust any theme's tokens, then add your own CSS, which always wins over rapport's. A logo and icons go in the header and footer, as in the primer's [`rapport.toml`](examples/primer/rapport.toml). See [Styling](references/config.md#styling).
-- **Modules:** every part of the page is a module, a folder with a template. `rapport modules new tabs --kind block` starts one. `rapport modules new callout` overrides a built-in thinly: copy in only the files you change, and the rest keeps getting rapport's fixes. See [references/modules.md](references/modules.md).
+- **Modules:** every part of the page is a module, a folder with a template. `rapport modules new timeline --kind block` starts one. `rapport modules new callout` overrides a built-in thinly: copy in only the files you change, and the rest keeps getting rapport's fixes. See [references/modules.md](references/modules.md).
 - **Where did a setting come from?** `rapport config show --origin`. All settings: `rapport config defaults`.
 
 ## Documentation

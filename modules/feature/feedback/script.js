@@ -220,14 +220,27 @@ Rapport.module("feedback", {
       }
       if (!it._block && !it._range) it._detached = true;
     }
-    /* the outermost closed <details> hiding this node (its summary stays visible) */
-    function closedDetails(node) {
+    /* the outermost part hiding this node: a closed <details>, or an element a module hides
+       that names the control left visible with aria-labelledby (a tab panel). Marks for what
+       it hides go on that control instead (labelOf). */
+    function hiddenBy(node) {
       var el = node && (node.nodeType === 1 ? node : node.parentElement), out = null;
       for (var p = el; p && p !== SCOPE; p = p.parentElement) {
         var par = p.parentElement;
         if (par && par.tagName === "DETAILS" && !par.open && p.tagName !== "SUMMARY") out = par;
+        else if (p.getAttribute("aria-labelledby") && !p.getClientRects().length && labelOf(p) !== p) out = p;
       }
       return out;
+    }
+    /* where marks for a hidden part go: the summary; the tab list (one place for every tab in it,
+       so marks for two hidden tabs don't stack), else the control itself */
+    function labelOf(d) {
+      if (d.tagName === "DETAILS") return d.querySelector(":scope > summary") || d;
+      var l = document.getElementById(d.getAttribute("aria-labelledby").split(/\s+/)[0]);
+      return l ? (l.closest('[role="tablist"]') || l) : d;
+    }
+    function hiddenWhere(d) {
+      return d.tagName === "DETAILS" ? "in this collapsed section" : "in a tab not shown";
     }
     function commonParent(els) {
       var p = els[0];
@@ -269,8 +282,8 @@ Rapport.module("feedback", {
       // items inside a closed section are counted on its summary line instead
       var shown = new Map();
       groups.forEach(function (list, block) {
-        var d = closedDetails(block);
-        var at = d ? (d.querySelector(":scope > summary") || d) : block;
+        var d = hiddenBy(block);
+        var at = d ? labelOf(d) : block;
         if (!shown.has(at)) shown.set(at, { list: [], block: block, hidden: d });
         var g = shown.get(at);
         g.list = g.list.concat(list);
@@ -283,7 +296,7 @@ Rapport.module("feedback", {
         if (!r.width && !r.height) return;
         var m = ui(h("button", "rp-fb-marker", String(list.length)));
         m.type = "button";
-        m.title = (g.hidden ? "In this collapsed section · " : "") + (list.length === 1 ?
+        m.title = (g.hidden ? hiddenWhere(g.hidden).replace(/^i/, "I") + " · " : "") + (list.length === 1 ?
           (list[0].id + ": " + (list[0].comment || list[0].actions.map(label).join(", "))) : list.length + " items");
         var x = Math.max(mainR.right, r.right) + 12;
         if (x + 30 > vw) x = r.right - 28;
@@ -308,7 +321,6 @@ Rapport.module("feedback", {
       return null;
     }
     function hasChanges() { return !!(changes && ((changes.changed || []).length || (changes.removed || []).length)); }
-    function summaryOf(d) { return d.querySelector(":scope > summary") || d; }
     function placeChanges() {
       if (!card.hidden) hideCard();       // its mark is about to go: no mouseleave will come
       [].slice.call(layer.querySelectorAll(".rp-fb-change")).forEach(function (m) { m.remove(); });
@@ -327,12 +339,12 @@ Rapport.module("feedback", {
       changes.changed.forEach(function (c) {
         var b = byId(c.id);
         if (!b) return;
-        var d = closedDetails(b);
-        note(bars, d ? summaryOf(d) : b, c.items || [], c).hidden = !!d;
+        var d = hiddenBy(b);
+        note(bars, d ? labelOf(d) : b, c.items || [], c).hidden = d;
       });
       (changes.removed || []).forEach(function (r) {
-        var b = r.before ? byId(r.before) : null, d = b && closedDetails(b);
-        if (d) note(bars, summaryOf(d), r.items || [], null, r);
+        var b = r.before ? byId(r.before) : null, d = b && hiddenBy(b);
+        if (d) note(bars, labelOf(d), r.items || [], null, r).hidden = d;
         else note(cuts, b, r.items || [], null, r);
       });
       var mainR = MAIN.getBoundingClientRect();
@@ -381,7 +393,7 @@ Rapport.module("feedback", {
         return "Removed" + (n > 1 ? " " + n + " blocks" : "");
       }
       return (kind === "edited" ? "Edited" : "Added") + (s.ids.length ? " since v" + (changes.since || "?") : " in this round") +
-        (s.hidden ? ", in this collapsed section" : "");
+        (s.hidden ? ", " + hiddenWhere(s.hidden) : "");
     }
     /* words that are gone: the removed blocks' text, or the runs taken out of an edited block */
     function removedText(s) {
@@ -904,7 +916,7 @@ Rapport.module("feedback", {
     });
     function itemAt(x, y) {
       var hits = items.filter(function (it) {
-        if (!it._range || closedDetails(it._range.startContainer)) return false;
+        if (!it._range || hiddenBy(it._range.startContainer)) return false;
         return [].some.call(it._range.getClientRects(), function (r) {
           return x >= r.left - 1 && x <= r.right + 1 && y >= r.top - 1 && y <= r.bottom + 1;
         });

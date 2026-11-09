@@ -51,7 +51,6 @@ accent = "#6FD3A8"
 | colour | `bg` `surface` `surface-2` `ink` `ink-soft` `ink-faint` `line` `accent` `accent-soft` `ok` `ok-soft` `warn` `warn-soft` `danger` `danger-soft` `violet` `violet-soft` `shadow` |
 | type | `sans` `serif` `mono` `body-font` `heading-font` `body-size` |
 | shape | `radius`, `width` (the reading column; `[layout] width` overrides it) |
-
 | palettes | `text-<name>` `hl-<name>` `bg-<name>`: Confluence's fixed text, highlight and background colours, added only when a module that uses them is on the page (`color`, `highlight`, `callout`, `grid`). Names are the modules' enum choices, e.g. `text-bold-red`, `hl-yellow`, `bg-light-blue` |
 
 `rapport modules info default` prints each token with its light and dark value. Code colours are Pygments styles: `[modules.code] light_style` and `dark_style`.

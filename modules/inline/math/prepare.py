@@ -9,7 +9,7 @@ def prepare(node, ctx):
     tex = node.text.strip().strip("$").strip()
     if not tex:
         raise ValueError("math needs a formula")
-    cfg = ctx.module("math")
+    cfg = ctx.module(node.module)   # its own name: an `extends` under another name has its own config
     try:
         svg = tex_to_svg(tex, False, cfg.get("node", "node"), cfg.get("npm", "npm"))
     except ToolMissing as e:

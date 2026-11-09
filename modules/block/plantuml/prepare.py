@@ -4,7 +4,7 @@ import base64
 
 
 def prepare(node, ctx):
-    cfg = ctx.module("plantuml")
+    cfg = ctx.module(node.module)   # its own name: an `extends` under another name has its own config
     src = node.text.strip("\n")
     if "@start" not in src:
         src = f"@startuml\n{src}\n@enduml"

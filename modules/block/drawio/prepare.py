@@ -9,7 +9,7 @@ from markupsafe import Markup
 
 
 def prepare(node, ctx):
-    cfg = ctx.module("drawio")
+    cfg = ctx.module(node.module)   # its own name: an `extends` under another name has its own config
     if not node.params["src"]:
         if not node.params["confluence_name"]:
             raise ValueError("drawio needs a .drawio file (src), or confluence_name for a diagram that lives in Confluence")

@@ -28,7 +28,7 @@ def find_browser():
 
 
 def prepare(node, ctx):
-    cfg = ctx.module("mermaid")
+    cfg = ctx.module(node.module)   # its own name: an `extends` under another name has its own config
     src = node.text.strip("\n")
     exe = ctx.tool(cfg.get("command", "mmdc"))
     if not exe:

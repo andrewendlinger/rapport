@@ -178,11 +178,11 @@ Most settings replace what's below them. Writing rules add up, and feedback acti
 ## Adding a module
 
 ```sh
-rapport modules new tabs --kind block --scope project
-rapport modules check tabs
+rapport modules new timeline --kind block --scope project
+rapport modules check timeline
 ```
 
-A module is a folder: `module.toml` for its options, `template.html` for its markup, and optionally `style.css`, `script.js` and an `example.md`. There's no registration. Once `modules check` passes, `::: tabs` works and your agent finds it in `rapport brief`. To change a built-in, `rapport modules new callout` makes a thin override: copy in only the files you change, and the rest keeps getting rapport's fixes. A module can also keep state while the report is served, like a sign-off button or a poll: add `--server`.
+A module is a folder: `module.toml` for its options, `template.html` for its markup, and optionally `style.css`, `script.js` and an `example.md`. There's no registration. Once `modules check` passes, `::: timeline` works and your agent finds it in `rapport brief`. To change a built-in, `rapport modules new callout` makes a thin override: copy in only the files you change, and the rest keeps getting rapport's fixes. A module can also keep state while the report is served, like a sign-off button or a poll: add `--server`.
 
 ::: collapse Module kinds
 | Kind | What it is | How it's used |

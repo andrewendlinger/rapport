@@ -709,6 +709,41 @@ def test_change_bars_follow_config_and_a_closed_section(served, page):
     assert abs(box["y"] - summary["top"]) < 2 and abs(box["height"] - summary["height"]) < 2
 
 
+
+TABS = "## Tabs\n\nBefore the tabs.\n\n::::tabs\n:::tab One\nFirst panel text here.\n:::\n" \
+       ":::tab Two\nSecond panel text here.\n:::\n::::\n"
+
+
+def test_marks_for_a_hidden_tab_sit_on_the_tab_list_and_follow_a_switch(served, page):
+    from rapport_core.feedback import make_item
+    d, app, url = served(TABS)
+    _round(d, app, lambda t: t.replace("Second panel text here.", "Second panel text, edited."),
+           [("Second panel", {"comment": "edit it"})])
+    block = next(k for k, v in app.blocks.items() if v["src"].startswith("Second panel"))
+    Store(d).add(make_item({"target": {"kind": "text", "blocks": [block], "quote": "Second panel"},
+                            "comment": "still open"}, app.cfg, dict(app.blocks), 2), dict(app.blocks))
+    open_page(page, url)
+    page.wait_for_selector(".rp-fb-change")
+    tabs = page.evaluate("document.querySelector('.rp-tabs-bar').getBoundingClientRect().toJSON()")
+    bar, marker = page.query_selector(".rp-fb-change.rp-bar"), page.wait_for_selector(".rp-fb-marker")
+    assert len(page.query_selector_all(".rp-fb-change")) == 1
+    assert abs(bar.bounding_box()["y"] - tabs["top"]) < 2 and abs(marker.bounding_box()["y"] - tabs["top"]) < 2
+    assert marker.get_attribute("title").startswith("In a tab not shown · ")
+    bar.hover()
+    page.wait_for_selector(".rp-fb-card", state="visible")
+    assert "in a tab not shown" in page.text_content(".rp-fb-card")
+    page.mouse.move(5, 5)
+    page.get_by_role("tab", name="Two").click()                     # the marks move onto the paragraph
+    page.wait_for_function("""() => {
+        const p = [...document.querySelectorAll('[data-rp-id]')].find(e => e.textContent.includes('edited.'));
+        const top = p.getBoundingClientRect().top;
+        return [...document.querySelectorAll('.rp-fb-change, .rp-fb-marker')]
+            .every(m => Math.abs(m.getBoundingClientRect().top - top) < 2);
+    }""", timeout=3000)
+    page.get_by_role("tab", name="One").click()                     # and back
+    page.wait_for_function("""() => Math.abs(document.querySelector('.rp-fb-change').getBoundingClientRect().top
+        - document.querySelector('.rp-tabs-bar').getBoundingClientRect().top) < 2""", timeout=3000)
+
 # ── modules with a server.py ───────────────────────────────────────────────── #
 def test_a_module_calls_its_routes_and_follows_its_state(served, page):
     """The `modules new --server` scaffold in a real page: Rapport.api, the server's

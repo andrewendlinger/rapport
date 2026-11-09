@@ -6,9 +6,11 @@ Everything on a rapport page is a module. A module is **a folder with a `module.
 side-note/
   module.toml     manifest: kind, summary, params, config, body, children, feedback unit
   template.html   Jinja2 template with ONE root element
+  confluence.html how `rapport export confluence` writes it (block, inline and element modules; see confluence.md)
   style.css       optional; scoped .rp-<name> classes, theme tokens only
   script.js       optional; Rapport.module("<name>", { init, mount, reveal })
-  prepare.py      optional; prepare(node, ctx) -> extra template variables; css(ctx) -> CSS; check(config) -> warnings
+  prepare.py      optional; prepare(node, ctx) -> extra template variables; css(ctx) -> CSS; check(config) -> warnings;
+                  confluence(node, ctx, cf) -> extra variables for confluence.html
   server.py       optional; routes(r) for the review server, describe(state, config) for the agent
   example.md      canonical usage, used by `brief`, `gallery` and `modules check`
   assets/         optional; files the example references (copied for check/gallery)
@@ -58,7 +60,7 @@ A module extends another with `extends = "<name>"` in its module.toml:
 What it inherits:
 
 - **module.toml**: the base's, with yours on top. Tables merge key by key, at any depth: `[params.tone]` with only `default = "tip"` changes that default and keeps the type, choices and doc. A new `[params.icon]` adds a param; a theme's `[tokens] accent = "…"` changes one token. Strings and lists replace the base's (`choices` is the whole list). A param can't be removed. `name`, `extends` and `[upstream]` are the module's own.
-- **Files it doesn't have**: `template.html`, `script.js`, `prepare.py`, `server.py`, `example.md` and `assets/` are the base's. `prepare.py` and `server.py` run from the base's folder. To change one, copy it in: from then on that file is yours.
+- **Files it doesn't have**: `template.html`, `confluence.html`, `script.js`, `prepare.py`, `server.py`, `example.md` and `assets/` are the base's. `prepare.py` and `server.py` run from the base's folder. To change one, copy it in: from then on that file is yours.
 - **`style.css` adds to the base's** rather than replacing it. Both go in the `rp-modules` layer, the base's first, so a rule of yours with the base's selector wins. Write only the rules you change. Each `url()` resolves in the folder of the file it's in.
 - **State and routes go by name**: an override keeps its base's state (`.rapport/modules/<name>.json`, feedback's `feedback.json`) and `/api/m/<name>/`, so an override of `feedback` keeps the reader's comments. A module under another name has its own.
 - **Under another name**, `script.js` and `example.md` aren't inherited, because they name the module inside: `Rapport.module("callout", …)`, `::: callout`. `modules new <name> --extends <base>` copies both in and renames them (also `Rapport.api` and `Rapport.config` calls and `"<base>:…"` events). A module with another name whose base has a `script.js` and that has none of its own is an error.
@@ -78,6 +80,7 @@ Core looks these modules up by name, so an override of one keeps working only if
 - `default`: the default `[theme] name`, the fallback when that names no theme (also the token list `modules check` falls back to), and the base of a new theme (`modules new --kind theme`).
 - `heading`, `paragraph`, `list`, `code`, `table`, `image`, `blockquote`, `hr`, `html`, `footnotes`: the elements. `rapport_core/parse.py` maps each Markdown token to one of these names, so a module with another name never renders an element. Beyond that, a leading `# Title` is lifted out of the content into `meta.title`, a paragraph holding only an image renders as `image`, and `html` renders raw HTML when `[report] raw_html` is on.
 - `code`: `ctx.highlight()` marks it as used, so any module that highlights code gets `code`'s CSS, including the Pygments rules from the `css(ctx)` hook in its prepare.py; `rapport brief` prints its params. A `code` module that doesn't inherit that prepare.py loses the Pygments rules.
+- `heading`, `toc` for the Confluence export: a leading level-1 `heading` becomes the page title, and the page starts with Confluence's TOC macro when `toc` is in any layout region (`[confluence] toc`).
 - `feedback`: `rapport feedback` and `rapport brief` read its `actions` from `[modules.feedback]`, and the CLI reads and writes its state in `.rapport/feedback.json` (the one state file not under `.rapport/modules/`). Its routes are `/api/m/feedback/`, and `commit_feedback` and the state folder's `.gitignore` name its file.
 
 ## module.toml
@@ -177,6 +180,7 @@ Rapport.module("side-note", {
 ```
 
 - **`reveal`** is how feedback and links reach content hidden inside your module. `<details>` ancestors open automatically.
+- **Hiding part of a block** (a tab panel): give the hidden element `aria-labelledby` naming the control that stays visible, and fire a `toggle` event on it whenever you show or hide it (`el.dispatchEvent(new Event("toggle"))`), as `<details>` does. Feedback then puts the comment markers and change bars for hidden content on that control (on its `role="tablist"` if it's in one) and moves them when the reader switches. `tabs` does this.
 - **`data-rp-ui`**: mark chrome with this attribute: buttons, and any text that isn't in report.md (a label made up from a param default, a tone name). It's then never part of a feedback quote, so the agent can find every quote in the source. Buttons marked this way are hidden when printing. Text the author wrote, such as a title, should stay quotable.
 - **`data-rp-label="…"`**: names a part of your module (a pane, a tab) for feedback; see above.
 
@@ -237,7 +241,7 @@ def prepare(node, ctx):
     return {"total": sum(r["value"] for r in rows)}     # extra template variables
 ```
 
-`prepare(node, ctx)` runs each time a module renders a template, whatever its kind, and what it returns is added to the template's variables. It runs once per use of a block, element or inline module, and once per page for a layout region module, the `page`, and a feature (a feature without a template.html renders nothing, so it doesn't run). `node` depends on the kind:
+`prepare(node, ctx)` runs each time a module renders a template for the page, whatever its kind, and what it returns is added to the template's variables. It runs once per use of a block, element or inline module, and once per page for a layout region module, the `page`, and a feature (a feature without a template.html renders nothing, so it doesn't run). `node` depends on the kind:
 
 | kind | `node` |
 |---|---|
@@ -248,6 +252,8 @@ def prepare(node, ctx):
 | feature | `module` is its name; `id` is `""`, `params` is `{}` |
 
 Layout, page and feature modules take no params, so their `node` only says who is asking: read the rest from `ctx` (`ctx.meta`, `ctx.module(name)`, `ctx.config`). A load error in prepare.py, or an exception in `prepare`, is a build error naming the module (raise `ValueError("…")` for a mistake in report.md: the error lands on that line); the template then renders without its variables.
+
+**`confluence(node, ctx, cf)`** is `prepare`'s counterpart for `rapport export confluence`, which renders `confluence.html` instead of `template.html` and never calls `prepare`. See [Writing `confluence.html`](confluence.md#writing-confluencehtml-for-a-module) for `cf`.
 
 **Data for `script.js`.** There is no separate hook for it: render it in the template, as JSON in a `<script>` element. `tojson` escapes `<`, `>`, `&` and `'`, so the data can't end the element, and scripts are never part of a feedback quote.
 
@@ -434,4 +440,5 @@ Output must stay a single self-contained file: never load anything from a CDN. F
 
 - `rapport modules check <name>` passes: manifest valid, template parses, example renders with exactly one root element, style.css uses tokens, `rem`/`em` font sizes and no `!important`, its `url()` files exist, and `server.py` loads and registers its routes.
 - `example.md` shows realistic use; the brief prints it to every agent.
+- A block, inline or element module has a `confluence.html`, so `rapport export confluence` can export it (`modules check` warns otherwise).
 - `summary` says what the module is *for*, in one line.

@@ -14,7 +14,7 @@ def prepare(node, ctx):
             tex = tex[len(a):-len(b)].strip()
     if not tex:
         raise ValueError("latex needs a formula")
-    cfg = ctx.module("latex")
+    cfg = ctx.module(node.module)   # its own name: an `extends` under another name has its own config
     try:
         svg = tex_to_svg(tex, True, cfg.get("node", "node"), cfg.get("npm", "npm"))
     except ToolMissing as e:
