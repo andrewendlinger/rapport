@@ -432,12 +432,39 @@ def with_default_action(argv: list[str]) -> list[str]:
     return argv
 
 
+def fill_split_positionals(ap: argparse.ArgumentParser, args, extra: list[str]) -> list[str]:
+    """Python 3.11's argparse gives up on optional positionals once an option splits them:
+    `writing add --approved "rule"` and `config paths --json <dir>` leave the last ones over.
+    Fill the command's unset ones in order, as newer Pythons do; return what's still left."""
+    parser = ap
+    while True:         # down to the command's own parser (`feedback add` is two levels)
+        subs = [a for a in parser._actions if isinstance(a, argparse._SubParsersAction)]
+        name = getattr(args, subs[0].dest, None) if subs else None
+        if name not in (subs[0].choices if subs else {}):
+            break
+        parser = subs[0].choices[name]
+    extra = list(extra)
+    for a in parser._actions:
+        if not extra:
+            break
+        if a.option_strings or a.nargs != "?":
+            continue
+        value = getattr(args, a.dest, None)
+        unset = value is None or (value == a.default and a.choices is None)
+        if unset and (a.choices is None or extra[0] in a.choices):
+            setattr(args, a.dest, extra.pop(0))
+    return extra
+
+
 def main(argv=None) -> int:
     ap = build_parser()
     args, extra = ap.parse_known_args(with_default_action(sys.argv[1:] if argv is None else argv))
     if extra and getattr(args, "ids", None) and not any(x.startswith("-") for x in extra):
         args.ids += extra       # `feedback resolve FB-1 --note "…" <dir>`: argparse ends the ids at --note
-    elif extra:
+        extra = []
+    if extra and not any(x.startswith("-") for x in extra):
+        extra = fill_split_positionals(ap, args, extra)
+    if extra:
         ap.error("unrecognized arguments: " + " ".join(extra))
     if not getattr(args, "fn", None):
         ap.print_help()
