@@ -771,7 +771,7 @@ def render_example(mod: Module, cfg) -> list[str]:
             return [f"error: example: {e}"]
         out = [f"error: example: {e.format('example.md')}" for e in res.errors]
         # anchors attach to the template's single root element: more than one is an error
-        out += [f"error: {w}" for w in res.warnings if mod.name in w and "root" in w]
+        out += [f"error: {w}" for w in res.warnings if f"module '{mod.name}' template renders" in w]
         if f'data-rp-module="{mod.name}"' not in res.html:
             out.append("error: example.md never renders this module")
         return out

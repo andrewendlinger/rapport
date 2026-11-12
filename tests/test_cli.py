@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from conftest import write
-from rapport_core.cli import main
+from rapport_core.cli import build_parser, fill_split_positionals, main
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -55,6 +55,31 @@ def test_modules_new_check_and_use(capsys, report, isolated_home):
     assert code == 0 and 'class="rp-m-side-note rp-block rp-side-note"' in (d / "report.html").read_text()
     code, out = run(capsys, "brief", "-C", str(d))
     assert "### side-note  (custom:" in out
+
+
+def test_modules_check_flags_a_template_with_two_roots_and_only_there(capsys, report, isolated_home):
+    d = report("x\n")
+    write(isolated_home / "proj/rapport.toml", "")
+    root = isolated_home / "proj/rapport-modules"
+    write(root / "two/module.toml", 'kind = "block"\nsummary = "two roots"\n')
+    write(root / "two/template.html", "<p>{{ node.body }}</p><p>more</p>")
+    write(root / "two/example.md", "::: two\nhi\n:::\n")
+    write(root / "root-bad/module.toml", 'name = "root-bad"\nextends = "calout"\n')    # a registry error
+    code, out = run(capsys, "modules", "check", "-C", str(d))
+    assert code == 1 and "error: report.md:1: module 'two' template renders 2 root elements" in out
+    assert "\ncallout        ok" in out          # the registry error names 'callout' and 'root', not its row
+    assert "2 error(s)" in out
+
+
+def test_positionals_an_option_splits_are_filled_on_every_python():
+    """Python 3.11's argparse leaves `rule` over in `writing add --approved "rule" <dir>`."""
+    ap = build_parser()
+    args, _ = ap.parse_known_args(["writing", "add", "--approved"])
+    assert fill_split_positionals(ap, args, ["Lead.", "r"]) == [] and (args.rule, args.dir) == ("Lead.", "r")
+    args, _ = ap.parse_known_args(["config", "paths", "--json"])
+    assert fill_split_positionals(ap, args, ["r", "x"]) == ["x"] and (args.action, args.dir) == ("paths", "r")
+    args, _ = ap.parse_known_args(["feedback", "add", "--quote", "q"])
+    assert fill_split_positionals(ap, args, ["hi"]) == [] and args.comment == "hi"
 
 
 def test_modules_new_on_an_installed_name_extends_it(capsys, report, isolated_home):
