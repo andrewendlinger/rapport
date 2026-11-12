@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 (2026-11-12)
 
 - **`preset = "confluence"`** sets up a report that becomes a Confluence page in one line: the `atlassian` theme, the Macro Pack and draw.io apps, and a writing rule plus a `lint` check against inline math, which Confluence can't show.
-
+- **Python 3.11 works.** Commands where an option sits between two arguments, such as `writing add --approved "…" <dir>` or `config paths --json <dir>`, failed there with "unrecognized arguments". A `python3` older than 3.11 now gets a clear message instead of an import error.
+- **`modules check`** no longer pins an unrelated error on a module whose name appears in it when the path holds the word "root".
+- **MIT licence**, and CI on Linux and macOS.
 - **SKILL.md front matter is strict YAML again.** 0.6.0's description held ": " unquoted, which skill loaders such as pi report as an error; it is now a block scalar, and a test keeps it that way.
 - **Writing log.** With `[writing] log = true`, rapport keeps how you correct the agent's writing across all your reports: each resolved or reopened item and each block you edit between rounds, with its text before and after, never whole reports. `rapport writing digest` shows the patterns, and the playbook in `references/writing-digest.md` has the agent propose a few rule changes with evidence for you to approve; `rapport writing log` shows the state, `forget` removes entries. While it's on, flags no longer ask for a rule each time.
 - **Writing rules need the user's yes.** `rapport writing add` refuses without `--approved`, every `learn` mode now proposes a rule and asks (`global` and `project` only suggest where it goes), and SKILL.md forbids saving a rule without asking, whether it comes from a flag, from chat or from the agent.

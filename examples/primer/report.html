@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="generator" content="rapport 0.6.0">
+<meta name="generator" content="rapport 0.7.0">
 <title>rapport in five minutes</title>
 <style>
 @layer rp-theme,rp-modules;
 @layer rp-theme{
-:root{color-scheme:light dark;--rp-bg:#FFFFFF;--rp-surface:#FAFAFA;--rp-surface-2:#F4F4F5;--rp-ink:#18181B;--rp-ink-soft:#52525B;--rp-ink-faint:#8A8A93;--rp-line:#E4E4E7;--rp-accent:#2563EB;--rp-accent-soft:#EFF6FF;--rp-ok:#1A7A4A;--rp-ok-soft:#F0FDF4;--rp-warn:#91580A;--rp-warn-soft:#FFFBEB;--rp-danger:#A33B2E;--rp-danger-soft:#FEF2F2;--rp-violet:#6D28D9;--rp-violet-soft:#F5F3FF;--rp-shadow:0 4px 10px rgba(26,33,41,.06), 0 18px 44px -16px rgba(26,33,41,.22);--rp-sans:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;--rp-serif:Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Georgia, serif;--rp-mono:ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;--rp-body-font:var(--rp-sans);--rp-heading-font:var(--rp-sans);--rp-body-size:16px;--rp-radius:8px;--rp-width:70ch;}
+:root{color-scheme:light dark;--rp-bg-white:#ffffff;--rp-bg-light-gray:#f4f5f7;--rp-bg-gray:#b3bac5;--rp-bg-light-blue:#deebff;--rp-bg-blue:#b3d4ff;--rp-bg-dark-blue:#4c9aff;--rp-bg-light-teal:#e6fcff;--rp-bg-teal:#b3f5ff;--rp-bg-dark-teal:#79e2f2;--rp-bg-light-green:#e3fcef;--rp-bg-green:#abf5d1;--rp-bg-dark-green:#57d9a3;--rp-bg-light-yellow:#fffae6;--rp-bg-yellow:#fff0b3;--rp-bg-dark-yellow:#ffc400;--rp-bg-light-red:#ffebe6;--rp-bg-red:#ffbdad;--rp-bg-dark-red:#ff8f73;--rp-bg-light-purple:#eae6ff;--rp-bg-purple:#c0b6f2;--rp-bg-dark-purple:#998dd9;--rp-bg:#FFFFFF;--rp-surface:#FAFAFA;--rp-surface-2:#F4F4F5;--rp-ink:#18181B;--rp-ink-soft:#52525B;--rp-ink-faint:#8A8A93;--rp-line:#E4E4E7;--rp-accent:#2563EB;--rp-accent-soft:#EFF6FF;--rp-ok:#1A7A4A;--rp-ok-soft:#F0FDF4;--rp-warn:#91580A;--rp-warn-soft:#FFFBEB;--rp-danger:#A33B2E;--rp-danger-soft:#FEF2F2;--rp-violet:#6D28D9;--rp-violet-soft:#F5F3FF;--rp-shadow:0 4px 10px rgba(26,33,41,.06), 0 18px 44px -16px rgba(26,33,41,.22);--rp-sans:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;--rp-serif:Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Georgia, serif;--rp-mono:ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;--rp-body-font:var(--rp-sans);--rp-heading-font:var(--rp-sans);--rp-body-size:16px;--rp-radius:8px;--rp-width:70ch;--rp-on-light:block;--rp-on-dark:none;}
 html{font-size:var(--rp-body-size)}
 :root[data-theme="light"]{color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--rp-bg:#0A0A0B;--rp-surface:#131315;--rp-surface-2:#1A1A1D;--rp-ink:#EDEDEF;--rp-ink-soft:#A1A1AA;--rp-ink-faint:#71717A;--rp-line:#26262A;--rp-accent:#60A5FA;--rp-accent-soft:#172036;--rp-ok:#63C08F;--rp-ok-soft:#17291F;--rp-warn:#D9A03F;--rp-warn-soft:#32291A;--rp-danger:#DB8273;--rp-danger-soft:#33201D;--rp-violet:#B79CEC;--rp-violet-soft:#2A2142;--rp-shadow:0 4px 10px rgba(0,0,0,.35), 0 18px 44px -16px rgba(0,0,0,.55);}}
-:root[data-theme="dark"]{color-scheme:dark;--rp-bg:#0A0A0B;--rp-surface:#131315;--rp-surface-2:#1A1A1D;--rp-ink:#EDEDEF;--rp-ink-soft:#A1A1AA;--rp-ink-faint:#71717A;--rp-line:#26262A;--rp-accent:#60A5FA;--rp-accent-soft:#172036;--rp-ok:#63C08F;--rp-ok-soft:#17291F;--rp-warn:#D9A03F;--rp-warn-soft:#32291A;--rp-danger:#DB8273;--rp-danger-soft:#33201D;--rp-violet:#B79CEC;--rp-violet-soft:#2A2142;--rp-shadow:0 4px 10px rgba(0,0,0,.35), 0 18px 44px -16px rgba(0,0,0,.55);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--rp-bg-white:var(--rp-bg);--rp-bg-light-gray:#22272b;--rp-bg-gray:#454f59;--rp-bg-light-blue:#092957;--rp-bg-blue:#09326c;--rp-bg-dark-blue:#0055cc;--rp-bg-light-teal:#1e3137;--rp-bg-teal:#206a83;--rp-bg-dark-teal:#227d9b;--rp-bg-light-green:#1c3329;--rp-bg-green:#216e4e;--rp-bg-dark-green:#1f845a;--rp-bg-light-yellow:#332e1b;--rp-bg-yellow:#533f04;--rp-bg-dark-yellow:#7f5f01;--rp-bg-light-red:#42221f;--rp-bg-red:#5d1f1a;--rp-bg-dark-red:#ae2e24;--rp-bg-light-purple:#2b273f;--rp-bg-purple:#352c63;--rp-bg-dark-purple:#5e4db2;--rp-bg:#0A0A0B;--rp-surface:#131315;--rp-surface-2:#1A1A1D;--rp-ink:#EDEDEF;--rp-ink-soft:#A1A1AA;--rp-ink-faint:#71717A;--rp-line:#26262A;--rp-accent:#60A5FA;--rp-accent-soft:#172036;--rp-ok:#63C08F;--rp-ok-soft:#17291F;--rp-warn:#D9A03F;--rp-warn-soft:#32291A;--rp-danger:#DB8273;--rp-danger-soft:#33201D;--rp-violet:#B79CEC;--rp-violet-soft:#2A2142;--rp-shadow:0 4px 10px rgba(0,0,0,.35), 0 18px 44px -16px rgba(0,0,0,.55);--rp-on-light:none;--rp-on-dark:block;}}
+:root[data-theme="dark"]{color-scheme:dark;--rp-bg-white:var(--rp-bg);--rp-bg-light-gray:#22272b;--rp-bg-gray:#454f59;--rp-bg-light-blue:#092957;--rp-bg-blue:#09326c;--rp-bg-dark-blue:#0055cc;--rp-bg-light-teal:#1e3137;--rp-bg-teal:#206a83;--rp-bg-dark-teal:#227d9b;--rp-bg-light-green:#1c3329;--rp-bg-green:#216e4e;--rp-bg-dark-green:#1f845a;--rp-bg-light-yellow:#332e1b;--rp-bg-yellow:#533f04;--rp-bg-dark-yellow:#7f5f01;--rp-bg-light-red:#42221f;--rp-bg-red:#5d1f1a;--rp-bg-dark-red:#ae2e24;--rp-bg-light-purple:#2b273f;--rp-bg-purple:#352c63;--rp-bg-dark-purple:#5e4db2;--rp-bg:#0A0A0B;--rp-surface:#131315;--rp-surface-2:#1A1A1D;--rp-ink:#EDEDEF;--rp-ink-soft:#A1A1AA;--rp-ink-faint:#71717A;--rp-line:#26262A;--rp-accent:#60A5FA;--rp-accent-soft:#172036;--rp-ok:#63C08F;--rp-ok-soft:#17291F;--rp-warn:#D9A03F;--rp-warn-soft:#32291A;--rp-danger:#DB8273;--rp-danger-soft:#33201D;--rp-violet:#B79CEC;--rp-violet-soft:#2A2142;--rp-shadow:0 4px 10px rgba(0,0,0,.35), 0 18px 44px -16px rgba(0,0,0,.55);--rp-on-light:none;--rp-on-dark:block;}
 
 /* default theme: base typography. Layout lives in the page module; element
    and block modules style their own parts — all through --rp-* tokens. */
@@ -389,13 +389,20 @@ img.rp-icon{height:1.15em;width:auto;vertical-align:-.2em}
 .rp-table th[style*="right"],.rp-table td[style*="right"]{text-align:right}
 
 /* callout */
-.rp-callout{--c:var(--rp-accent);--c-soft:var(--rp-surface-2);border:1px solid var(--rp-line);border-left:3px solid var(--c);
+/* optional theme tokens: callout-border / callout-bar (widths of the outline and the
+   left bar) and callout-label (display of the tone label when there's no title) */
+.rp-callout{--c:var(--rp-accent);--c-soft:var(--rp-accent-soft);border:var(--rp-callout-border,1px) solid var(--rp-line);
+  border-left:var(--rp-callout-bar,3px) solid var(--c);
   border-radius:var(--rp-radius);background:var(--c-soft);padding:12px 16px;margin:1.3em 0;font-size:.95em}
+.rp-callout-title[data-rp-ui]{display:var(--rp-callout-label,block)}
 .rp-callout>:last-child{margin-bottom:0}
 .rp-callout-title{font:600 calc(10.5rem/17) var(--rp-sans);letter-spacing:.13em;text-transform:uppercase;color:var(--c);margin:0 0 4px}
+.rp-callout-icon{float:left;margin-right:.5em;font-size:1.15em;line-height:1.4}
+.rp-callout.rp-tone-note{--c:var(--rp-violet);--c-soft:var(--rp-violet-soft)}
 .rp-callout.rp-tone-tip,.rp-callout.rp-tone-success{--c:var(--rp-ok);--c-soft:var(--rp-ok-soft)}
 .rp-callout.rp-tone-warning{--c:var(--rp-warn);--c-soft:var(--rp-warn-soft)}
-.rp-callout.rp-tone-danger{--c:var(--rp-danger);--c-soft:var(--rp-danger-soft)}
+.rp-callout.rp-tone-danger,.rp-callout.rp-tone-error{--c:var(--rp-danger);--c-soft:var(--rp-danger-soft)}
+.rp-callout.rp-tone-custom{--c:var(--rp-line);color:var(--rp-ink)}
 
 /* collapse */
 .rp-collapse{margin:1.1em 0;border:1px solid var(--rp-line);border-radius:var(--rp-radius);background:var(--rp-surface)}
@@ -489,9 +496,9 @@ img.rp-icon{height:1.15em;width:auto;vertical-align:-.2em}
 <main class="rp-content" id="rp-content">
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-b46417" data-rp-module="paragraph" data-rp-lines="8-8">rapport is an Agent Skill with a small command-line tool, <code>rapport</code>. Your agent writes a report in Markdown, rapport turns it into one HTML page, and you review that page in the browser: select a passage, then comment on it or flag it in one click. Say &quot;apply the feedback&quot; and the agent edits the report while the page reloads.</p>
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-bc9823" data-rp-module="paragraph" data-rp-lines="10-10">This page is a rapport report, built from <code>report.md</code> in this folder with the default theme.</p>
-<aside class="rp-m-callout rp-block rp-callout rp-tone-tip" data-rp-id="callout-084b06" data-rp-module="callout" data-rp-lines="12-14">
+<aside class="rp-m-callout rp-block rp-callout rp-tone-tip" data-rp-id="callout-6d4354" data-rp-module="callout" data-rp-lines="12-14">
 <p class="rp-callout-title">Try it on this page</p>
-<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-4162c0" data-rp-module="paragraph" data-rp-lines="13-13">Run <code>rapport serve examples/primer</code>, select any sentence, type a comment and press Enter. Then run <code>rapport feedback examples/primer</code>: that's what your agent reads.</p>
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-703436" data-rp-module="paragraph" data-rp-lines="13-13">Copy this folder somewhere (<code>cp -R examples/primer /tmp/primer</code>: serving rebuilds the report), run <code>rapport serve /tmp/primer</code>, select any sentence, type a comment and press Enter. Then run <code>rapport feedback /tmp/primer</code>: that's what your agent reads.</p>
 </aside>
 <figure class="rp-m-image rp-block rp-figure" data-rp-id="image-7546a2" data-rp-module="image" data-rp-lines="16-16" data-rp-params="{&quot;zoom&quot;: true}">
 <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MjAgMzAwIiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjMwMCIgZm9udC1mYW1pbHk9InVpLXNhbnMtc2VyaWYsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgJ1NlZ29lIFVJJywgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiI+CiAgPHRpdGxlPlRoZSByYXBwb3J0IGxvb3A6IHRoZSBhZ2VudCB3cml0ZXMsIHlvdSByZXZpZXcsIHRoZSBhZ2VudCByZXZpc2VzPC90aXRsZT4KICA8IS0tIG1pZC10b25lIGNvbG91cnMgb24gYSB0cmFuc3BhcmVudCBncm91bmQ6IHJlYWRhYmxlIG9uIGxpZ2h0IGFuZCBkYXJrIHBhZ2VzIGFsaWtlIC0tPgogIDxzdHlsZT4KICAgIC5ib3ggIHsgZmlsbDogcmdiYSgxMjgsMTI4LDE0MCwuMDcpOyBzdHJva2U6IHJnYmEoMTI4LDEyOCwxNDAsLjQ1KTsgc3Ryb2tlLXdpZHRoOiAxOyB9CiAgICAueW91ICB7IGZpbGw6IHJnYmEoNTksMTMwLDI0NiwuMTApOyBzdHJva2U6ICMzQjgyRjY7IHN0cm9rZS13aWR0aDogMS4yNTsgfQogICAgLmggICAgeyBmaWxsOiAjOEE4QTkzOyBmb250LXNpemU6IDE1cHg7IGZvbnQtd2VpZ2h0OiA2MDA7IH0KICAgIC5oeSAgIHsgZmlsbDogIzNCODJGNjsgZm9udC1zaXplOiAxNXB4OyBmb250LXdlaWdodDogNjAwOyB9CiAgICAucyAgICB7IGZpbGw6ICM4QThBOTM7IGZvbnQtc2l6ZTogMTIuNXB4OyB9CiAgICAubW9ubyB7IGZvbnQtZmFtaWx5OiB1aS1tb25vc3BhY2UsICdTRiBNb25vJywgTWVubG8sIG1vbm9zcGFjZTsgZm9udC1zaXplOiAxMnB4OyB9CiAgICAuZWRnZSB7IHN0cm9rZTogcmdiYSgxMjgsMTI4LDE0MCwuNik7IHN0cm9rZS13aWR0aDogMS4yNTsgZmlsbDogbm9uZTsgfQogICAgLmxhYiAgeyBmaWxsOiAjM0I4MkY2OyB9CiAgICAudGlwICB7IGZpbGw6IHJnYmEoMTI4LDEyOCwxNDAsLjgpOyB9CiAgPC9zdHlsZT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggY2xhc3M9InRpcCIgZD0iTTAsMCBMMTAsNSBMMCwxMCB6Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDxyZWN0IGNsYXNzPSJib3giIHg9IjIwIiB5PSIyNCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3NiIgcng9IjEwIi8+CiAgPHRleHQgY2xhc3M9ImgiIHg9IjQwIiB5PSI1NiI+MSAgQWdlbnQgd3JpdGVzPC90ZXh0PgogIDx0ZXh0IGNsYXNzPSJzIG1vbm8iIHg9IjQwIiB5PSI4MCI+cmVwb3J0Lm1kPC90ZXh0PgoKICA8cmVjdCBjbGFzcz0iYm94IiB4PSI0ODAiIHk9IjI0IiB3aWR0aD0iMjIwIiBoZWlnaHQ9Ijc2IiByeD0iMTAiLz4KICA8dGV4dCBjbGFzcz0iaCIgeD0iNTAwIiB5PSI1NiI+MiAgcmFwcG9ydCBidWlsZHM8L3RleHQ+CiAgPHRleHQgY2xhc3M9InMgbW9ubyIgeD0iNTAwIiB5PSI4MCI+cmVwb3J0Lmh0bWwgwrcgb25lIGZpbGU8L3RleHQ+CgogIDxyZWN0IGNsYXNzPSJ5b3UiIHg9IjQ4MCIgeT0iMjAwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9Ijc2IiByeD0iMTAiLz4KICA8dGV4dCBjbGFzcz0iaHkiIHg9IjUwMCIgeT0iMjMyIj4zICBZb3UgcmV2aWV3PC90ZXh0PgogIDx0ZXh0IGNsYXNzPSJzIiB4PSI1MDAiIHk9IjI1NiI+c2VsZWN0IMK3IGNvbW1lbnQgwrcgZmxhZzwvdGV4dD4KCiAgPHJlY3QgY2xhc3M9ImJveCIgeD0iMjAiIHk9IjIwMCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3NiIgcng9IjEwIi8+CiAgPHRleHQgY2xhc3M9ImgiIHg9IjQwIiB5PSIyMzIiPjQgIEFnZW50IHJldmlzZXM8L3RleHQ+CiAgPHRleHQgY2xhc3M9InMiIHg9IjQwIiB5PSIyNTYiPm9uZSBlZGl0IHBlciBjb21tZW50PC90ZXh0PgoKICA8cGF0aCBjbGFzcz0iZWRnZSIgZD0iTTI0NCw2MiBMNDc0LDYyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDx0ZXh0IGNsYXNzPSJsYWIgbW9ubyIgeD0iMzYwIiB5PSI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmFwcG9ydCBsaW50PC90ZXh0PgoKICA8cGF0aCBjbGFzcz0iZWRnZSIgZD0iTTU5MCwxMDQgTDU5MCwxOTQiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHRleHQgY2xhc3M9ImxhYiBtb25vIiB4PSI2MDIiIHk9IjE1NCI+cmFwcG9ydCBzZXJ2ZTwvdGV4dD4KCiAgPHBhdGggY2xhc3M9ImVkZ2UiIGQ9Ik00NzYsMjM4IEwyNDYsMjM4IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDx0ZXh0IGNsYXNzPSJsYWIgbW9ubyIgeD0iMzYwIiB5PSIyMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJhcHBvcnQgZmVlZGJhY2s8L3RleHQ+CgogIDxwYXRoIGNsYXNzPSJlZGdlIiBkPSJNMTMwLDE5NiBMMTMwLDEwNiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8dGV4dCBjbGFzcz0ibGFiIG1vbm8iIHg9IjExOCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0iZW5kIj5yZXNvbHZlPC90ZXh0PgogIDx0ZXh0IGNsYXNzPSJzIiB4PSIxMTgiIHk9IjE2NCIgdGV4dC1hbmNob3I9ImVuZCI+cGFnZSByZWxvYWRzPC90ZXh0Pgo8L3N2Zz4K" alt="The loop: each arrow is one command." data-rp-zoom>
@@ -513,7 +520,7 @@ Theme, layout, writing rules and feedback actions live in config files that stac
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-40bef0" data-rp-module="paragraph" data-rp-lines="34-34">This links the skill into Claude Code (<code>~/.claude/skills</code>) and other Agent Skills harnesses such as pi and Codex (<code>~/.agents/skills</code>), and puts <code>rapport</code> on your PATH. You need Python 3.11 or later and <a href="https://docs.astral.sh/uv/">uv</a>.</p>
 <h3 class="rp-m-heading rp-block" id="2-ask-for-a-report" data-rp-id="heading-e4440a" data-rp-module="heading" data-rp-lines="36-36">2 · Ask for a report<a class="rp-anchor" href="#2-ask-for-a-report" data-rp-ui aria-label="Link to this section">#</a></h3>
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-d64ada" data-rp-module="paragraph" data-rp-lines="38-38">In your agent: <em>&quot;Write up the cache regression as a rapport report.&quot;</em> It creates <code>reports/&lt;name&gt;/report.md</code>, writes it, starts the review server and gives you the link.</p>
-<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-d40f31" data-rp-module="collapse" data-rp-lines="40-45" data-rp-params="{&quot;title&quot;: &quot;What the agent runs&quot;, &quot;open&quot;: false}">
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-d40f31" data-rp-module="collapse" data-rp-lines="40-45" data-rp-params="{&quot;title&quot;: &quot;What the agent runs&quot;, &quot;open&quot;: false, &quot;width&quot;: &quot;default&quot;}">
 <summary>What the agent runs</summary>
 <div class="rp-collapse-body">
 <ol class="rp-m-list rp-block" data-rp-id="list-f6cd6c" data-rp-module="list" data-rp-lines="41-44">
@@ -535,10 +542,10 @@ Theme, layout, writing rules and feedback actions live in config files that stac
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-4f23d6" data-rp-module="paragraph" data-rp-lines="53-53">Everything saves as you go. The page reloads when the report changes, but never while you're typing.</p>
 <h3 class="rp-m-heading rp-block" id="4-apply-the-feedback" data-rp-id="heading-3f81a8" data-rp-module="heading" data-rp-lines="55-55">4 · Apply the feedback<a class="rp-anchor" href="#4-apply-the-feedback" data-rp-ui aria-label="Link to this section">#</a></h3>
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-26ffd1" data-rp-module="paragraph" data-rp-lines="57-57">Tell the agent: <em>&quot;Apply the rapport feedback.&quot;</em> It reads your comments with <code>rapport feedback</code>, makes one edit per comment, and marks each one done with a note. The page reloads, and the panel lists the agent's notes under <strong>Resolved</strong>.</p>
-<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-5dfdac" data-rp-module="collapse" data-rp-lines="59-82" data-rp-params="{&quot;title&quot;: &quot;What the agent sees&quot;, &quot;open&quot;: false}">
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-08073c" data-rp-module="collapse" data-rp-lines="59-82" data-rp-params="{&quot;title&quot;: &quot;What the agent sees&quot;, &quot;open&quot;: false, &quot;width&quot;: &quot;default&quot;}">
 <summary>What the agent sees</summary>
 <div class="rp-collapse-body">
-<figure class="rp-m-code rp-block rp-code" data-rp-id="code-a4468d" data-rp-module="code" data-rp-lines="60-79">
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-70e193" data-rp-module="code" data-rp-lines="60-79">
 <pre class="rp-pre rp-wrap"><code class="language-text"><span class="rp-line">rapport feedback — 2 open · report.md · v1</span>
 <span class="rp-line">Apply each item to report.md, then: rapport feedback resolve &lt;ids&gt; --note "&lt;what changed&gt;"</span>
 <span class="rp-line"></span>
@@ -556,7 +563,7 @@ Theme, layout, writing rules and feedback actions live in config files that stac
 <span class="rp-line rp-hl">  do: Rewrite this in plain, concise, simply worded language that is easy to follow and understand. Not unnecessarily descriptive or verbose: to the point and human-friendly. Keep the facts.</span>
 <span class="rp-line">  quote: "Two ideas run through it:"</span>
 <span class="rp-line">  │   18  Two ideas run through it:</span>
-<span class="rp-line rp-hl">  learn: after fixing: distil the pattern into one short writing rule, propose it to the user, and ask whether to save it (rapport writing add "&lt;rule&gt;" --scope user|project).</span></code></pre>
+<span class="rp-line rp-hl">  learn: after fixing: distil the pattern into one short, general writing rule and ask the user whether to save it, and for all their reports or this project. Only on a yes: rapport writing add "&lt;rule&gt;" --scope user|project --approved</span></code></pre>
 </figure>
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-a0891b" data-rp-module="paragraph" data-rp-lines="81-81">Each <code>do:</code> line is the action's instruction from config: change it and you change what the agent does. <code>learn</code> asks the agent to turn a fix into a writing rule, so the same complaint doesn't come back.</p>
 </div>
@@ -671,7 +678,7 @@ Theme, layout, writing rules and feedback actions live in config files that stac
 <p class="rp-callout-title">Where did a setting come from?</p>
 <p class="rp-m-paragraph rp-block" data-rp-id="paragraph-d6dd3c" data-rp-module="paragraph" data-rp-lines="161-161"><code>rapport config show --origin</code> prints every value with the file that set it. <code>rapport config paths</code> lists the files it reads.</p>
 </aside>
-<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-ff9d00" data-rp-module="collapse" data-rp-lines="164-176" data-rp-params="{&quot;title&quot;: &quot;All config layers, nearest wins&quot;, &quot;open&quot;: false}">
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-ff9d00" data-rp-module="collapse" data-rp-lines="164-176" data-rp-params="{&quot;title&quot;: &quot;All config layers, nearest wins&quot;, &quot;open&quot;: false, &quot;width&quot;: &quot;default&quot;}">
 <summary>All config layers, nearest wins</summary>
 <div class="rp-collapse-body">
 <div class="rp-m-table rp-block rp-table" data-rp-id="table-a6a158" data-rp-module="table" data-rp-lines="165-173"><table>
@@ -717,12 +724,12 @@ Theme, layout, writing rules and feedback actions live in config files that stac
 </div>
 </details>
 <h2 class="rp-m-heading rp-block" id="adding-a-module" data-rp-id="heading-7aacab" data-rp-module="heading" data-rp-lines="178-178">Adding a module<a class="rp-anchor" href="#adding-a-module" data-rp-ui aria-label="Link to this section">#</a></h2>
-<figure class="rp-m-code rp-block rp-code" data-rp-id="code-ef9152" data-rp-module="code" data-rp-lines="180-183">
-<pre class="rp-pre"><code class="language-sh"><span class="rp-line">rapport<span class="w"> </span>modules<span class="w"> </span>new<span class="w"> </span>tabs<span class="w"> </span>--kind<span class="w"> </span>block<span class="w"> </span>--scope<span class="w"> </span>project</span>
-<span class="rp-line">rapport<span class="w"> </span>modules<span class="w"> </span>check<span class="w"> </span>tabs</span></code></pre>
+<figure class="rp-m-code rp-block rp-code" data-rp-id="code-646de5" data-rp-module="code" data-rp-lines="180-183">
+<pre class="rp-pre"><code class="language-sh"><span class="rp-line">rapport<span class="w"> </span>modules<span class="w"> </span>new<span class="w"> </span>timeline<span class="w"> </span>--kind<span class="w"> </span>block<span class="w"> </span>--scope<span class="w"> </span>project</span>
+<span class="rp-line">rapport<span class="w"> </span>modules<span class="w"> </span>check<span class="w"> </span>timeline</span></code></pre>
 </figure>
-<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-072a4d" data-rp-module="paragraph" data-rp-lines="185-185">A module is a folder: <code>module.toml</code> for its options, <code>template.html</code> for its markup, and optionally <code>style.css</code>, <code>script.js</code> and an <code>example.md</code>. There's no registration. Once <code>modules check</code> passes, <code>::: tabs</code> works and your agent finds it in <code>rapport brief</code>. To change a built-in, <code>rapport modules new callout</code> makes a thin override: copy in only the files you change, and the rest keeps getting rapport's fixes. A module can also keep state while the report is served, like a sign-off button or a poll: add <code>--server</code>.</p>
-<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-ddcded" data-rp-module="collapse" data-rp-lines="187-196" data-rp-params="{&quot;title&quot;: &quot;Module kinds&quot;, &quot;open&quot;: false}">
+<p class="rp-m-paragraph rp-block" data-rp-id="paragraph-9c493e" data-rp-module="paragraph" data-rp-lines="185-185">A module is a folder: <code>module.toml</code> for its options, <code>template.html</code> for its markup, and optionally <code>style.css</code>, <code>script.js</code> and an <code>example.md</code>. There's no registration. Once <code>modules check</code> passes, <code>::: timeline</code> works and your agent finds it in <code>rapport brief</code>. To change a built-in, <code>rapport modules new callout</code> makes a thin override: copy in only the files you change, and the rest keeps getting rapport's fixes. A module can also keep state while the report is served, like a sign-off button or a poll: add <code>--server</code>.</p>
+<details class="rp-m-collapse rp-block rp-collapse" data-rp-id="collapse-ddcded" data-rp-module="collapse" data-rp-lines="187-196" data-rp-params="{&quot;title&quot;: &quot;Module kinds&quot;, &quot;open&quot;: false, &quot;width&quot;: &quot;default&quot;}">
 <summary>Module kinds</summary>
 <div class="rp-collapse-body">
 <div class="rp-m-table rp-block rp-table" data-rp-id="table-a37123" data-rp-module="table" data-rp-lines="188-195"><table>
@@ -829,7 +836,7 @@ Theme, layout, writing rules and feedback actions live in config files that stac
 </div>
 </div>
 <button class="rp-theme-toggle" type="button" data-rp-ui aria-label="Theme: system" title="Theme: system">◐</button>
-<script type="application/json" id="rp-data">{"report": {"title": "rapport in five minutes", "version": 1, "served": false, "source": "report.md"}, "modules": {"runtime": {"enabled": true}, "toc": {"enabled": true, "title": "Contents", "min_level": 2, "max_level": 3, "min_headings": 3}, "image": {"enabled": true, "zoom": true, "caption_from_alt": true}, "collapse": {"enabled": true, "title": "Details", "open": false}, "copy-code": {"enabled": true}, "print": {"enabled": true}, "theme-toggle": {"enabled": true}}, "present": ["badge", "callout", "code", "collapse", "compare", "copy-code", "footer", "header", "heading", "image", "list", "page", "pane", "paragraph", "print", "runtime", "table", "theme-toggle", "toc"]}</script>
+<script type="application/json" id="rp-data">{"report": {"title": "rapport in five minutes", "version": 1, "served": false, "source": "report.md"}, "modules": {"runtime": {"enabled": true}, "toc": {"enabled": true, "title": "Contents", "min_level": 2, "max_level": 3, "min_headings": 3}, "image": {"enabled": true, "zoom": true, "caption_from_alt": true}, "collapse": {"enabled": true, "title": "Details", "open": false, "width": "default"}, "copy-code": {"enabled": true}, "print": {"enabled": true}, "theme-toggle": {"enabled": true}}, "present": ["badge", "callout", "code", "collapse", "compare", "copy-code", "footer", "header", "heading", "image", "list", "page", "pane", "paragraph", "print", "runtime", "table", "theme-toggle", "toc"]}</script>
 <script>/* runtime */
 /* rapport client kernel. Modules register with Rapport.module(name, def):
      init(ctx)        once, if the module is on the page
@@ -876,7 +883,8 @@ Theme, layout, writing rules and feedback actions live in config files that stac
        opts.method defaults to POST when opts.body is given, else GET. Resolves with the
        parsed answer; rejects with an Error carrying the server's message and .status
        (0: no answer). A 403 on a write means the session token went stale: emit
-       "session:stale" once (a module can tell the reader) and reload 0.7 s later. */
+       "session:stale" once (a module can tell the reader) and reload 0.7 s later; unless
+       the server now answers for another report, which counts as no answer. */
     api: function (module, path, opts) {
       opts = opts || {};
       path = path || "/";
@@ -893,12 +901,22 @@ Theme, layout, writing rules and feedback actions live in config files that stac
       }).then(function (r) {
         return r.json().catch(function () { return null; }).then(function (res) {
           if (r.ok) return res;
-          if (r.status === 403 && method !== "GET" && !stale) {
+          var err = fail((res && res.error) || "HTTP " + r.status, r.status);
+          if (r.status !== 403 || method === "GET" || stale) throw err;
+          return fetch((data.serve.api || "/api") + "/meta", { cache: "no-store" }).then(function (m) {
+            return m.json();
+          }).then(null, function () {
+            throw fail("can't reach the review server", 0);
+          }).then(function (m) {
+            if (data.serve.dir && m.dir !== data.serve.dir) {
+              throw fail("this address now serves another report; start this one again: rapport serve '" +
+                         data.serve.dir + "'", 0);
+            }
             stale = true;
             R.emit("session:stale");
             setTimeout(R.reload, 700);
-          }
-          throw fail((res && res.error) || "HTTP " + r.status, r.status);
+            throw err;
+          });
         });
       }, function () {
         throw fail("can't reach the review server", 0);

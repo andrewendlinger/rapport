@@ -1,147 +1,82 @@
 # rapport
 
-**Your agent writes the report. You mark it up in the browser. The agent revises it.**
-
-rapport is an Agent Skill with a small command-line tool. Your agent writes a report in Markdown, and rapport turns it into one self-contained HTML page. You review that page like a document: select a passage, then type a comment or flag it in one click (**Delete**, **AI slop**, **Too verbose**, **Unclear**, or actions you define). Then say *"apply the feedback"*: the agent gets every comment with its exact place in the source, edits the report, and the page reloads.
+**Your agent writes the report. You give feedback. Repeat.**
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/review-dark.png">
   <img alt="A rapport report in the browser: a selected passage with the comment window open, its quick actions, and two earlier comments highlighted" src="docs/review-light.png">
 </picture>
 
-It works in any harness that supports Agent Skills: Claude Code, Codex, pi and others.
+Getting a report from an agent is quick. Fixing it in chat is not: "the third paragraph in section two is too long" gets old fast.
 
-## Quick start
+With rapport, you review the report like a document instead. Select a sentence, type a comment or flag it with one click, and tell your agent to apply the feedback. It knows exactly where each comment sits, fixes it, and the page reloads in front of you.
 
-**1. Install.** You need macOS or Linux and [uv](https://docs.astral.sh/uv/) (`brew install uv`, or `curl -LsSf https://astral.sh/uv/install.sh | sh`), which brings a suitable Python along.
+The finished report is a single HTML file. It opens anywhere, works offline, and is easy to send around.
+
+## Get started
+
+You need macOS or Linux and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
 
 ```sh
 git clone https://github.com/andrewendlinger/rapport ~/code/rapport
 ~/code/rapport/install.sh --bin
 ```
 
-**2. Read the primer.** [`examples/primer`](examples/primer) is a rapport report about rapport: a five-minute tutorial. Open its `report.html`, or serve it to try the review loop yourself:
+That's it. rapport works with Claude Code, Codex, pi and any other agent that supports Agent Skills. Open a new session and ask:
+
+> Write up the cache regression as a rapport.
+
+Your agent writes it and gives you a link. Leave your comments, go back to the agent and say *"apply the feedback"*. The primer explains [how reviewing works](examples/primer/report.md#3--review-it).
+
+To update, run `git pull` in `~/code/rapport`.
+
+**Want a look first?** The [primer](examples/primer/report.md) is a five-minute tour of reviewing, writing and customising, and it's a rapport report itself. Serve a copy to try it:
 
 ```sh
-cp -R ~/code/rapport/examples/primer /tmp/primer   # serving rebuilds the report: use a copy
-rapport serve /tmp/primer      # select any sentence and comment
-rapport feedback /tmp/primer   # what your agent reads
+cp -R ~/code/rapport/examples/primer /tmp/primer
+rapport serve /tmp/primer
 ```
 
-**3. Ask your agent for a report** (in a new session, so it sees the skill), for example *"write up the cache regression as a rapport report"*. It writes the report, starts the review server and gives you the link. Review it, then say *"apply the feedback"*.
+**What gets installed:** links in `~/.claude/skills` (Claude Code) and `~/.agents/skills` (pi and other agents), plus the `rapport` command in `~/.local/bin`. They point at your clone, so `git pull` updates everything. Another agent? `./install.sh --target <its skills folder>`. All options: `./install.sh --help`.
 
-## How it works
-
-1. **The agent writes** `report.md`: Markdown plus modules such as callouts, collapsible sections, side-by-side comparisons and badges. `rapport brief` tells it your writing rules and which modules exist.
-2. **rapport builds** `report.html`, one file with images and fonts inside: no CDN, works offline, safe to send around.
-3. **You review** in the browser. Everything saves as you go, and the page reloads when the report changes, but never while you're typing.
-4. **The agent revises.** `rapport feedback` lists each comment with its current line numbers and what the action asks for. The agent makes one edit per comment and resolves it with a note, which you see in the page.
+**Uninstall:** `~/code/rapport/install.sh --uninstall`, then delete the folder. Your settings live in `~/.config/rapport` if you want those gone too.
 
 ## Make it yours
 
-Everything is set in TOML files that stack: your user config, a `rapport.toml` in your project, the front matter of one report. The nearest wins.
+In rapport, everything is a config line or a module. You rarely write either yourself: tell your agent what you want, and it sets it up.
+
+- *"Write for the on-call team: short, plain, times in UTC."* (config)
+- *"Make my reports look like our brand, with our colours, fonts and logo."* (config)
+- *"Give reviewers a 'Needs source' button."* (config)
+- *"Learn from how I correct you, and suggest rules for next time."* (config)
+- *"Add a timeline block for project milestones."* (module)
+- *"Put a sign-off button at the end, so reviewers can approve the report."* (module)
+- *"Add a quick poll for the team."* (module)
+
+Config is a few lines of TOML, for all your reports, one project or a single report. A module is a small folder with a template, and it can even remember what readers clicked while the report is served. The primer shows both: [making it yours](examples/primer/report.md#making-it-yours) and [adding a module](examples/primer/report.md#adding-a-module).
+
+### Confluence
+
+If your reports end up in Confluence, add this line to `~/.config/rapport/config.toml`:
 
 ```toml
-# rapport.toml in your repo
-[theme]
-name = "paper"                   # or default (minimal), classic, atlassian (looks like Confluence)
-
-[theme.tokens]                   # colours, fonts and sizes for every module
-accent = "#0B6E4F"
-
-[writing]                        # house style: the agent reads it, `rapport lint` checks it
-audience = "the on-call team"
-rules = ["Times in UTC"]
-
-[[modules.feedback.actions]]     # a new button for the reader, an instruction for the agent
-id = "cite"
-label = "Needs source"
-icon = "📎"
-instruction = "Add a source or a link that supports this claim."
+preset = "confluence"
 ```
 
-- **Look:** the default theme is minimal: system fonts, a white page, one accent colour, and a dark mode. `classic`, `paper` and `atlassian` (a report that looks like the Confluence page it will become) are built in too. Adjust any theme's tokens, then add your own CSS, which always wins over rapport's. A logo and icons go in the header and footer, as in the primer's [`rapport.toml`](examples/primer/rapport.toml). See [Styling](references/config.md#styling).
-- **Modules:** every part of the page is a module, a folder with a template. `rapport modules new timeline --kind block` starts one. `rapport modules new callout` overrides a built-in thinly: copy in only the files you change, and the rest keeps getting rapport's fixes. See [references/modules.md](references/modules.md).
-- **Confluence:** a report can become a Confluence page, and edits made there come back into `report.md`. `preset = "confluence"` in your user config gives every report the Confluence look and keeps out what Confluence can't show. See [references/confluence.md](references/confluence.md).
-- **Where did a setting come from?** `rapport config show --origin`. All settings: `rapport config defaults`.
+Reports then look like the Confluence page they'll become. Your agent can publish them, and bring edits that people make in Confluence back into the report. [How it works](references/confluence.md)
 
-## Documentation
+## Learn more
 
-| | |
-|---|---|
-| [Primer](examples/primer) | the tutorial, as a rapport report |
-| [Writing reports](references/authoring.md) | `report.md` syntax: front matter, modules, images |
-| [Configuration](references/config.md) | config layers, styling, branding, recipes |
-| [Modules](references/modules.md) | writing your own modules and themes |
-| [State and user config](references/state.md) | the `.rapport/` folder, committing feedback, moving your config |
-| [Confluence](references/confluence.md) | publishing to Confluence and pulling edits back |
-| [SKILL.md](SKILL.md) | what the agent follows |
-| [AGENTS.md](AGENTS.md) | for an agent (or a person) changing rapport itself |
-| [Changelog](CHANGELOG.md) | what changed in each release |
+- [Primer](examples/primer/report.md): the five-minute tour, start here
+- [Writing reports](references/authoring.md): what goes into `report.md`
+- [Configuration](references/config.md): themes, rules and where settings live
+- [Confluence](references/confluence.md): publishing and syncing edits
+- [Changelog](CHANGELOG.md)
 
-<details>
-<summary><b>Install options</b></summary>
+## Contributing
 
-`install.sh` symlinks the folder to `~/.claude/skills/rapport` (Claude Code) and `~/.agents/skills/rapport` (pi, Codex and other Agent Skills harnesses). With `--bin` it puts `rapport` on your PATH, and it warms the dependency cache.
-
-- `--target DIR` adds another harness folder, e.g. `~/.pi/agent/skills` for older pi versions.
-- `--only DIR` links into DIR instead of the two default folders (repeatable).
-- `--copy` copies instead of symlinking.
-- `--venv` builds a `.venv` in the repo, for machines without uv or network access (or run `pip install -r requirements.txt`).
-- `--dry-run` shows what would happen; `--uninstall` removes only what the script installed.
-
-The CLI declares its dependencies (markdown-it-py, mdit-py-plugins, Jinja2, Pygments) inline, so uv installs them on first run. The reports themselves need nothing.
-
-</details>
-
-<details>
-<summary><b>Reviewing: every control</b></summary>
-
-- **Select text.** A window opens with the cursor in the comment box. Type and press Enter to save (Shift+Enter or ⌘↵ for a new line), or click an action to save it straight away. With text typed, actions work as tags. ⌘C still copies the passage. Before you type, ⌥ + the action's key picks an action. `[modules.feedback] autofocus` and `enter_saves` switch the first two off.
-- **Prefer something quieter?** `[modules.feedback] on_select = "bar"` shows a slim icon bar instead, with single-key shortcuts and 💬 or `C` to comment.
-- **Hover a block.** A **+** in the margin comments on the whole block: images, gifs, tables, code.
-- **Existing feedback** stays highlighted in its action's colour (Delete is struck through), with counts in the margin. Click a highlight to edit or delete it.
-- **The panel** (bottom right) lists everything with filters, takes comments on the whole report, and shows the agent's note on each resolved item.
-- **Live reload** never interrupts a comment: you get an "updated" pill instead, and drafts survive reloads. Esc or Cancel discards a draft, with Undo.
-- **After a round**, a thin bar in the right margin marks what changed: green for a new block, blue for an edited one, and a short red dash where something was removed. Hover one and the added words light up green, while a card shows the removed words, what you asked, and the agent's note on how it was addressed. Click it to list those items in the panel. The button next to **Feedback** hides or shows the bars.
-
-A double-clicked `report.html` is the clean report: no feedback UI, no highlights, no change bars. `[modules.static-hint] enabled = true` adds a chip there with the command to serve it.
-
-</details>
-
-<details>
-<summary><b>Repository layout</b></summary>
-
-```
-SKILL.md             what agents follow to use rapport
-AGENTS.md            what agents follow to change it (CLAUDE.md imports it)
-bin/rapport          CLI wrapper (.venv → uv run → python3)
-scripts/rapport.py   entry point with inline (PEP 723) dependencies
-rapport_core/        the engine; AGENTS.md maps its files
-config/schema.toml   core settings: types, defaults, docs, merge rules
-modules/             every built-in module: layout, theme, element, block, inline, feature
-presets/             named bundles of settings (default, confluence)
-references/          authoring.md · config.md · modules.md · state.md · confluence.md · writing-digest.md
-examples/primer/     the tutorial report
-docs/                README screenshots
-tests/               pytest suite; tests/e2e drives a real browser
-pyproject.toml       dev tooling only: pytest and ruff settings, `uv run`
-```
-
-</details>
-
-## Development
-
-To change rapport itself, or to point your agent at this repo to do it, start with [AGENTS.md](AGENTS.md): the map, the rules, the release steps.
-
-```sh
-uv run pytest                          # unit tests; the first run builds .venv/
-uv run --group e2e pytest tests/e2e    # browser tests (Playwright; needs a Chromium: `uvx playwright install chromium`, or set RP_CHROME)
-uvx ruff check                         # lint
-```
-
-`uv run` keeps a `.venv/` here with the dependencies, which `bin/rapport` then prefers. `pyproject.toml` is for these tools only: rapport is not a pip package.
+Issues and pull requests are welcome. [AGENTS.md](AGENTS.md) explains how the code fits together and how to run the tests.
 
 ## License
 
-[MIT](LICENSE). rapport is a personal project, maintained on a best-effort basis: issues and pull requests are welcome, but answers may take a while.
+[MIT](LICENSE)
