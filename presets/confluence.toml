@@ -1,0 +1,18 @@
+# For reports that become Confluence pages (`rapport export confluence`,
+# references/confluence.md): review them locally as they will look there, and
+# avoid what Confluence can't show. Select it with `preset = "confluence"` in
+# your user config, a rapport.toml or one report's front matter.
+
+[theme]
+name = "atlassian"                       # looks like the Confluence page it becomes
+
+[confluence]
+# The Marketplace apps that render diagrams, LaTeX and HTML from source. Drop
+# the ones your site doesn't have: diagrams then export as code blocks.
+apps = ["macro-pack", "drawio"]
+
+[writing]
+rules = [
+  "Math goes only in display LaTeX blocks (::: latex), never inline, because Confluence can't render inline math. In sentences, name quantities in words or as plain text (c0, T2*).",
+]
+avoid = [":math["]                       # `rapport lint` flags inline math

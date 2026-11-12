@@ -96,6 +96,8 @@ Someone editing the diagram in Confluence shows up as a higher `revision`: updat
 
 ## Config
 
+`preset = "confluence"` sets up a Confluence-bound report in one line: the `atlassian` theme, both apps below, and a writing rule plus a `lint` check against inline math, which Confluence can't show. The settings, with every default:
+
 ```toml
 [confluence]
 apps = ["macro-pack", "drawio"]   # apps the site has; without them diagrams fall back to code blocks

@@ -13,7 +13,7 @@
 [preset]
 type = "string"
 default = "default"
-doc = "Named settings bundle from a presets folder: built-in, the user one (`rapport config paths` shows it), or rapport-presets/ next to a rapport.toml."
+doc = "Named settings bundle from a presets folder: built-in (default, confluence), the user one (`rapport config paths` shows it), or rapport-presets/ next to a rapport.toml."
 
 [meta]
 type = "table"

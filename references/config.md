@@ -5,14 +5,14 @@
 | # | layer | file |
 |---|---|---|
 | 1 | defaults | `config/schema.toml` + every module manifest |
-| 2 | preset | `presets/<name>.toml`: built-in, the user presets folder (`~/.config/rapport/presets/`), or `rapport-presets/` next to a rapport.toml |
+| 2 | preset | `presets/<name>.toml`: built-in (`default`, `confluence`), the user presets folder (`~/.config/rapport/presets/`), or `rapport-presets/` next to a rapport.toml |
 | 3 | user | `~/.config/rapport/config.toml` (`$XDG_CONFIG_HOME` respected; [movable](state.md#keeping-your-config-elsewhere)) |
 | 4 | learned (user) | `~/.config/rapport/learned.toml` beside it (written by `rapport writing add`) |
 | 5 | project | every `rapport.toml` from `$HOME` down to the report folder (from `/` if the report is outside `$HOME`), each followed by its `rapport-learned.toml` |
 | 6 | front matter | the `+++` block in report.md |
 | 7 | `--set key=value` | command line (value parsed as TOML, else as a string; a string for a list key is a one-item list) |
 
-The preset is chosen first, from whichever layer sets `preset = "…"`, and then slotted in as layer 2.
+The preset is chosen first, from whichever layer sets `preset = "…"`, and then slotted in as layer 2. Only one preset applies: a nearer `preset = "…"` replaces it rather than adding to it. The built-in `confluence` preset is for reports that become Confluence pages ([confluence.md](confluence.md#config)).
 
 **Merge rules** (declared per key in the schema):
 - **Tables** merge key by key.

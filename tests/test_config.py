@@ -78,6 +78,22 @@ def test_preset_resolved_first_and_slotted_low(report, isolated_home):
     assert cfg.get("layout.side") == ["toc"]     # project beats preset
 
 
+def test_builtin_confluence_preset(report, isolated_home):
+    cfg = load(report("+++\npreset = \"confluence\"\n+++\nx\n"))
+    assert cfg.warnings == []
+    assert cfg.get("theme.name") == "atlassian"
+    assert cfg.get("confluence.apps") == ["macro-pack", "drawio"]
+    assert ":math[" in cfg.get("writing.avoid") and "delve" in cfg.get("writing.avoid")   # added to the defaults
+
+    # chosen in the user config: the user's own settings still win, and rule lists add up
+    write(isolated_home / ".config/rapport/config.toml",
+          'preset = "confluence"\n[theme]\nname = "paper"\n[writing]\nrules = ["Mine."]\n')
+    cfg = load(report("x\n", name="r2"))
+    assert cfg.get("theme.name") == "paper"
+    rules = cfg.get("writing.rules")
+    assert "never inline" in rules[0] and rules[-1] == "Mine."
+
+
 def test_missing_preset_is_an_error(report):
     with pytest.raises(RapportError, match="preset 'nope' not found"):
         load(report("+++\npreset = \"nope\"\n+++\nx\n"))
