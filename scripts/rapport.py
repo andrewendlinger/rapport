@@ -17,6 +17,11 @@ Entry point. Run through `bin/rapport`, which picks the repo .venv, `uv run
 import sys
 from pathlib import Path
 
+if sys.version_info < (3, 11):   # the python3 fallback can be the system's older one
+    sys.exit(f"rapport: needs Python 3.11 or later, this is {sys.version.split()[0]}.\n"
+             "  Install uv (https://docs.astral.sh/uv/, `brew install uv`): bin/rapport then\n"
+             "  fetches a suitable Python by itself.")
+
 # `uv run --script` puts scripts/ first on sys.path; the package lives one up.
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))

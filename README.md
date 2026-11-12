@@ -13,7 +13,7 @@ It works in any harness that supports Agent Skills: Claude Code, Codex, pi and o
 
 ## Quick start
 
-**1. Install.** You need Python 3.11 or later and [uv](https://docs.astral.sh/uv/).
+**1. Install.** You need macOS or Linux, Python 3.11 or later and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
 
 ```sh
 git clone https://github.com/andrewendlinger/rapport ~/code/rapport
@@ -61,6 +61,7 @@ instruction = "Add a source or a link that supports this claim."
 
 - **Look:** the default theme is minimal: system fonts, a white page, one accent colour, and a dark mode. `classic`, `paper` and `atlassian` (a report that looks like the Confluence page it will become) are built in too. Adjust any theme's tokens, then add your own CSS, which always wins over rapport's. A logo and icons go in the header and footer, as in the primer's [`rapport.toml`](examples/primer/rapport.toml). See [Styling](references/config.md#styling).
 - **Modules:** every part of the page is a module, a folder with a template. `rapport modules new timeline --kind block` starts one. `rapport modules new callout` overrides a built-in thinly: copy in only the files you change, and the rest keeps getting rapport's fixes. See [references/modules.md](references/modules.md).
+- **Confluence:** a report can become a Confluence page, and edits made there come back into `report.md`. `preset = "confluence"` in your user config gives every report the Confluence look and keeps out what Confluence can't show. See [references/confluence.md](references/confluence.md).
 - **Where did a setting come from?** `rapport config show --origin`. All settings: `rapport config defaults`.
 
 ## Documentation
@@ -119,8 +120,8 @@ rapport_core/        cli · config · schema · registry · parse · render · c
                      serve · routes · store · feedback · lint · brief · modules_cmd · util
 config/schema.toml   core settings: types, defaults, docs, merge rules
 modules/             every built-in module: layout, theme, element, block, inline, feature
-presets/             named bundles of settings
-references/          authoring.md · config.md · modules.md · state.md
+presets/             named bundles of settings (default, confluence)
+references/          authoring.md · config.md · modules.md · state.md · confluence.md · writing-digest.md
 examples/primer/     the tutorial report
 docs/                README screenshots
 tests/               pytest suite; tests/e2e drives a real browser
@@ -140,3 +141,7 @@ uvx ruff check                         # lint
 ```
 
 `uv run` keeps a `.venv/` here with the dependencies, which `bin/rapport` then prefers. `pyproject.toml` is for these tools only: rapport is not a pip package.
+
+## License
+
+[MIT](LICENSE). rapport is a personal project, maintained on a best-effort basis: issues and pull requests are welcome, but answers may take a while.

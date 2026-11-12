@@ -7,6 +7,8 @@ description: >-
   comments"; has a folder with report.md and .rapport/; wants a report published to Confluence or a Confluence
   page's edits brought back; asks to digest their writing log; wants report style or behaviour changed
   (rapport.toml); or wants a new report module (side-by-side code, collapsible sections, gifs…).
+license: MIT
+compatibility: Needs uv (or Python 3.11+ with requirements.txt installed) on macOS or Linux.
 ---
 
 # rapport
