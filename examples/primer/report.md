@@ -10,7 +10,7 @@ rapport is an Agent Skill with a small command-line tool, `rapport`. Your agent 
 This page is a rapport report, built from `report.md` in this folder with the default theme.
 
 ::: callout Try it on this page {tone = "tip"}
-Run `rapport serve examples/primer`, select any sentence, type a comment and press Enter. Then run `rapport feedback examples/primer`: that's what your agent reads.
+Copy this folder somewhere (`cp -R examples/primer /tmp/primer`: serving rebuilds the report), run `rapport serve /tmp/primer`, select any sentence, type a comment and press Enter. Then run `rapport feedback /tmp/primer`: that's what your agent reads.
 :::
 
 ![The loop: each arrow is one command.](assets/loop.svg)

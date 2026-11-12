@@ -13,7 +13,7 @@ It works in any harness that supports Agent Skills: Claude Code, Codex, pi and o
 
 ## Quick start
 
-**1. Install.** You need macOS or Linux, Python 3.11 or later and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
+**1. Install.** You need macOS or Linux and [uv](https://docs.astral.sh/uv/) (`brew install uv`, or `curl -LsSf https://astral.sh/uv/install.sh | sh`), which brings a suitable Python along.
 
 ```sh
 git clone https://github.com/andrewendlinger/rapport ~/code/rapport
@@ -23,11 +23,12 @@ git clone https://github.com/andrewendlinger/rapport ~/code/rapport
 **2. Read the primer.** [`examples/primer`](examples/primer) is a rapport report about rapport: a five-minute tutorial. Open its `report.html`, or serve it to try the review loop yourself:
 
 ```sh
-rapport serve ~/code/rapport/examples/primer     # select any sentence and comment
-rapport feedback ~/code/rapport/examples/primer  # what your agent reads
+cp -R ~/code/rapport/examples/primer /tmp/primer   # serving rebuilds the report: use a copy
+rapport serve /tmp/primer      # select any sentence and comment
+rapport feedback /tmp/primer   # what your agent reads
 ```
 
-**3. Ask your agent for a report**, for example *"write up the cache regression as a rapport report"*. It writes the report, starts the review server and gives you the link. Review it, then say *"apply the feedback"*.
+**3. Ask your agent for a report** (in a new session, so it sees the skill), for example *"write up the cache regression as a rapport report"*. It writes the report, starts the review server and gives you the link. Review it, then say *"apply the feedback"*.
 
 ## How it works
 
@@ -116,8 +117,7 @@ SKILL.md             what agents follow to use rapport
 AGENTS.md            what agents follow to change it (CLAUDE.md imports it)
 bin/rapport          CLI wrapper (.venv → uv run → python3)
 scripts/rapport.py   entry point with inline (PEP 723) dependencies
-rapport_core/        cli · config · schema · registry · parse · render · css · build · changes
-                     serve · routes · store · feedback · lint · brief · modules_cmd · util
+rapport_core/        the engine; AGENTS.md maps its files
 config/schema.toml   core settings: types, defaults, docs, merge rules
 modules/             every built-in module: layout, theme, element, block, inline, feature
 presets/             named bundles of settings (default, confluence)

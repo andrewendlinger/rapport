@@ -11,10 +11,11 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uvx ruff check
+      - run: uvx ruff@0.17.3 check
 
   test:
     strategy:
@@ -23,15 +24,19 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         python: ["3.11", "3.13"]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
       - run: uv run pytest
-      - name: CLI smoke test
+      - name: Install and run as a new user would
         run: |
+          rm -rf .venv
+          export HOME=$(mktemp -d) PATH="$HOME/.local/bin:$PATH"
+          ./install.sh --bin
           d=$(mktemp -d)
-          RAPPORT_CONFIG=/dev/null bin/rapport init "$d/r" --title "Smoke"
-          RAPPORT_CONFIG=/dev/null bin/rapport build "$d/r"
+          rapport init "$d/r" --title "Smoke"
+          rapport build "$d/r"
           test -s "$d/r/report.html"

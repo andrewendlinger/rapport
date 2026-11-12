@@ -100,7 +100,7 @@ Someone editing the diagram in Confluence shows up as a higher `revision`: updat
 
 ```toml
 [confluence]
-apps = ["macro-pack", "drawio"]   # apps the site has; without them diagrams fall back to code blocks
+apps = []                         # apps the site has, e.g. ["macro-pack", "drawio"] (the confluence preset sets both); without them diagrams fall back to code blocks
 toc = true                        # start with Confluence's TOC macro when the report has a TOC
 images = "macro-pack"             # or "placeholder": a panel naming the file to upload
 image_max_kb = 300
