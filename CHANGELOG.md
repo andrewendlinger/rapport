@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.1 (2026-11-13)
 
 - **The review server starts without a reverse DNS lookup.** Python's HTTP server looks up the machine's full host name when it binds, which can stall start-up for many seconds on a slow resolver (a VPN, a CI runner). rapport never used the name.
 - **`serve --detach`** that doesn't come up now says where the server is stuck, from its log.
