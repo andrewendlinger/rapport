@@ -571,7 +571,8 @@ def detach(report_dir: Path, args) -> int:
         cmd += ["--set", s]
     with open(log, "ab") as fh:     # our cwd: relative --set paths resolve as they would in the foreground
         proc = subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                start_new_session=True, cwd=os.getcwd())
+                                start_new_session=True, cwd=os.getcwd(),
+                                env={**os.environ, "RAPPORT_DETACHED": "1", "PYTHONUNBUFFERED": "1"})
     deadline = time.time() + 20
     while time.time() < deadline:
         if proc.poll() is not None:
@@ -584,8 +585,12 @@ def detach(report_dir: Path, args) -> int:
                 webbrowser.open(info["url"])
             return 0
         time.sleep(0.15)
-    tail = log.read_text(encoding="utf-8", errors="replace").strip().split("\n")[-8:]
-    raise RapportError(f"server did not come up within 20 s; the end of {log}:\n  " + "\n  ".join(tail))
+    if hasattr(signal, "SIGUSR1"):
+        os.kill(proc.pid, signal.SIGUSR1)       # it writes where it is stuck to the log
+        time.sleep(0.5)
+    tail = log.read_text(encoding="utf-8", errors="replace").strip().split("\n")[-30:]
+    raise RapportError(f"server did not come up within 20 s (it may still be starting: `rapport serve --status`); "
+                       f"the end of {log}:\n  " + "\n  ".join(tail))
 
 
 def _is_rapport_server(pid) -> bool:

@@ -14,8 +14,15 @@ Entry point. Run through `bin/rapport`, which picks the repo .venv, `uv run
 --script` (deps from the header above), or plain python3, in that order.
 """
 
+import os
 import sys
 from pathlib import Path
+
+if os.environ.get("RAPPORT_DETACHED") and sys.platform != "win32":
+    # a detached server that doesn't come up gets SIGUSR1 from `serve --detach`: say where it is stuck
+    import faulthandler
+    import signal
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
 
 if sys.version_info < (3, 11):   # the python3 fallback can be the system's older one
     sys.exit(f"rapport: needs Python 3.11 or later, this is {sys.version.split()[0]}.\n"
