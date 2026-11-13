@@ -22,6 +22,8 @@ git clone https://github.com/andrewendlinger/rapport ~/code/rapport
 ~/code/rapport/install.sh --bin
 ```
 
+If the installer says `~/.local/bin` isn't on your PATH, run the line it prints and open a new terminal.
+
 That's it. rapport works with Claude Code, Codex, pi and any other agent that supports Agent Skills. Open a new session and ask:
 
 > Write up the cache regression as a rapport.

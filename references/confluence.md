@@ -10,7 +10,7 @@ A report can be published as a Confluence page, edited there by people, and thos
 | `rapport confluence prepare PAGE [dir]` | the body to publish over the live page (`.rapport/confluence/publish.html` + `publish.json`), or a refusal: Confluence has changes report.md lacks, or an inline comment would come loose |
 | `rapport confluence record PAGE [dir]` | after publishing: store the page as published (the base) and confirm the publish went as intended. Refuses to replace a base with another page, or with a page whose edits report.md lacks (`--force` only when the user wants those edits dropped) |
 
-`PAGE` is a file holding exactly what a `getConfluencePage` call returns (JSON with `id`, `version`, `title` and an HTML `body`): the guards rely on the ID and version. Move page bodies between your Confluence tools and files without copying them through the chat: if your harness can run a script that calls tools (pi's `codemode`), fetch into a file and publish from a file that way, and make sure the script reads the whole file (`publish.json` has its `length`).
+`PAGE` is a file holding exactly what a `getConfluencePage` call returns (JSON with `id`, `version`, `title` and an HTML `body`): the guards rely on the ID and version. Move page bodies between your Confluence tools and files without copying them through the chat when you can: if your harness can run a script that calls tools (pi's `codemode`), fetch into a file and publish from a file that way, and make sure the script reads the whole file (`publish.json` has its `length`). If the body has to go through the chat (Claude Code), copy it exactly: write the fetched JSON unchanged, read body files with `cat` (a file viewer may add line numbers or cut long lines), and keep images out of the body with `images = "placeholder"` (below), since an inlined image is one line of hundreds of thousands of characters.
 
 ## The outline
 
@@ -102,7 +102,7 @@ Someone editing the diagram in Confluence shows up as a higher `revision`: updat
 [confluence]
 apps = []                         # apps the site has, e.g. ["macro-pack", "drawio"] (the confluence preset sets both); without them diagrams fall back to code blocks
 toc = true                        # start with Confluence's TOC macro when the report has a TOC
-images = "macro-pack"             # or "placeholder": a panel naming the file to upload
+images = "macro-pack"             # or "placeholder": a panel naming the file to upload (use it when bodies go through the chat)
 image_max_kb = 300
 ```
 

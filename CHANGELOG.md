@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2 (2026-11-13)
+
+- **`install.sh` prints the exact line to put `~/.local/bin` on your PATH**, says so when the dependency warm-up fails, and `--venv` refuses a Python older than 3.11 instead of building a broken environment.
+- **Confluence from Claude Code:** `references/confluence.md` says how to move page bodies through the chat safely, and to keep images out of them with `images = "placeholder"`.
+
 ## 0.7.1 (2026-11-13)
 
 - **The review server starts without a reverse DNS lookup.** Python's HTTP server looks up the machine's full host name when it binds, which can stall start-up for many seconds on a slow resolver (a VPN, a CI runner). rapport never used the name.

@@ -103,11 +103,20 @@ if [ $BIN -eq 1 ]; then
     echo "skip  $binlink exists and is not a symlink" >&2
   else
     echo "link  $binlink → $REPO/bin/$NAME"; run ln -sf "$REPO/bin/$NAME" "$binlink"
-    case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) echo "note: add ~/.local/bin to your PATH" ;; esac
+    case ":$PATH:" in
+      *":$HOME/.local/bin:"*) ;;
+      *) rc="~/.zshrc"; case "${SHELL:-}" in */bash) rc="~/.bashrc" ;; esac
+         echo "note: ~/.local/bin isn't on your PATH yet. Add it, then open a new terminal (and restart your agent):"
+         echo "      echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> $rc" ;;
+    esac
   fi
 fi
 
 if [ $VENV -eq 1 ]; then
+  if ! command -v uv >/dev/null 2>&1 && ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+    echo "venv  needs uv or Python 3.11+; python3 here is $(python3 -V 2>&1). Install uv: https://docs.astral.sh/uv/" >&2
+    exit 1
+  fi
   if command -v uv >/dev/null 2>&1; then
     echo "venv  $REPO/.venv (uv)"
     [ -x "$REPO/.venv/bin/python" ] || run uv venv --quiet "$REPO/.venv"   # `uv run` may have made it
@@ -124,10 +133,15 @@ if [ -x "$REPO/.venv/bin/python" ]; then
 elif command -v uv >/dev/null 2>&1; then
   echo "deps  via uv (inline script metadata); warming the cache…"
   if [ $DRY -eq 0 ]; then
-    echo "      ready: $("$REPO/bin/$NAME" --version)"
+    if v=$("$REPO/bin/$NAME" --version 2>&1); then
+      echo "      ready: $v"
+    else
+      echo "      warm-up failed (offline or behind a proxy?); rapport fetches its dependencies on first use:" >&2
+      echo "$v" | tail -3 | sed 's/^/      /' >&2
+    fi
   fi
 else
-  echo "deps  uv not found. Either install uv (https://docs.astral.sh/uv/), run ./install.sh --venv,"
-  echo "      or: python3 -m pip install -r $REPO/requirements.txt"
+  echo "deps  uv not found: install it (brew install uv, or https://docs.astral.sh/uv/) and run this again."
+  echo "      Without uv: Python 3.11+ and ./install.sh --venv."
 fi
 echo "done. Agents load the skill from SKILL.md; you can try: $REPO/bin/$NAME gallery --out /tmp/rapport-gallery"
