@@ -584,7 +584,8 @@ def detach(report_dir: Path, args) -> int:
                 webbrowser.open(info["url"])
             return 0
         time.sleep(0.15)
-    raise RapportError(f"server did not come up within 20 s; see {log}")
+    tail = log.read_text(encoding="utf-8", errors="replace").strip().split("\n")[-8:]
+    raise RapportError(f"server did not come up within 20 s; the end of {log}:\n  " + "\n  ".join(tail))
 
 
 def _is_rapport_server(pid) -> bool:

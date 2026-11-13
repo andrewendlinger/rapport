@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **`serve --detach`** shows the end of the server log when the server doesn't come up, instead of only its path.
+
 ## 0.7.0 (2026-11-12)
 
 - **`preset = "confluence"`** sets up a report that becomes a Confluence page in one line: the `atlassian` theme, the Macro Pack and draw.io apps, and a writing rule plus a `lint` check against inline math, which Confluence can't show.

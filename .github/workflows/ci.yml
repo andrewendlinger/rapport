@@ -34,7 +34,8 @@ jobs:
       - name: Install and run as a new user would
         run: |
           rm -rf .venv
-          export HOME=$(mktemp -d) PATH="$HOME/.local/bin:$PATH"
+          export HOME="$(mktemp -d)"
+          export PATH="$HOME/.local/bin:$PATH"
           ./install.sh --bin
           d=$(mktemp -d)
           rapport init "$d/r" --title "Smoke"
