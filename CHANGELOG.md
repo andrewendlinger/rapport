@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- **`serve --detach`** shows the end of the server log when the server doesn't come up, instead of only its path.
+- **The review server starts without a reverse DNS lookup.** Python's HTTP server looks up the machine's full host name when it binds, which can stall start-up for many seconds on a slow resolver (a VPN, a CI runner). rapport never used the name.
+- **`serve --detach`** that doesn't come up now says where the server is stuck, from its log.
 
 ## 0.7.0 (2026-11-12)
 

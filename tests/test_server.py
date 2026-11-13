@@ -219,6 +219,19 @@ def test_rerunning_serve_resets_the_idle_clock(server, capsys):
     assert "already serving" in capsys.readouterr().out and app.active > 0
 
 
+def test_binding_skips_the_reverse_dns_lookup(report, monkeypatch):
+    """http.server looks up the host's FQDN on bind, which can hang on a slow resolver."""
+    import socket
+    def no_dns(*_):
+        raise AssertionError("getfqdn called")
+    monkeypatch.setattr(socket, "getfqdn", no_dns)
+    httpd = serve.bind("127.0.0.1", 0, False, report("x\n"))
+    try:
+        assert httpd.server_name == "127.0.0.1" and httpd.server_port == httpd.server_address[1]
+    finally:
+        httpd.server_close()
+
+
 def test_detach_status_stop(report, isolated_home):
     d = report("x\n")
     env = {**os.environ, "HOME": str(isolated_home), "XDG_CONFIG_HOME": str(isolated_home / ".config")}

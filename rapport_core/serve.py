@@ -23,6 +23,7 @@ import json
 import os
 import secrets
 import signal
+import socketserver
 import subprocess
 import sys
 import threading
@@ -434,13 +435,21 @@ def running(report_dir: Path) -> dict | None:
     return None
 
 
+class Server(ThreadingHTTPServer):
+    def server_bind(self):
+        """HTTPServer.server_bind also looks up the host's fully qualified name, a reverse DNS
+        query that can stall start-up for many seconds on a slow resolver. Nothing uses it."""
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
+
+
 def bind(host: str, port: int, pinned: bool, report_dir: Path, handler=None) -> ThreadingHTTPServer:
     """Preferred port, then the next few, then an OS-assigned one (unless pinned)."""
     tries = [port] if pinned else list(range(port, port + PORT_TRIES)) + [0]
     last = None
     for p in tries:
         try:
-            return ThreadingHTTPServer((host, p), handler or Handler)
+            return Server((host, p), handler or Handler)
         except OSError as e:
             last = e
             if e.errno == errno.EPERM or (e.errno == errno.EACCES and p == 0):
