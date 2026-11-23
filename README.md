@@ -57,6 +57,17 @@ In rapport, everything is a config line or a module. You rarely write either you
 
 Config is a few lines of TOML, for all your reports, one project or a single report. A module is a small folder with a template, and it can even remember what readers clicked while the report is served. The primer shows both: [making it yours](examples/primer/report.md#making-it-yours) and [adding a module](examples/primer/report.md#adding-a-module).
 
+### All your reports in one place
+
+Reports live with the projects they're about. To list them all, most recent first, tell rapport where to look in `~/.config/rapport/config.toml`:
+
+```toml
+[hub]
+roots = ["~/work"]
+```
+
+`rapport list` prints them; `rapport hub` serves a page of them, labelled by project, status, tags, open comments and Confluence page, with buttons to serve, stop or open each one. [More](references/config.md#the-hub)
+
 ### Confluence
 
 If your reports end up in Confluence, add this line to `~/.config/rapport/config.toml`:

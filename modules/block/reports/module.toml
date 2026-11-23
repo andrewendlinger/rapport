@@ -1,0 +1,45 @@
+name = "reports"
+kind = "block"
+summary = "An index of every report under [hub] roots, most recent first, with labels; served, it re-serves, stops or opens them. `rapport hub` serves a page of it."
+body = "none"
+enabled = false           # it starts servers and opens folders: on where you want it ([modules.reports] enabled = true)
+
+[config.empty]
+type = "string"
+default = "No reports found. Set [hub] roots in your user config to the folders that hold them."
+doc = "Shown when no report is found."
+
+[feedback]
+unit = "none"
+
+[config.quiet_status]
+type = "list"
+items = "string"
+default = ["draft"]
+doc = "Front matter statuses not worth a label, since most reports have them (case doesn't matter)."
+
+[config.cards]
+type = "list"
+items = "string"
+default = ["serving", "today", "week"]
+doc = "Groups shown as cards with a large thumbnail; the others are a list with a small one. Groups: serving, today, week, month, older."
+
+[config.thumbnails]
+type = "bool"
+default = true
+doc = "Show a thumbnail per report: the figure its front matter names as `thumbnail` (an image file, or text from the figure's source line such as its caption), else the first figure in its report.html, else a screenshot of the page (`screenshots`), else a tile with the project's initials."
+
+[config.thumbnail_px]
+type = "int"
+default = 480
+doc = "Longest side of a thumbnail in pixels, when a local tool (sips, ImageMagick) can shrink it."
+
+[config.screenshots]
+type = "bool"
+default = true
+doc = "For a report without figures, a screenshot of the top of its page (needs Chrome, Chromium or Edge; about 2 s per report, then cached). false: the initials tile."
+
+[config.browser]
+type = "string"
+default = ""
+doc = "The browser for screenshots, a command or path; empty: Chrome, Chromium or Edge, wherever found."

@@ -81,6 +81,7 @@ Core looks these modules up by name, so an override of one keeps working only if
 - `heading`, `paragraph`, `list`, `code`, `table`, `image`, `blockquote`, `hr`, `html`, `footnotes`: the elements. `rapport_core/parse.py` maps each Markdown token to one of these names, so a module with another name never renders an element. Beyond that, a leading `# Title` is lifted out of the content into `meta.title`, a paragraph holding only an image renders as `image`, and `html` renders raw HTML when `[report] raw_html` is on.
 - `code`: `ctx.highlight()` marks it as used, so any module that highlights code gets `code`'s CSS, including the Pygments rules from the `css(ctx)` hook in its prepare.py; `rapport brief` prints its params. A `code` module that doesn't inherit that prepare.py loses the Pygments rules.
 - `heading`, `toc` for the Confluence export: a leading level-1 `heading` becomes the page title, and the page starts with Confluence's TOC macro when `toc` is in any layout region (`[confluence] toc`).
+- `reports`: `rapport hub` writes a report.md that uses it and switches it on, and switches off `feedback` and `header`'s `show_version` there.
 - `feedback`: `rapport feedback` and `rapport brief` read its `actions` from `[modules.feedback]`, and the CLI reads and writes its state in `.rapport/feedback.json` (the one state file not under `.rapport/modules/`). Its routes are `/api/m/feedback/`, and `commit_feedback` and the state folder's `.gitignore` name its file.
 
 ## module.toml
@@ -151,6 +152,8 @@ Jinja2 with autoescape on. The renderer injects `data-rp-id`, `data-rp-module`, 
 | `ctx.icon(value, tint)` | a symbol as text, or an image file inlined; tinted in the text colour when `tint`, or when it's an SVG drawn in `currentColor` |
 | `ctx.href(url)` | a link target, or `""` (with a build error) for `javascript:` and other unsafe links |
 | `ctx.file(src)` | a local file's `Path` (relative to the report; watched by `serve`); raises for remote or missing files |
+| `ctx.watch(path)` | rebuild the served page when this file changes, though it lies outside the report (or doesn't exist yet): for modules that show data kept elsewhere, as `reports` does |
+| `ctx.report_dir` | the report folder, a `Path` |
 | `ctx.tool(command)`, `ctx.run(argv, input=…, env=…)`, `ctx.cached(key, produce)` | find a local program (None if missing, or when `RAPPORT_TOOLS=off`), run it, cache its output across builds (`~/.cache/rapport/render`) |
 | `ctx.warn(message)` | a build warning on the current block's line, e.g. "tool missing, showing the source" |
 | `today`, `generator` | build date, rapport version |
@@ -306,7 +309,7 @@ Region names are lowercase letters, digits and hyphens, and can't be `top`, `sid
 
 A module can extend the review server: a sign-off button, a poll, a checklist whose ticks persist. Its `server.py` registers routes. `rapport serve` answers them under `/api/m/<name>/`, keeps the module's state, and tells the page when that state changes. `rapport modules new <name> --server` scaffolds a working example.
 
-The built-in reader feedback is one such module: `modules/feature/feedback/server.py` (with its `script.js`) is the reference implementation. An override of `feedback` inherits both halves and replaces whichever it copies in.
+The built-in reader feedback is one such module: `modules/feature/feedback/server.py` (with its `script.js`) is the reference implementation. A block can have one too: `reports` (`modules/block/reports/`) acts on the reports it lists. Routes are answered on every served page where the module is switched on, whether or not the page uses it, so a module whose routes do more than keep state (`reports` starts servers) should be off by default (`enabled = false` in its manifest); `modules check` and `gallery` switch it on to render its example. An override of `feedback` inherits both halves and replaces whichever it copies in.
 
 ```toml
 # rapport-modules/signoff/module.toml

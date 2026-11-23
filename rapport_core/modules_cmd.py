@@ -766,7 +766,9 @@ def render_example(mod: Module, cfg) -> list[str]:
         for assets in mod.asset_dirs:
             shutil.copytree(assets, d / "assets", dirs_exist_ok=True)
         try:
-            res = build(d, [_roots_set(cfg)], write=False, strict=True)
+            # a module that is off by default is checked as it is used: switched on
+            res = build(d, [_roots_set(cfg), f"modules.{mod.name}.enabled=true", "hub.roots=[]"],
+                        write=False, strict=True)        # an example never lists the user's own reports
         except RapportError as e:
             return [f"error: example: {e}"]
         out = [f"error: example: {e.format('example.md')}" for e in res.errors]
@@ -823,16 +825,21 @@ def gallery(args, cfg) -> int:
     parts = ['+++', 'title = "Module gallery"',
              'subtitle = "Every installed module, rendered from its example.md. Regenerate with `rapport gallery`."',
              'kicker = "rapport"', '+++', '']
+    sets = [_roots_set(cfg), "hub.roots=[]"]       # the reports example shows its empty state, not your reports
     for kind in ("block", "inline", "element"):
         for mod in reg.by_kind(kind):
-            if not mod.example_path or not cfg.enabled(mod.name):
+            if not mod.example_path:
                 continue
+            if not cfg.enabled(mod.name):       # off by default (the user didn't switch it off): show it anyway
+                if cfg.origin(f"modules.{mod.name}.enabled") != "defaults":
+                    continue
+                sets.append(f"modules.{mod.name}.enabled=true")
             parts += [f"## {mod.name}", "", f":badge[{kind}] {mod.summary}", ""]
             parts += [mod.example_path.read_text(encoding="utf-8").rstrip(), ""]
             for assets in mod.asset_dirs:
                 shutil.copytree(assets, out / "assets", dirs_exist_ok=True)
     (out / "report.md").write_text("\n".join(parts) + "\n", encoding="utf-8")
-    res = build(out, [_roots_set(cfg)] + (args.set or []))
+    res = build(out, sets + (args.set or []))
     for m in res.messages():
         print(m)
     print(f"gallery: {res.config.output_path}\nreview it: rapport serve {out}")

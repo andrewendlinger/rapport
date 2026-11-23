@@ -1,0 +1,1 @@
+<table><tbody><tr><th>Report</th><th>Project</th><th>Folder</th><th>Last active</th></tr>{% for r in rows %}<tr><td>{% if r.confluence and r.confluence.url %}<a href="{{ r.confluence.url }}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}</td><td>{{ r.project }}</td><td><code>{{ r.where }}</code></td><td>{{ (r.active or "")[:10] }}</td></tr>{% endfor %}</tbody></table>

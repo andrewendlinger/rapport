@@ -257,3 +257,27 @@ Sharing report.html: the built file contains no local paths and none of the revi
 enabled = true
 command = "~/code/rapport/bin/rapport"
 ```
+
+## The hub
+
+`rapport list` and `rapport hub` show every report under some folders, most recently active first (the latest edit of report.md, serve, comment or resolve). Set the folders in your user config:
+
+```toml
+[hub]
+roots = ["~/work", "~/code"]     # searched up to 8 levels down; hidden folders and node_modules are skipped
+exclude = ["~/code/rapport"]     # optional: folders to leave out
+# dir = "~/reports-hub"          # optional: where the hub's own report lives (default ~/.local/state/rapport/hub)
+
+[confluence]
+site = "https://example.atlassian.net/wiki"    # optional: links to each report's recorded Confluence page
+```
+
+A report is any folder holding `.rapport/`. Each one is labelled with its project (the git repository it's in, else the folder holding its `reports/` folder), the `status` and `tags` from its front matter, `serving` while a server runs, its open comments, its version and its Confluence page.
+
+- `rapport list [folders…] [--json]` prints them; folders given replace `[hub] roots`.
+- `rapport hub` serves the list in the background and opens it (port 4840 the first time, then the one it had); `--stop`, `--status`, `--no-open`, `--foreground`. Reports are grouped into Serving, Today, This week, This month and Older (the last two closed); the first three are cards with a large thumbnail, the rest a list with a small one (`[modules.reports] cards`). A report being served has a pulsing green edge, and one recorded on Confluence a blue folded corner that links to the page. Hover one for its buttons: serve it (the page opens in a new tab), stop it, or show its folder; its time shows the version and last edit and serve. It filters as you type, and a click on a project or tag filters by it. A `draft` status isn't shown, since most reports have it (`[modules.reports] quiet_status`).
+- **Thumbnails** are the figure a report's front matter names as `thumbnail`, an image file (`"assets/overview.png"`) or text from a figure's `:::` line (a `.drawio` file name, a mermaid caption); else its first figure, taken from its report.html; else a screenshot of the top of its page (Chrome, Chromium or Edge, about 2 s once; `[modules.reports] screenshots = false` to skip); else a tile with its project's initials. Raster images are shrunk with `sips` (macOS) or ImageMagick and cached in `~/.cache/rapport/render`; without either, only small ones are shown. `[modules.reports] thumbnails = false` switches them off.
+- The page rebuilds by itself when a listed report is edited, served, stopped, commented on or published. A new report shows up after **Rescan**.
+- The hub is a report: `report.md` in its folder holds `::: reports` and switches off feedback. Edit it freely (a note, another title); it's written only when missing. The same block works in any report with `[modules.reports] enabled = true` in its front matter. Not in your user config: the block's routes (serve, stop, show a folder) would then answer on every served report.
+- Like any served report, the hub stops after `serve.idle_hours` without use; `rapport hub` starts it again, or opens it when it runs.
+- Re-served reports run with the hub's environment. Start the hub from a shell that has your `RAPPORT_CONFIG_DIR`, or they lose your user config.

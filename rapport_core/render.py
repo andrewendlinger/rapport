@@ -264,6 +264,15 @@ class Context:
         `serve`. ValueError (a build error) if it's remote or missing."""
         return self._r.local_file(src)
 
+    def watch(self, path) -> None:
+        """Rebuild a served page when this file changes, though the report doesn't include it:
+        for modules that show data kept elsewhere (the `reports` index). Missing files count too."""
+        self._r.asset_paths.add((self._r.report_dir / Path(path).expanduser()).resolve())
+
+    @property
+    def report_dir(self) -> Path:
+        return self._r.report_dir
+
     def tool(self, command: str) -> str | None:
         """Path of a command on PATH (or given as a path), or None if it isn't installed."""
         return external.tool(command)

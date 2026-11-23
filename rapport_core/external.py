@@ -12,6 +12,7 @@ import hashlib
 import os
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 from . import __version__
@@ -38,7 +39,7 @@ def cached(key: str, produce) -> bytes:
         return path.read_bytes()
     data = produce()
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
+    tmp = path.with_suffix(f".{os.getpid()}-{threading.get_ident()}.tmp")    # two builds may produce it at once
     tmp.write_bytes(data)
     tmp.replace(path)
     return data

@@ -1,0 +1,47 @@
+<div class="rp-reports" data-rp-ui{{ ' data-pending="1"' if pending }}>
+  <div class="rp-reports-bar">
+    <input class="rp-reports-filter" type="search" placeholder="Filter by title, project, tag, folder…" aria-label="Filter reports">
+    <span class="rp-reports-count">{{ rows|length }} report{{ "" if rows|length == 1 else "s" }}</span>
+    <button type="button" class="rp-reports-btn" data-act="refresh" title="Look for new reports">Rescan</button>
+  </div>
+  {% if not rows %}<p class="rp-reports-empty">{{ cfg.empty }}</p>{% endif %}
+  {% for g in groups %}
+  <details class="rp-reports-group is-{{ g.id }}" data-group="{{ g.id }}" data-open="{{ 1 if g.open else 0 }}"{{ " open" if g.open }}>
+    <summary><span class="rp-reports-group-label">{{ g.label }}</span><span class="rp-reports-group-count">{{ g.rows|length }}</span></summary>
+    <ol class="rp-reports-list{{ ' is-cards' if g.cards }}">
+    {% for r in g.rows %}
+      <li class="rp-reports-row{{ ' is-card' if g.cards }}{{ ' is-serving' if r.serving }}" data-dir="{{ r.dir }}" data-search="{{ r.search }}">
+        {% if cfg.thumbnails %}
+        {% if r.serving %}<a class="rp-reports-thumb" href="{{ r.serving }}" target="_blank" rel="noopener" tabindex="-1">{% else %}<div class="rp-reports-thumb">{% endif %}
+          {% if r.thumb %}<img src="{{ r.thumb }}" alt="" loading="lazy">{% else %}<span class="rp-reports-tile is-c{{ r.tile }}">{{ r.initials }}</span>{% endif %}
+        {% if r.serving %}</a>{% else %}</div>{% endif %}
+        {% if r.confluence %}{% set cf_tip = "On Confluence" ~ (" (v" ~ r.confluence.version ~ ")" if r.confluence.version else "") %}{% if r.confluence.url %}<a class="rp-reports-cf" href="{{ r.confluence.url }}" target="_blank" rel="noopener" title="{{ cf_tip }}: open the page" aria-label="{{ cf_tip }}"></a>{% else %}<span class="rp-reports-cf" title="{{ cf_tip }}, page {{ r.confluence.page_id }} (set [confluence] site for a link)"></span>{% endif %}{% endif %}
+        {% endif %}
+        <div class="rp-reports-main">
+          <div class="rp-reports-head">
+            {% if r.serving %}<a class="rp-reports-title" href="{{ r.serving }}" target="_blank" rel="noopener" title="{{ r.where }}">{{ r.title }}</a>{% else %}<span class="rp-reports-title" title="{{ r.where }}">{{ r.title }}</span>{% endif %}
+            {% if r.open_feedback %}<span class="rp-reports-label is-open" title="open comments">{{ r.open_feedback }} open</span>{% endif %}
+            {% if r.confluence and not cfg.thumbnails %}{% if r.confluence.url %}<a class="rp-reports-label is-confluence" href="{{ r.confluence.url }}" target="_blank" rel="noopener" title="the recorded Confluence page">Confluence</a>{% else %}<span class="rp-reports-label is-confluence" title="Confluence page {{ r.confluence.page_id }}; set [confluence] site for a link">Confluence</span>{% endif %}{% endif %}
+            {% if r.error %}<span class="rp-reports-label is-error" title="{{ r.error }}">unreadable</span>{% endif %}
+          </div>
+          <div class="rp-reports-sub">
+            <button type="button" class="rp-reports-project" data-filter="{{ r.project }}" title="Show {{ r.project }} only">{{ r.project }}</button>
+            {% if r.status_shown and not g.cards %}<span class="rp-reports-status">{{ r.status_shown }}</span>{% endif %}
+            {% for t in r.tags %}<button type="button" class="rp-reports-tag" data-filter="{{ t }}">#{{ t }}</button>{% endfor %}
+            {% if r.subtitle and not g.cards %}<span class="rp-reports-subtitle">{{ r.subtitle }}</span>{% endif %}
+            {% if g.cards %}<span class="rp-reports-when" title="{{ r.info }}">{{ r.when }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="rp-reports-side">
+          {% if not g.cards %}<span class="rp-reports-when" title="{{ r.info }}">{{ r.when }}</span>{% endif %}
+          <span class="rp-reports-actions">
+            {% if r.serving %}<button type="button" class="rp-reports-btn" data-act="stop">Stop</button>{% else %}<button type="button" class="rp-reports-btn" data-act="serve">Serve</button>{% endif %}
+            <button type="button" class="rp-reports-btn" data-act="reveal" title="{{ r.where }}">Folder</button>
+          </span>
+        </div>
+      </li>
+    {% endfor %}
+    </ol>
+  </details>
+  {% endfor %}
+</div>

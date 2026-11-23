@@ -19,6 +19,8 @@ export RAPPORT_CONFIG=~/dotfiles/rapport.toml       # or: the config file itself
 
 `rapport config paths` shows what's in effect.
 
+`rapport hub` keeps its page, a report of its own, in `$XDG_STATE_HOME/rapport/hub/` (`~/.local/state/rapport/hub/`), or in `[hub] dir`.
+
 ## Review state
 
 A report's review state lives in `.rapport/` next to report.md:

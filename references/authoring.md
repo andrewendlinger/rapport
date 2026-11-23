@@ -26,6 +26,8 @@ date = "2026-10-20"
 status = "draft"        # shown as a pill in the header
 kicker = "Incident"     # small label above the title
 icon = "🧪"             # before the title: an emoji, or an image in the report folder
+tags = ["cache", "latency"]            # labels in `rapport list` and the hub
+thumbnail = "assets/p99.png"           # its picture in the hub: an image, or text from a figure's ::: line
 
 [theme]                 # any config section works here, for this report only
 name = "paper"

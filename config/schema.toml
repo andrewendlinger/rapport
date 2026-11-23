@@ -199,12 +199,39 @@ type = "number"
 default = 3
 doc = "Stop the review server after this many hours (at least a minute) without an edit of the report's files, a page load or a comment; 0 never stops it. An open page's polling doesn't count, nor do edits of modules or config, which rebuild every server."
 
+# ── hub: `rapport list`, `rapport hub` and the reports module ─────────────
+[hub.roots]
+type = "list"
+items = "string"
+path = true
+default = []
+doc = "Folders searched for reports (any folder holding .rapport/), relative to the file that lists them; `~` works. Put them in your user config. Hidden folders and node_modules are skipped."
+
+[hub.exclude]
+type = "list"
+items = "string"
+path = true
+merge = "append"
+default = []
+doc = "Folders under the roots whose reports are left out (rapport's own examples, a sandbox)."
+
+[hub.dir]
+type = "string"
+path = true
+default = ""
+doc = "The hub's own report folder (`rapport hub`); empty: $XDG_STATE_HOME/rapport/hub, else ~/.local/state/rapport/hub."
+
 # ── confluence: `rapport export confluence` (see references/confluence.md) ──
 [confluence.apps]
 type = "list"
 items = "string"
 default = []
 doc = "Confluence apps the target site has, which the export may use: \"macro-pack\" (Mermaid, PlantUML, LaTeX, HTML, embedded images) and \"drawio\" (native draw.io embeds). Without them, diagrams fall back to code blocks."
+
+[confluence.site]
+type = "string"
+default = ""
+doc = "The Confluence site's base URL with /wiki (https://example.atlassian.net/wiki), for links to a report's recorded page in `rapport list` and the hub."
 
 [confluence.toc]
 type = "bool"

@@ -5,8 +5,9 @@ description: >-
   they select text to comment or flag it (Delete, AI slop, Too verbose, Unclear…). Use when the user asks for a
   report, write-up, analysis, summary or "HTML report"; says "apply/revise the rapport feedback" or "I left
   comments"; has a folder with report.md and .rapport/; wants a report published to Confluence or a Confluence
-  page's edits brought back; asks to digest their writing log; wants report style or behaviour changed
-  (rapport.toml); or wants a new report module (side-by-side code, collapsible sections, gifs…).
+  page's edits brought back; asks to digest their writing log; wants to find, list or re-serve earlier reports
+  (rapport list, rapport hub); wants report style or behaviour changed (rapport.toml); or wants a new report
+  module (side-by-side code, collapsible sections, gifs…).
 license: MIT
 compatibility: Needs uv (or Python 3.11+ with requirements.txt installed) on macOS or Linux.
 ---
@@ -19,7 +20,7 @@ A report is a folder: `report.md` (Markdown plus `:::` modules, written by you) 
 
 ## Writing a report
 
-1. **Scaffold.** `rapport init <dir> --title "…"`; suggest `reports/<slug>/` in the repo unless the user names a place. Images and gifs go in `<dir>/assets/`. Replace the placeholder line "Lead with the conclusions."
+1. **Scaffold.** `rapport init <dir> --title "…"`; suggest `reports/<slug>/` in the repo unless the user names a place. Images and gifs go in `<dir>/assets/`. Replace the placeholder line "Lead with the conclusions." Fill `tags` in the front matter with two to four short lowercase topics, reusing the user's existing ones where they fit (`rapport list` shows them as `#tag`): the hub labels and filters by them. Once the figures are in, set `thumbnail` to the one that tells the report at a glance (usually the main result, not a process diagram): an image path (`thumbnail = "assets/snr.png"`), or for a diagram rendered from a block, text from its `:::` line (its file name or caption). The hub shows it on the report's card; without it, it takes the first figure.
 2. **Read the brief.** `rapport brief -C <dir>`, in full: this user's writing rules, the syntax, and every installed module with params and an example (Confluence-style elements, diagrams and math among them). Copy the examples; don't guess syntax.
 3. **Write `report.md`** (syntax: `references/authoring.md`). What breaks builds:
    - Params are **one single-line TOML inline table at the end of the `:::` line**: `::: callout Heads up {tone = "warning"}`.
@@ -43,6 +44,10 @@ For "apply the feedback", "I left comments", "revise": start here, skip the step
 5. Tell the user briefly what changed, and the new version. Run `rapport serve --detach -C <dir>` and give the URL: the server may have stopped while the reader was away.
 
 Feedback given in chat gets the same treatment. To record it: `rapport feedback add "<comment>" --quote "<exact text>" [--action verbose]`, or `--block <id>` for an image, table or code block (ids: the `blocks` keys in `.rapport/blocks.json`, written by `build` and `serve`). With neither it's about the whole report.
+
+## Finding earlier reports
+
+`rapport list` (`--json` for every field) lists the user's reports under `[hub] roots`, most recently active first, with folder, tags, open comments and the URL of any that is serving. Use it when the user names an earlier report by topic. To bring one back: `rapport serve --detach -C <dir>`. `rapport hub` serves the same list as a page with serve, stop and folder buttons. Without roots it says how to set them: ask the user which folders hold their reports, then add `[hub] roots` to their user config (`rapport config paths` shows where).
 
 ## Publishing to Confluence
 

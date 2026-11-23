@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0 (2026-11-23)
+
+- **`rapport list` and `rapport hub`** find every report under the folders in `[hub] roots` and list them, most recently active first: title, project, status, `tags` from the front matter, version, open comments, last serve and the recorded Confluence page (linked with `[confluence] site`). `rapport hub` serves that list as a page that serves, stops or opens a report with one click; it is a report like any other, kept in `~/.local/state/rapport/hub`.
+- **Thumbnails in the hub:** the figure a report's front matter names as `thumbnail` (an image, or text from a diagram's `:::` line), else its first figure, else a screenshot of its page; on cards for the reports served or active this week, small in the list below.
+- **The `reports` block** is that list, for any report: `::: reports`. It is off by default, because served it can start servers; switch it on with `[modules.reports] enabled = true` in that report's front matter (in user config it would answer on every served report).
+- **`rapport init` adds `tags = []`** to the front matter, for the labels in the hub.
+- **Modules:** `ctx.watch(path)` rebuilds a served page when a file outside the report changes, and `ctx.report_dir` is the report folder. `modules check` and `gallery` switch on a module that is off by default.
+- **Render cache:** two builds writing the same cached diagram or image at once no longer fail.
+
 ## 0.7.2 (2026-11-13)
 
 - **`install.sh` prints the exact line to put `~/.local/bin` on your PATH**, says so when the dependency warm-up fails, and `--venv` refuses a Python older than 3.11 instead of building a broken environment.

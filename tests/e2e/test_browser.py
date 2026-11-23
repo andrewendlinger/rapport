@@ -823,3 +823,44 @@ def test_tabs_switch_reveal_and_print(report, page):
     assert second.is_visible()
     page.emulate_media(media="print")
     assert page.get_by_text("First panel text.").is_visible() and second.is_visible()
+
+
+def test_reports_hub_filters_serves_and_stops(report, isolated_home, page):
+    """The reports module on a served page: tag filter, Serve opens the report in a new tab,
+    and the page reloads into the new state; Stop brings it back."""
+    from rapport_core.serve import running, stop
+    for name, front in (("one", 'title = "Belt run"\ntags = ["sms"]'), ("two", 'title = "Disk usage"')):
+        d = isolated_home / "work" / "proj" / "reports" / name
+        d.mkdir(parents=True)
+        (d / "report.md").write_text(f"+++\n{front}\n+++\nText.\n", encoding="utf-8")
+        (d / ".rapport").mkdir()
+    one = isolated_home / "work" / "proj" / "reports" / "one"
+    (isolated_home / ".config" / "rapport").mkdir(parents=True, exist_ok=True)
+    (isolated_home / ".config" / "rapport" / "config.toml").write_text(
+        '[hub]\nroots = ["~/work"]\n\n[serve]\nport = 0\n', encoding="utf-8")
+    hub = report("+++\n[modules.feedback]\nenabled = false\n[modules.reports]\nenabled = true\n+++\n"
+                 "::: reports\n:::\n", name="hub")
+    httpd, app, url, cfg = make_server(hub, port=0, pinned=True)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    threading.Thread(target=app.watch, args=(0.1,), daemon=True).start()
+    try:
+        page.goto(url)
+        rows = page.locator(".rp-reports-row:visible")
+        assert rows.count() == 2
+        page.locator(".rp-reports-tag", has_text="#sms").click()
+        assert rows.count() == 1 and page.locator(".rp-reports-count").inner_text() == "1 of 2 reports"
+        rows.first.hover()                      # the buttons show on hover
+        with page.context.expect_page() as tab:
+            rows.first.locator("[data-act=serve]").click()
+        tab.value.wait_for_url("http://127.0.0.1:*/", timeout=20000)
+        assert running(one)["url"] == tab.value.url
+        page.wait_for_selector(".rp-reports-row.is-serving", timeout=10000)      # rebuilt and reloaded
+        assert page.locator(".rp-reports-filter").input_value() == "sms"         # the filter survives it
+        page.locator(".rp-reports-row.is-serving").hover()
+        page.locator(".rp-reports-row.is-serving [data-act=stop]").click()
+        page.wait_for_selector(".rp-reports-row.is-serving", state="detached", timeout=10000)
+        assert running(one) is None
+    finally:
+        stop(one)
+        httpd.shutdown()
+        httpd.server_close()

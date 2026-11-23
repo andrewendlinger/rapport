@@ -18,6 +18,7 @@ REPORT_TEMPLATE = """+++
 title = {title}
 subtitle = ""
 date = "{today}"
+tags = []
 +++
 
 ## Summary
@@ -102,6 +103,35 @@ def cmd_serve(args) -> int:
     if args.detach:
         return serve.detach(d, args)
     return serve.run(d, args)
+
+
+def cmd_list(args) -> int:
+    from . import reports
+    try:
+        cfg = load_cfg(args)
+    except RapportError:            # a report here with broken front matter: listing doesn't need its config
+        cfg = config_mod.load(Path.cwd(), None, getattr(args, "set", None))
+    return reports.list_cmd(cfg, args.roots, args.json)
+
+
+def cmd_hub(args) -> int:
+    """`rapport hub`: serve the hub report (every report under [hub] roots) in the background."""
+    from . import reports, serve
+    cfg = config_mod.load(Path.home(), None, getattr(args, "set", None))     # the hub is yours: user config
+    d = reports.hub_dir(cfg)
+    if args.stop:
+        return serve.stop(d)
+    if args.status:
+        return serve.status(d)
+    reports.ensure_hub(cfg)
+    live = serve.running(d)
+    if live and not args.foreground:        # it runs already: hand out the page again
+        print(f"→ {live['url']}")
+        if not args.no_open:
+            import webbrowser
+            webbrowser.open(live["url"])
+        return 0
+    return serve.run(d, args) if args.foreground else serve.detach(d, args)
 
 
 def cmd_feedback(args) -> int:
@@ -317,6 +347,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--detach", action="store_true", help="run in the background and print the URL")
     p.add_argument("--status", action="store_true", help="show the running server for this report")
     p.add_argument("--stop", action="store_true", help="stop the background server")
+
+    p = add("list", cmd_list, "list every report under [hub] roots (or the folders given), most recent first",
+            dir_arg=False)
+    p.add_argument("roots", nargs="*", help="folders to search instead of [hub] roots")
+    p.add_argument("--json", action="store_true", help="machine-readable output")
+
+    p = add("hub", cmd_hub, "serve a page listing every report under [hub] roots, to re-serve, stop or open them",
+            dir_arg=False)
+    p.add_argument("--port", type=int, help="pin a port (fails if busy)")
+    p.add_argument("--no-open", action="store_true", help="don't open a browser")
+    p.add_argument("--foreground", action="store_true", help="run in this terminal instead of the background")
+    p.add_argument("--status", action="store_true", help="show the running hub")
+    p.add_argument("--stop", action="store_true", help="stop the hub")
 
     p = add("export", cmd_export, "export the report for another tool: rapport export confluence [dir]", dir_arg=False)
     p.add_argument("target", choices=["confluence"])
