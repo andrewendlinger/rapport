@@ -116,33 +116,8 @@ def cmd_list(args) -> int:
 
 def cmd_hub(args) -> int:
     """`rapport hub`: serve the hub report (every report under [hub] roots) in the background."""
-    from . import reports, serve
-    cfg = config_mod.load(Path.home(), None, getattr(args, "set", None))     # the hub is yours: user config
-    d = reports.hub_dir(cfg)
-    if args.stop:
-        return serve.stop(d)
-    if args.status:
-        return serve.status(d)
-    reports.ensure_hub(cfg)
-    port = args.port or reports.hub_port(cfg)
-    live = serve.running(d)
-    if live and live.get("port") != port:  # [hub] port changed: move it there, a hub has one address
-        print(f"moving the hub from port {live.get('port')} to {port}")
-        if serve.stop(d):
-            return 1
-        live = None
-    if live and not args.foreground:        # it runs already: hand out the page again
-        print(f"→ {live['url']}")
-        if not args.no_open:
-            import webbrowser
-            webbrowser.open(live["url"])
-        return 0
-    host = cfg.get("serve.host", "127.0.0.1")
-    if not live and serve.port_taken(host, port):
-        raise RapportError(f"port {port} is held by another program (`lsof -nP -iTCP:{port} -sTCP:LISTEN` "
-                           "shows which); stop it, or set another [hub] port in your user config")
-    args.port = port                        # pinned: the hub never moves to the next port
-    return serve.run(d, args) if args.foreground else serve.detach(d, args)
+    from . import hub
+    return hub.cli(args)
 
 
 def cmd_feedback(args) -> int:
@@ -369,8 +344,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--port", type=int, help="use this port instead of [hub] port (fails if busy)")
     p.add_argument("--no-open", action="store_true", help="don't open a browser")
     p.add_argument("--foreground", action="store_true", help="run in this terminal instead of the background")
-    p.add_argument("--status", action="store_true", help="show the running hub")
+    p.add_argument("--status", action="store_true", help="show the running hub and its login agent")
     p.add_argument("--stop", action="store_true", help="stop the hub")
+    p.add_argument("--install", action="store_true",
+                   help="keep the hub running: a macOS login agent starts it at login and after a crash")
+    p.add_argument("--uninstall", action="store_true", help="remove the login agent and stop the hub")
+    p.add_argument("--agent", action="store_true", help=argparse.SUPPRESS)     # what the login agent runs
 
     p = add("export", cmd_export, "export the report for another tool: rapport export confluence [dir]", dir_arg=False)
     p.add_argument("target", choices=["confluence"])
