@@ -38,9 +38,6 @@ show_version = false
 
 [modules.reports]
 enabled = true
-
-[serve]
-port = 4840
 +++
 
 ::: reports
@@ -326,6 +323,16 @@ def list_cmd(cfg, roots: list[str], as_json: bool) -> int:
 
 
 # ── `rapport hub` ──────────────────────────────────────────────────────────── #
+def hub_port(cfg) -> int:
+    """[hub] port. Config validation only warns about a wrong type; here it is an error, since
+    a fallback port would move the hub away from its bookmarks and installed apps."""
+    port = cfg.get("hub.port", 4840)
+    if isinstance(port, bool) or not isinstance(port, int) or not 0 < port < 65536:
+        raise RapportError(f"[hub] port = {port!r} isn't a port number (1-65535); fix it in your user config "
+                           "(`rapport config paths` shows where)")
+    return port
+
+
 def ensure_hub(cfg) -> Path:
     """The hub's report folder, with its report.md written the first time. The file is
     yours after that: edit it (more text, another title, a second `::: reports`) freely."""

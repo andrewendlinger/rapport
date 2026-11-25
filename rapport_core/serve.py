@@ -443,6 +443,16 @@ class Server(ThreadingHTTPServer):
         self.server_name, self.server_port = self.server_address[:2]
 
 
+def port_taken(host: str, port: int) -> bool:
+    """Would binding this port fail because something listens on it? Binds as the server does
+    (SO_REUSEADDR: a closed server's TIME_WAIT doesn't count), then lets go."""
+    try:
+        Server((host, port), Handler).server_close()
+    except OSError as e:
+        return e.errno == errno.EADDRINUSE
+    return False
+
+
 def bind(host: str, port: int, pinned: bool, report_dir: Path, handler=None) -> ThreadingHTTPServer:
     """Preferred port, then the next few, then an OS-assigned one (unless pinned)."""
     tries = [port] if pinned else list(range(port, port + PORT_TRIES)) + [0]

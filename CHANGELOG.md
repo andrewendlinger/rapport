@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **The hub keeps one address:** `[hub] port` (default 4840), so a bookmark or an installed web app keeps working. When another program holds the port, `rapport hub` stops with a hint to find it instead of moving to the next port, and a changed `[hub] port` moves a running hub. The `[serve] port` in an older hub's `report.md` no longer counts; delete it if you like.
+
 ## 0.8.0 (2026-11-23)
 
 - **`rapport list` and `rapport hub`** find every report under the folders in `[hub] roots` and list them, most recently active first: title, project, status, `tags` from the front matter, version, open comments, last serve and the recorded Confluence page (linked with `[confluence] site`). `rapport hub` serves that list as a page that serves, stops or opens a report with one click; it is a report like any other, kept in `~/.local/state/rapport/hub`.

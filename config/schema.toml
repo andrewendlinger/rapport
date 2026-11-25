@@ -221,6 +221,11 @@ path = true
 default = ""
 doc = "The hub's own report folder (`rapport hub`); empty: $XDG_STATE_HOME/rapport/hub, else ~/.local/state/rapport/hub."
 
+[hub.port]
+type = "int"
+default = 4840
+doc = "The hub's port (`rapport hub`). Always this one, so a bookmark or an installed web app keeps working: the hub fails when another program holds it instead of moving to the next port."
+
 # ── confluence: `rapport export confluence` (see references/confluence.md) ──
 [confluence.apps]
 type = "list"

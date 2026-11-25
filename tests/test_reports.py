@@ -12,7 +12,7 @@ from conftest import write
 from rapport_core import reports
 from rapport_core.build import build
 from rapport_core.cli import main
-from rapport_core.serve import make_server, read_server, running, stop
+from rapport_core.serve import make_server, port_taken, read_server, running, stop
 from test_server import req
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -384,3 +384,62 @@ def test_hub_status_and_stop_when_not_running(isolated_home, capsys):
     write(isolated_home / ".config/rapport/config.toml", '[hub]\ndir = "~/hub"\n')
     assert main(["hub", "--status"]) == 1 and "no server running" in capsys.readouterr().out
     assert main(["hub", "--stop"]) == 0
+
+
+@pytest.fixture
+def hub_start(isolated_home, monkeypatch):
+    """`rapport hub` with the background start recorded instead of run; nothing listens."""
+    from rapport_core import serve
+    started = []
+    monkeypatch.setattr(serve, "detach", lambda d, args: started.append(args.port) or 0)
+    monkeypatch.setattr(serve, "running", lambda d: None)
+    monkeypatch.setattr(serve, "port_taken", lambda host, port: False)
+    write(isolated_home / ".config/rapport/config.toml", '[hub]\ndir = "~/hub"\n')
+    return isolated_home, started
+
+
+def test_hub_takes_its_port_and_no_other(hub_start):
+    home, started = hub_start
+    assert main(["hub", "--no-open"]) == 0 and started == [4840]
+    assert "[serve]" not in (home / "hub/report.md").read_text()      # the port is [hub] port's alone
+    # an older hub page pinned 4840 in its front matter, and server.json remembers 4841
+    write(home / "hub/report.md", reports.HUB_TEMPLATE.replace("+++\n\n", "\n[serve]\nport = 4840\n+++\n\n"))
+    write(home / "hub/.rapport/server.json", '{"port": 4841}')
+    write(home / ".config/rapport/config.toml", '[hub]\ndir = "~/hub"\nport = 6969\n')
+    assert main(["hub", "--no-open"]) == 0 and started[-1] == 6969
+    assert main(["hub", "--no-open", "--port", "7000"]) == 0 and started[-1] == 7000
+
+
+def test_hub_moves_to_a_changed_port(hub_start, monkeypatch, capsys):
+    from rapport_core import serve
+    home, started = hub_start
+    stopped = []
+    monkeypatch.setattr(serve, "running", lambda d: None if stopped else {"port": 4840, "url": "http://127.0.0.1:4840/"})
+    monkeypatch.setattr(serve, "stop", lambda d: stopped.append(d) or 0)
+    assert main(["hub", "--no-open", "--port", "4840"]) == 0 and started == [] and not stopped    # it runs there
+    write(home / ".config/rapport/config.toml", '[hub]\ndir = "~/hub"\nport = 6969\n')
+    assert main(["hub", "--no-open"]) == 0 and stopped and started == [6969]
+    assert "moving the hub from port 4840 to 6969" in capsys.readouterr().out
+
+
+def test_hub_refuses_a_port_another_program_holds(hub_start, monkeypatch, capsys):
+    import socket
+    from rapport_core import serve
+    home, started = hub_start
+    monkeypatch.setattr(serve, "port_taken", port_taken)
+    with socket.socket() as other:
+        other.bind(("127.0.0.1", 0))
+        other.listen()
+        port = other.getsockname()[1]
+        write(home / ".config/rapport/config.toml", f'[hub]\ndir = "~/hub"\nport = {port}\n')
+        assert main(["hub", "--no-open"]) == 2 and started == []
+    err = capsys.readouterr().err
+    assert f"port {port} is held by another program" in err and f"lsof -nP -iTCP:{port}" in err
+    assert not port_taken("127.0.0.1", port)          # free again once it lets go
+
+
+def test_hub_port_must_be_a_port(hub_start, capsys):
+    home, started = hub_start
+    write(home / ".config/rapport/config.toml", '[hub]\ndir = "~/hub"\nport = "6969"\n')
+    assert main(["hub", "--no-open"]) == 2 and started == []
+    assert "[hub] port = '6969' isn't a port number" in capsys.readouterr().err
