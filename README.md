@@ -66,7 +66,7 @@ Reports live with the projects they're about. To list them all, most recent firs
 roots = ["~/work"]
 ```
 
-`rapport list` prints them; `rapport hub` serves a page of them, labelled by project, status, tags, open comments and Confluence page, with buttons to serve, stop or open each one. [More](references/config.md#the-hub)
+`rapport list` prints them; `rapport hub` serves a page of them, labelled by project, status, tags, open comments and Confluence page, with buttons to serve, stop or open each one. On macOS, `rapport hub --install` keeps it running, so you can install it as an app from your browser and always find it there. [More](references/config.md#the-hub)
 
 ### Confluence
 

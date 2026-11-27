@@ -47,7 +47,7 @@ Feedback given in chat gets the same treatment. To record it: `rapport feedback 
 
 ## Finding earlier reports
 
-`rapport list` (`--json` for every field) lists the user's reports under `[hub] roots`, most recently active first, with folder, tags, open comments and the URL of any that is serving. Use it when the user names an earlier report by topic. To bring one back: `rapport serve --detach -C <dir>`. `rapport hub` serves the same list as a page with serve, stop and folder buttons. Without roots it says how to set them: ask the user which folders hold their reports, then add `[hub] roots` to their user config (`rapport config paths` shows where).
+`rapport list` (`--json` for every field) lists the user's reports under `[hub] roots`, most recently active first, with folder, tags, open comments and the URL of any that is serving. Use it when the user names an earlier report by topic. To bring one back: `rapport serve --detach -C <dir>`. `rapport hub` serves the same list as a page with serve, stop and folder buttons; run it when the user asks to see their reports. On macOS, `rapport hub --status` says whether its login agent is installed; if not, offer once to run `rapport hub --install`, which keeps the hub running (it starts at login and restarts after a crash) so it works as an installed web app. Mention macOS's "Background item added" notice, which names the user's shell. Without roots it says how to set them: ask the user which folders hold their reports, then add `[hub] roots` to their user config (`rapport config paths` shows where).
 
 ## Publishing to Confluence
 
