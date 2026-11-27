@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 (2026-11-27)
 
 - **The hub keeps one address:** `[hub] port` (default 4840), so a bookmark or an installed web app keeps working. When another program holds the port, `rapport hub` stops with a hint to find it instead of moving to the next port, and a changed `[hub] port` moves a running hub. The `[serve] port` in an older hub's `report.md` no longer counts; delete it if you like.
 - **`rapport hub --install` keeps the hub running** on macOS: a login agent starts it at login and again after a crash, with no idle stop, through your login shell so your config applies. `rapport hub` then starts a stopped hub through it; `--status` shows it, `--uninstall` removes it.
