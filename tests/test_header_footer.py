@@ -1,3 +1,4 @@
+import base64
 import re
 
 from conftest import GIF, write
@@ -154,3 +155,24 @@ def test_default_header_and_footer_are_unchanged(report):
     html = build(report("x\n")).html
     body = html.split("</style>")[1]
     assert "rp-logo" not in body and "rp-entry" not in body and "rp-icon" not in body
+
+
+def test_favicon_is_rapports_own_unless_set(report, isolated_home):
+    def icons(html):
+        return re.findall(r'<link rel="(icon|apple-touch-icon)" href="(data:image/png;base64,[^"]+)">', html)
+    d = report("Body.\n")
+    res = build(d)
+    assert res.ok, res.messages()
+    (a, b) = icons(res.html)
+    assert (a[0], b[0]) == ("icon", "apple-touch-icon") and a[1] == b[1]      # one PNG, for both
+    d = report('+++\n[modules.page]\nfavicon = "assets/mine.png"\n+++\nBody.\n', {"reports/r/assets/mine.png": GIF})
+    res = build(d)
+    assert res.ok, res.messages()
+    assert icons(res.html)[0][1] == "data:image/png;base64," + base64.b64encode(GIF).decode()   # relative to the report
+    d = report('+++\n[modules.page]\nfavicon = ""\n+++\nBody.\n')
+    res = build(d)
+    assert res.ok and "rel=\"icon\"" not in res.html and "apple-touch-icon" not in res.html
+    d = report('+++\n[modules.page]\nfavicon = "📊"\n+++\nBody.\n')
+    res = build(d)
+    assert "rel=\"icon\"" not in res.html
+    assert any("modules.page.favicon = '📊'" in m for m in res.messages())

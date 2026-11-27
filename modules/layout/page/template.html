@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="{{ generator }}">
 <title>{{ meta.title }}</title>
-<style>
+{% if favicon %}<link rel="icon" href="{{ favicon }}">
+<link rel="apple-touch-icon" href="{{ favicon }}">
+{% endif %}<style>
 {{ css }}
 </style>
 </head>

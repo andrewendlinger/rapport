@@ -166,7 +166,7 @@ def test_leading_h1_is_the_title_in_both_renders(report):
 def test_each_image_counts_once_toward_the_budget(report):
     d = report("![Demo](assets/demo.gif)\n", {"reports/r/assets/demo.gif": GIF})
     budget = len(GIF) * 1.5 / 1048576
-    res = build(d, [f"report.max_inline_mb={budget}"])
+    res = build(d, [f"report.max_inline_mb={budget}", "modules.page.favicon="])    # the icon counts too
     assert res.ok, res.messages()
 
 

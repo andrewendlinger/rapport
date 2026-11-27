@@ -158,8 +158,12 @@ text = "© 2026 ACME"
 id = "conf"
 icon = "🔒"
 text = "Confidential"
+
+[modules.page]
+favicon = "brand/icon.png"          # tab, bookmark and installed-app icon; default "rapport", "" for none
 ```
 
+- **The favicon** is rapport's own unless you set one. Give a PNG of at least 180 px: Safari's File → Add to Dock takes it as the app icon and ignores SVG.
 - **An icon** is an emoji or any other symbol, or an image file (svg, png, jpg, gif, webp, avif). It's a file when it ends in one of those extensions.
 - **A one-colour icon follows the text colour**, so it stays visible in dark mode. An SVG that draws in `currentColor` (as Lucide, Feather, Tabler and Heroicons do) is tinted automatically. `tint = true` tints any image, and `tint = false` keeps an image's own colours.
 - **Entries add up across layers**: the user config's entries come first, then the project's, then the report's. Give an entry an `id` to change it or remove it (`enabled = false`) from a nearer layer, like feedback actions.

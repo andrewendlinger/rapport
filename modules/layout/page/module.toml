@@ -4,3 +4,9 @@ summary = "The HTML shell: head, regions (top / side / bottom), content column."
 
 [feedback]
 unit = "none"
+
+[config.favicon]
+type = "string"
+default = "rapport"
+path = "icon"
+doc = "The page's icon in the browser tab, a bookmark and an installed web app: `rapport` for rapport's own, an image file relative to the config file that sets it (PNG, at least 180 px: Safari's Add to Dock ignores SVG), or empty for none. Inlined into the page."
