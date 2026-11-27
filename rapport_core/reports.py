@@ -57,7 +57,11 @@ def excludes_of(cfg) -> list[Path]:
 
 def hub_dir(cfg) -> Path:
     """[hub] dir, or $XDG_STATE_HOME/rapport/hub (~/.local/state/rapport/hub)."""
-    configured = cfg.get("hub.dir", "")
+    return hub_dir_from(cfg.get("hub.dir", ""))
+
+
+def hub_dir_from(configured: str) -> Path:
+    """The hub folder for a [hub] dir value (already resolved by config), empty for the default."""
     if configured:
         return Path(configured)
     base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")

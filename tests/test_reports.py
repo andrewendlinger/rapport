@@ -443,3 +443,22 @@ def test_hub_port_must_be_a_port(hub_start, capsys):
     write(home / ".config/rapport/config.toml", '[hub]\ndir = "~/hub"\nport = "6969"\n')
     assert main(["hub", "--no-open"]) == 2 and started == []
     assert "[hub] port = '6969' isn't a port number" in capsys.readouterr().err
+
+
+def test_hub_page_says_how_to_keep_it(isolated_home, monkeypatch):
+    from rapport_core import hub
+    write(isolated_home / ".config/rapport/config.toml", '[hub]\ndir = "~/hub"\n')
+    page = make(isolated_home, "hub", HUB, "::: reports\n:::\n")
+    other = make(isolated_home, "elsewhere", HUB, "::: reports\n:::\n")
+    monkeypatch.setattr(hub, "macos", lambda: True)
+    monkeypatch.setattr(hub, "installed", lambda: False)
+    assert build(page).ok
+    html = (page / "report.html").read_text()
+    assert '<div class="rp-reports-keep" hidden>' in html               # the script shows it in a tab
+    assert "rapport hub --install" in html and "Add to Dock" in html
+    monkeypatch.setattr(hub, "installed", lambda: True)
+    build(page)
+    html = (page / "report.html").read_text()
+    assert "Add to Dock" in html and "rapport hub --install" not in html
+    build(other)
+    assert 'class="rp-reports-keep"' not in (other / "report.html").read_text()    # the hub's page only

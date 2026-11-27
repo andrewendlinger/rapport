@@ -297,10 +297,21 @@ def groups(found, cards=()):
     return out
 
 
+def keep_hint(ctx):
+    """On the hub's own page: how to keep it at hand (an installed web app, a bookmark) and, on
+    macOS without the login agent, how to keep it running. The script shows it only on a served
+    page in a browser tab, until dismissed; an installed app window never shows it."""
+    hub_dir_from = getattr(reports, "hub_dir_from", None)   # a hub running since before an upgrade: no hint
+    if not hub_dir_from or Path(ctx.report_dir).resolve() != hub_dir_from(deep_get(ctx.config, "hub.dir", "") or "").resolve():
+        return None
+    from rapport_core import hub
+    return {"install": hub.macos() and not hub.installed()}
+
+
 def prepare(node, ctx):
     found = rows(ctx)
     return {"rows": found, "groups": groups(found, ctx.module("reports").get("cards", [])),
-            "pending": any(r["thumb_pending"] for r in found)}
+            "pending": any(r["thumb_pending"] for r in found), "keep": keep_hint(ctx)}
 
 
 def confluence(node, ctx, cf):

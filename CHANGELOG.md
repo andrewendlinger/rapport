@@ -5,6 +5,7 @@
 - **The hub keeps one address:** `[hub] port` (default 4840), so a bookmark or an installed web app keeps working. When another program holds the port, `rapport hub` stops with a hint to find it instead of moving to the next port, and a changed `[hub] port` moves a running hub. The `[serve] port` in an older hub's `report.md` no longer counts; delete it if you like.
 - **`rapport hub --install` keeps the hub running** on macOS: a login agent starts it at login and again after a crash, with no idle stop, through your login shell so your config applies. `rapport hub` then starts a stopped hub through it; `--status` shows it, `--uninstall` removes it.
 - **Pages have an icon:** rapport's own in the browser tab, a bookmark and an installed web app (also as Safari's touch icon), about 4 KB. `[modules.page] favicon` sets another image, or `""` none.
+- **The hub says how to keep it:** in a browser tab, a dismissible line suggests installing it as an app or bookmarking it, and on macOS without the login agent, `rapport hub --install`. An installed app window never shows it.
 
 ## 0.8.0 (2026-11-23)
 

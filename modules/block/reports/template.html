@@ -4,6 +4,15 @@
     <span class="rp-reports-count">{{ rows|length }} report{{ "" if rows|length == 1 else "s" }}</span>
     <button type="button" class="rp-reports-btn" data-act="refresh" title="Look for new reports">Rescan</button>
   </div>
+  {% if keep %}
+  <div class="rp-reports-keep" hidden>
+    <div>
+      {% if keep.install %}<p><b>Keep this page running:</b> ask your agent to run <code>rapport hub --install</code>. It then starts with your Mac.</p>{% endif %}
+      <p><b>Keep it at hand:</b> install it as an app from your browser's menu (Safari: File → Add to Dock), or bookmark it.</p>
+    </div>
+    <button type="button" class="rp-reports-btn rp-reports-keep-close">Got it</button>
+  </div>
+  {% endif %}
   {% if not rows %}<p class="rp-reports-empty">{{ cfg.empty }}</p>{% endif %}
   {% for g in groups %}
   <details class="rp-reports-group is-{{ g.id }}" data-group="{{ g.id }}" data-open="{{ 1 if g.open else 0 }}"{{ " open" if g.open }}>

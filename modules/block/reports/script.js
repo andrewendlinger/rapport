@@ -82,6 +82,22 @@ Rapport.module("reports", {
       });
     }
 
+    // the hub's "how to keep it" hint: in a browser tab only (an installed app window has done it), until dismissed
+    var keep = el.querySelector(".rp-reports-keep"), KEEP = "rp-reports-keep";
+    function inApp() {
+      return !!window.matchMedia && !window.matchMedia("(display-mode: browser)").matches;
+    }
+    function dismissed() {
+      try { return localStorage.getItem(KEEP) === "dismissed"; } catch (e) { return false; }
+    }
+    if (keep && served && !inApp() && !dismissed()) keep.hidden = false;
+    if (keep) {
+      keep.querySelector(".rp-reports-keep-close").addEventListener("click", function () {
+        keep.hidden = true;
+        try { localStorage.setItem(KEEP, "dismissed"); } catch (e) { /* this view only */ }
+      });
+    }
+
     if (served) el.classList.add("is-live");
     if (served && el.hasAttribute("data-pending")) {      // screenshots left over: build again for them
       setTimeout(function () { Rapport.api("reports", "/refresh", { body: {} }).then(null, function () {}); }, 1500);

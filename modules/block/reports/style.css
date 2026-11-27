@@ -5,6 +5,12 @@
 .rp-reports-filter:focus{outline:2px solid var(--rp-accent-soft);border-color:var(--rp-accent)}
 .rp-reports-count{font-size:calc(13rem/17);color:var(--rp-ink-faint);white-space:nowrap}
 .rp-reports-empty{color:var(--rp-ink-soft)}
+.rp-reports-keep{display:flex;gap:14px;align-items:center;margin:0 0 18px;padding:10px 14px;border:1px solid var(--rp-line);
+  border-radius:var(--rp-radius);background:var(--rp-accent-soft);font-size:calc(14rem/17);color:var(--rp-ink-soft)}
+.rp-reports-keep[hidden]{display:none}
+.rp-reports-keep>div{flex:1;min-width:0}
+.rp-reports-keep p{margin:0}
+.rp-reports-keep p+p{margin-top:4px}
 
 .rp-reports-group{margin:0 0 14px}
 .rp-reports-group>summary{display:flex;align-items:baseline;gap:8px;cursor:pointer;list-style:none;padding:4px 0 6px;

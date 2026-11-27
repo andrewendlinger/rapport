@@ -50,6 +50,9 @@ def _cached_shell():
     return None
 
 
+CHOSEN = {}         # the executable the browser fixture launched (None: Playwright's own)
+
+
 @pytest.fixture(scope="module")
 def browser():
     with playwright_sync.sync_playwright() as p:
@@ -66,6 +69,7 @@ def browser():
                 last = e
         if b is None:
             pytest.skip(f"no usable Chromium: {last}")
+        CHOSEN["exe"] = exe
         yield b
         b.close()
 
@@ -862,5 +866,41 @@ def test_reports_hub_filters_serves_and_stops(report, isolated_home, page):
         assert running(one) is None
     finally:
         stop(one)
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_hub_says_how_to_keep_it_in_a_tab_not_in_its_app(report, isolated_home, page, browser, tmp_path):
+    """The hint on the hub's page: shown in a browser tab until dismissed, never in an app
+    window (Chrome's --app, display-mode: standalone, as an installed web app)."""
+    (isolated_home / ".config" / "rapport").mkdir(parents=True, exist_ok=True)
+    (isolated_home / ".config" / "rapport" / "config.toml").write_text(
+        '[hub]\nroots = ["~/work"]\ndir = "~/proj/reports/hub"\n', encoding="utf-8")
+    hub = report("+++\n[modules.feedback]\nenabled = false\n[modules.reports]\nenabled = true\n+++\n"
+                 "::: reports\n:::\n", name="hub")
+    httpd, app, url, cfg = make_server(hub, port=0, pinned=True)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        page.goto(url)
+        hint = page.locator(".rp-reports-keep")
+        assert hint.is_visible() and "Add to Dock" in hint.inner_text()
+        hint.locator("button", has_text="Got it").click()
+        assert not hint.is_visible()
+        page.reload()
+        page.wait_for_selector(".rp-reports-filter")
+        assert not hint.is_visible()                        # dismissed stays dismissed
+        try:
+            ctx = browser.browser_type.launch_persistent_context(
+                str(tmp_path / "profile"), executable_path=CHOSEN.get("exe"), args=[f"--app={url}"])
+        except Exception as e:  # noqa: BLE001 - a headless shell has no app windows
+            pytest.skip(f"no app windows in this browser: {e}")
+        try:
+            app_page = ctx.pages[0] if ctx.pages else ctx.wait_for_event("page")
+            app_page.wait_for_selector(".rp-reports-filter")
+            assert app_page.evaluate("matchMedia('(display-mode: standalone)').matches")
+            assert not app_page.locator(".rp-reports-keep").is_visible()
+        finally:
+            ctx.close()
+    finally:
         httpd.shutdown()
         httpd.server_close()
